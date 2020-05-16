@@ -1,14 +1,14 @@
 <p align="center"><a href="#" target="_blank" rel="noopener noreferrer"><img width="150" src="https://avatars2.githubusercontent.com/u/61224306?s=150&v=4" alt="Blackprint"></a></p>
 
-<h1 align="center">Blackprint Interpreter for JavaScript</h1>
-<p align="center">Run exported Blackprint on any JavaScript environment.</p>
+<h1 align="center">Blackprint Interpreter for PHP</h1>
+<p align="center">Run exported Blackprint on PHP environment.</p>
 
 <p align="center">
     <a href='https://patreon.com/stefansarya'><img src='https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fstefansarya%2Fpledges&style=for-the-badge' height='20'></a>
     <a href='https://github.com/Blackprint/Blackprint/blob/master/LICENSE'><img src='https://img.shields.io/badge/License-MIT-brightgreen.svg' height='20'></a>
 </p>
 
-This repository is designed to be used together with [Blackprint](https://github.com/Blackprint/Blackprint) as the interpreter on the Browser, Node.js, Deno, and other JavaScript environment.
+This repository is designed to be used together with [Blackprint](https://github.com/Blackprint/Blackprint) as the interpreter on PHP environment.
 
 ## Documentation
 > Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
@@ -19,7 +19,7 @@ $instance = new Blackprint\Interpreter();
 ```
 
 ### Register new node interface type
-An interface is designed for communicate the node handler with the JavaScript's runtime API. Because there're no HTML to be controlled, this would be little different with the browser version.
+An interface is designed for communicate the node handler with the PHP's runtime API. Because there're no HTML to be controlled, this would be little different with the browser version.
 
 ```php
 $instance->registerInterface('logger', function($self, $bind){
