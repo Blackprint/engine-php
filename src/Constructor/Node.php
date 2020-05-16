@@ -10,7 +10,7 @@ Temp::$list = ['inputs', 'outputs', 'properties'];
 class Node extends CustomEvents{
 	public $title = 'No title';
 	public $type = 'default';
-	public $importing = false;
+	public $importing = true;
 	public $handle;
 	public $namespace;
 	public $_requesting = false;

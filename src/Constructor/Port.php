@@ -109,16 +109,16 @@ class Port{
 			$type = gettype($val);
 
 			// Data type validation
-			if($this->type === Types\Numbers && ($type !== 'integer' || $type !== 'double' || $type !== 'float'))
-				Types\Numbers($val);
-			elseif($this->type === Types\Booleans && $type !== 'boolean')
-				Types\Booleans($val);
-			elseif($this->type === Types\Strings && $type !== 'string')
-				Types\Strings($val);
-			elseif($this->type === Types\Arrays && $type !== 'array')
-				Types\Arrays($val);
+			if($this->type === Types\Numbers)
+				($type !== 'integer' || $type !== 'double' || $type !== 'float') && Types\Numbers($val);
+			elseif($this->type === Types\Booleans)
+				$type !== 'boolean' && Types\Booleans($val);
+			elseif($this->type === Types\Strings)
+				$type !== 'string' && Types\Strings($val);
+			elseif($this->type === Types\Arrays)
+				$type !== 'array' && Types\Arrays($val);
 			else
-				throw new \Exception("Can't validate type");
+				throw new \Exception("Can't validate type of ID: {$this->type}");
 
 			$this->value = &$val;
 			$this->sync();

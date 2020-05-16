@@ -1,9 +1,9 @@
 <?php
 namespace Blackprint;
 require_once __DIR__."/Types.php";
-require_once __DIR__."/PortValidator.php";
-require_once __DIR__."/PortListener.php";
 require_once __DIR__."/PortDefault.php";
+require_once __DIR__."/PortListener.php";
+require_once __DIR__."/PortValidator.php";
 
 class Interpreter{
 	public $nodes = [];
@@ -80,7 +80,7 @@ class Interpreter{
 							$cable = new Constructor\Cable($linkPortA, $linkPortB);
 							$linkPortA->cables[] = $linkPortB->cables[] = $cable;
 
-							$cable->_print();
+							// $cable->_print();
 						}
 					}
 				}
@@ -88,10 +88,8 @@ class Interpreter{
 		}
 
 		// Call handler init after creation processes was finished
-		foreach ($handlers as &$val) {
-			if(isset($val->init))
-				($val->init)();
-		}
+		foreach ($handlers as &$val)
+			isset($val->init) && ($val->init)();
 	}
 
 	public function settings($which, $val){

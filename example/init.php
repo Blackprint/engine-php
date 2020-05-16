@@ -22,7 +22,7 @@ $instance = new Interpreter;
 		$self->clicked = function($ev=null) use($self) {
 			colorLog("Interpreter: 'Trigger' button clicked, going to run the handler");
 
-			$self->handle->clicked && ($self->handle->clicked)($ev);
+			isset($self->handle->clicked) && ($self->handle->clicked)($ev);
 		};
 	});
 
@@ -30,11 +30,12 @@ $instance = new Interpreter;
 		$theValue = '';
 		$bind([
 			'options'=>[
-				'value'=> function ($val = null) use(&$theValue) {
+				'value'=> function ($val = null) use(&$theValue, $self) {
 					if($val === null)
 						return $theValue;
 
 					$theValue = $val;
+					isset($self->handle->changed) && ($self->handle->changed)($val, null);
 				}
 			]
 		]);
@@ -190,7 +191,7 @@ $instance = new Interpreter;
 		// handle = under Blackprint node flow control
 		$handle->outputs = [
 			'Changed'=> Types\Functions,
-			'Value'=> '', // Default to empty string
+			'Value'=> 'wer', // Default to empty string
 		];
 
 		// Bring value from imported node to handle output
@@ -203,7 +204,7 @@ $instance = new Interpreter;
 
 		// Proxy string value from: node.changed -> handle.changed -> outputs.Value
 		// And also call outputs.Changed() if connected to other node
-		$handle->changed = function($text, $ev){
+		$handle->changed = function($text, $ev) use($handle, $node) {
 			// This node still being imported
 			if($node->importing !== false)
 				return;
