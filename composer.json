@@ -1,0 +1,15 @@
+{
+	"name":"blackprint/interpreter-php",
+	"description": "PHP Interpreter for Blackprint",
+	"keywords": ["blackprint", "interpreter"],
+	"license":"MIT",
+	"require": {
+		"php": "^7.0",
+		"ext-json": "*"
+	},
+	"autoload": {
+		"psr-4": {
+			"Blackprint\\": "src/"
+		}
+	}
+}
