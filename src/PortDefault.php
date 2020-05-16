@@ -1,10 +1,10 @@
 <?php
 namespace Blackprint;
 
-const PortDefault = 2;
+const PortDefault = 1;
 function PortDefault($type, $val){
 	return [
-		'feature'=>2,
+		'feature'=>PortDefault,
 		'type'=>&$type,
 		'value'=>&$val
 	];

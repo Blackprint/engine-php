@@ -75,10 +75,12 @@ class Interpreter{
 							if($linkPortB === null)
 								throw new \Exception("Node port not found for $targetNode with name: $target[name]");
 
-							echo "\n{$current->title}.{$linkPortA->name} => {$linkPortB->name}.{$targetNode->title}";
+							// echo "\n{$current->title}.{$linkPortA->name} => {$linkPortB->name}.{$targetNode->title}";
 
 							$cable = new Constructor\Cable($linkPortA, $linkPortB);
 							$linkPortA->cables[] = $linkPortB->cables[] = $cable;
+
+							$cable->_print();
 						}
 					}
 				}

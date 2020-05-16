@@ -12,13 +12,22 @@ class Port{
 	public $value = null;
 	public $sync = false;
 	public $feature = null;
+	public $_call = null;
 
-	public function __construct(&$portName, &$type, &$def, &$which, &$node){
+	public function __construct(&$portName, &$type, &$def, &$which, &$node, &$feature){
 		$this->name = $portName;
 		$this->type = $type;
 		$this->default = $def;
 		$this->source = $which;
 		$this->node = &$node;
+
+		if($feature === false)
+			return;
+
+		$this->feature = &$feature['feature'];
+
+		if(isset($feature['func']))
+			$this->_call = &$feature['func'];
 	}
 
 	public function createLinker(){
@@ -29,8 +38,10 @@ class Port{
 				foreach ($cables as &$cable) {
 					$target = $cable->owner === $this ? $cable->target : $cable->owner;
 					if($target === null)
-						continue;$cable->_print();
-echo "\n0. {$this->name} -> {$target->name}";
+						continue;
+
+					$cable->_print();
+
 					$target->node->handle->inputs[$target->name]($this, $cable);
 				}
 			};
@@ -56,9 +67,14 @@ echo "\n0. {$this->name} -> {$target->name}";
 						// Request the data first
 						if($target->node->handle->request)
 							($target->node->handle->request)($target, $this->node);
-echo "\n1. {$this->name} -> {$target->name}";
+
+						echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
+
 						$this->node->_requesting = false;
-						return $target->value || $target->default;
+
+						if($target->value === null)
+							return $target->default;
+						return $target->value;
 					}
 
 					// Return multiple data as an array
@@ -72,26 +88,37 @@ echo "\n1. {$this->name} -> {$target->name}";
 						// Request the data first
 						if($target->node->handle->request)
 							$target->node->handle->request($target, $this->node);
-echo "\n2. {$this->name} -> {$target->name}";
-						$data[] = $target->value || $target->default;
+
+						echo "\n2. {$this->name} -> {$target->name} ({$target->value})";
+
+						if($target->value === null)
+							$data[] = $target->default;
+						else
+							$data[] = $target->value;
 					}
 
 					$this->node->_requesting = false;
 					return $data;
 				}
 
+				if($this->value === null)
+					return $this->default;
 				return $this->value;
 			}
 
+			$type = gettype($val);
+
 			// Data type validation
-			if($this->type === Types\Numbers)
-				$val = Types\Numbers($val);
-			elseif($this->type === Types\Booleans)
-				$val = Types\Booleans($val);
-			elseif($this->type === Types\Strings)
-				$val = Types\Strings($val);
-			elseif($this->type === Types\Arrays)
-				$val = Types\Arrays($val);
+			if($this->type === Types\Numbers && ($type !== 'integer' || $type !== 'double' || $type !== 'float'))
+				Types\Numbers($val);
+			elseif($this->type === Types\Booleans && $type !== 'boolean')
+				Types\Booleans($val);
+			elseif($this->type === Types\Strings && $type !== 'string')
+				Types\Strings($val);
+			elseif($this->type === Types\Arrays && $type !== 'array')
+				Types\Arrays($val);
+			else
+				throw new \Exception("Can't validate type");
 
 			$this->value = &$val;
 			$this->sync();

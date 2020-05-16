@@ -40,14 +40,25 @@ class Node extends CustomEvents{
 			foreach ($localPorts as $portName => &$port) {
 				$type = $port;
 				$def = null;
+				$feature = false;
 
 				if(is_callable($port)){
 					$def = $port;
 					$type = Types\Functions;
 				}
-				elseif(is_array($port) && isset($port['type']) && strpos($port['type'], '>?><') === 0){
-					$def = $port;
-					$type = Types\Arrays;
+				elseif(is_array($port)){
+					if(isset($port['type']) && strpos($port['type'], '>?><') === 0){
+						$type = &$port['type'];
+
+						if(isset($port['value']))
+							$def = &$port['value'];
+
+						$feature = $port;
+					}
+					else{
+						$def = $port;
+						$type = Types\Arrays;
+					}
 				}
 				elseif(is_string($port)){
 					if($type === Types\Numbers)
@@ -68,7 +79,7 @@ class Node extends CustomEvents{
 					}
 				}
 
-				$linkedPort = $this->{$which}[$portName] = new Port($portName, /* the types */ $type, $def, $which, $this);
+				$linkedPort = $this->{$which}[$portName] = new Port($portName, /* the types */ $type, $def, $which, $this, $feature);
 				if(is_callable($port) && $which !== 'outputs')
 					continue;
 
