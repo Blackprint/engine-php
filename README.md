@@ -68,7 +68,8 @@ $instance->createNode('math/multiply', /* [..options..] */);
 ```
 
 ### Example
-> Unfinished
+![fvQRA2wXt8](https://user-images.githubusercontent.com/11073373/82133948-eca50c80-981b-11ea-9e88-0fafd2841a41.png)
+
 This repository provide an example with the JSON too, and you can try it with PHP CLI:<br>
 
 ```sh
