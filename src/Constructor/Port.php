@@ -63,7 +63,7 @@ class Port{
 						if($target->node->handle->request)
 							($target->node->handle->request)($target, $this->node);
 
-						echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
+						// echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
 
 						$this->node->_requesting = false;
 

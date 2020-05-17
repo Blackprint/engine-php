@@ -89,7 +89,7 @@ class Interpreter{
 
 		// Call handler init after creation processes was finished
 		foreach ($handlers as &$val)
-			isset($val->init) && ($val->init)();
+			$val->init !== false && ($val->init)();
 	}
 
 	public function settings($which, $val){
@@ -108,7 +108,7 @@ class Interpreter{
 		return $got;
 	}
 
-	public function &createNode($namespace, $options=null, $handlers=null){
+	public function &createNode($namespace, $options=null, &$handlers=null){
 		$func = Utils::deepProperty($this->handler, explode('/', $namespace));
 		if($func === null)
 			throw new \Exception("Node handler for $namespace was not found, maybe .registerNode() haven't being called?");
@@ -136,6 +136,8 @@ class Interpreter{
 
 		$this->nodes[] = &$node;
 		$node->importing = false;
+
+		isset($handle->imported) && ($handle->imported)();
 
 		if($handlers !== null)
 			$handlers[] = $handle;

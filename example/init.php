@@ -155,9 +155,9 @@ $instance = new Interpreter;
 			})
 		];
 
-		$handle->init = function(){
+		$handle->init = function() use($handle, $node, $refreshLogger) {
 			// Let's show data after new cable was connected or disconnected
-			$node->on('cable.connect cable.disconnect', function() use($refreshLogger) {
+			$node->on('cable.connect cable.disconnect', function() use($refreshLogger, $handle) {
 				colorLog("A cable was changed on Logger, now refresing the input element");
 				$refreshLogger($handle->inputs['Any']());
 			});
@@ -193,9 +193,9 @@ $instance = new Interpreter;
 		];
 
 		// Bring value from imported node to handle output
-		$handle->imported = function(){
+		$handle->imported = function() use($handle, $node) {
 			if($node->options['value']())
-				colorLog("Saved options as outputs: {$node->options->value}");
+				colorLog("Saved options as outputs: {$node->options['value']()}");
 
 			$handle->outputs['Value']($node->options['value']());
 		};
