@@ -47,7 +47,7 @@ class Node extends CustomEvents{
 					$type = Types\Functions;
 				}
 				elseif(is_array($port)){
-					if(isset($port['type']) && strpos($port['type'], '>?><') === 0){
+					if($port['type'] === null || strpos($port['type'], '>?><') === 0){
 						$type = &$port['type'];
 
 						if(isset($port['value']))

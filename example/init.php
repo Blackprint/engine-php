@@ -138,18 +138,16 @@ $instance = new Interpreter;
 
 		$refreshLogger = function($val) use($node) {
 			if($val === null)
-				$node->log('null');
-			else if($val === undefined)
-				$node->log('undefined');
+				($node->log)('null');
 			else if(is_string($val) || is_numeric($val))
-				$node->log($val);
+				($node->log)($val);
 			else
-				$node->log(json_encode($val));
+				($node->log)(json_encode($val));
 		};
 
 		$handle->inputs = [
-			'Any'=> PortListener(function($port, $val) use($refreshLogger) {
-				colorLog("I connected to {$port->name}, port from {$port->node->title}, that have new value: $val");
+			'Any'=> PortListener(function($port, $val) use($refreshLogger, $handle) {
+				colorLog("I connected to {$port->name} (port {$port->node->title}), that have new value: $val");
 
 				// Let's take all data from all connected nodes
 				// Instead showing new single data-> val

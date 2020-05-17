@@ -37,9 +37,6 @@ class Port{
 				$cables = $this->cables;
 				foreach ($cables as &$cable) {
 					$target = $cable->owner === $this ? $cable->target : $cable->owner;
-					if($target === null)
-						continue;
-
 					$cable->_print();
 
 					$target->node->handle->inputs[$target->name]($this, $cable);
@@ -61,8 +58,6 @@ class Port{
 					// Return single data
 					if(count($this->cables) === 1){
 						$target = $this->cables[0]->owner === $this ? $this->cables[0]->$target : $this->cables[0]->owner;
-						if($target === null)
-							return;
 
 						// Request the data first
 						if($target->node->handle->request)
@@ -82,8 +77,6 @@ class Port{
 					$data = [];
 					foreach ($cables as &$cable) {
 						$target = $cable->owner === $this ? $cable->$target : $cable->owner;
-						if($target === null)
-							continue;
 
 						// Request the data first
 						if($target->node->handle->request)
@@ -129,11 +122,9 @@ class Port{
 		$cables = &$this->cables;
 		foreach ($cables as &$cable) {
 			$target = $cable->owner === $this ? $cable->target : $cable->owner;
-			if($target === null)
-				continue;
 
 			if($target->feature === \Blackprint\PortListener)
-				$target->_call($cable->owner === $this ? $cable->owner : $cable->target, $this->value);
+				($target->_call)($cable->owner === $this ? $cable->owner : $cable->target, $this->value);
 
 			if($target->node->_requesting === false && $target->node->handle->update !== false)
 				($target->node->handle->update)($cable);
