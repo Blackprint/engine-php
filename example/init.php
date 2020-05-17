@@ -224,15 +224,15 @@ $instance->importJSON('{"math/random":[{"id":0,"x":298,"y":73,"outputs":{"Out":[
 // Time to run something :)
 $button = $instance->getNodes('button/simple')[0];
 
-echo "\n>> I'm clicking the button";
+echo "\n\n>> I'm clicking the button";
 ($button->clicked)();
 
 $logger = $instance->getNodes('display/logger')[0];
-echo "\n>> I got the output value: ".($logger->log)();
+echo "\n\n>> I got the output value: ".($logger->log)();
 
-echo "\n>> I'm writing something to the input box";
+echo "\n\n>> I'm writing something to the input box";
 $input = $instance->getNodes('input/simple')[0];
 $input->options['value']('hello wrold');
 
 $logger = $instance->getNodes('display/logger')[0];
-echo "\n>> I got the output value: ".($logger->log)();
+echo "\n\n>> I got the output value: ".($logger->log)();

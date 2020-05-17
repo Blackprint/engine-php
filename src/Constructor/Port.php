@@ -37,7 +37,7 @@ class Port{
 				$cables = $this->cables;
 				foreach ($cables as &$cable) {
 					$target = $cable->owner === $this ? $cable->target : $cable->owner;
-					$cable->_print();
+					// $cable->_print();
 
 					$target->node->handle->inputs[$target->name]($this, $cable);
 				}
