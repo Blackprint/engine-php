@@ -82,7 +82,7 @@ class Port{
 						if($target->node->handle->request)
 							$target->node->handle->request($target, $this->node);
 
-						echo "\n2. {$this->name} -> {$target->name} ({$target->value})";
+						// echo "\n2. {$this->name} -> {$target->name} ({$target->value})";
 
 						if($target->value === null)
 							$data[] = $target->default;

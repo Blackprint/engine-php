@@ -45,11 +45,11 @@ $instance = new Interpreter;
 		$log = '...';
 		$bind([
 			'log'=> function ($val = null) use(&$log) {
-				if($val !== null)
-					return $val;
+				if($val === null)
+					return $log;
 
 				$log = $val;
-				echo "\nLogger:".$val;
+				colorLog("Logger: ".$val);
 			}
 		]);
 	});
@@ -228,11 +228,11 @@ echo "\n>> I'm clicking the button";
 ($button->clicked)();
 
 $logger = $instance->getNodes('display/logger')[0];
-echo "\n>> I got the output value:", ($logger->log)();
+echo "\n>> I got the output value: ".($logger->log)();
 
 echo "\n>> I'm writing something to the input box";
 $input = $instance->getNodes('input/simple')[0];
 $input->options['value']('hello wrold');
 
 $logger = $instance->getNodes('display/logger')[0];
-echo "\n>> I got the output value:", ($logger->log)();
+echo "\n>> I got the output value: ".($logger->log)();
