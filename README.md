@@ -24,12 +24,12 @@ An interface is designed for communicate the node handler with the PHP's runtime
 
 ```php
 <?php
-$instance->registerInterface('logger', function($self, $bind){
-    // `bind` is used for bind `self` property with a function
+$instance->registerInterface('logger', function($iface, $bind){
+    // `bind` is used for bind `iface` property with a function
     // Because PHP lack of getter and setter, implementation would be little different
 
     $myLog = '...';
-    bind({
+    bind([
         'log'=> function($val=null) use(&$myLog) {
             // Getter
             if($val === null)
@@ -39,13 +39,13 @@ $instance->registerInterface('logger', function($self, $bind){
             $myLog = $val;
             echo $val;
         }
-    });
+    ]);
 
-    // After that, you can get/set from `self` like a normal property
-    // self.log === '...';
+    // After that, you can get/set from `iface` like a normal property
+    // iface.log === '...';
 
-    // In the self object, it simillar with: https://github.com/Blackprint/Blackprint
-    $self->clickMe = function(){...};
+    // In the iface object, it simillar with: https://github.com/Blackprint/Blackprint
+    $iface->clickMe = function(){/*...*/};
 });
 ```
 
@@ -56,13 +56,13 @@ It should be compatible if it's not accessing any Browser API.<br>
 
 ```php
 <?php
-$instance.registerNode('myspace/button', function(handle, node){
-    // Use node handler from instance.registerInterface('button')
-    $node->type = 'button';
-    $node->title = "My simple button";
+$instance->registerNode('myspace/button', function($node, $iface){
+    // Use iface handler from instance.registerInterface('button')
+    $iface->interface = 'button';
+    $iface->title = "My simple button";
 
     // Called after `.button` have been clicked
-    $handle->onclicked = function($ev){
+    $node->onclicked = function($ev){
         echo "Henlo $ev";
     };
 });

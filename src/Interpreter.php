@@ -6,8 +6,8 @@ require_once __DIR__."/PortListener.php";
 require_once __DIR__."/PortValidator.php";
 
 class Interpreter{
+	public $ifaces = [];
 	public $nodes = [];
-	public $handler = [];
 	public $settings = [];
 	public $interface = [];
 
@@ -15,15 +15,15 @@ class Interpreter{
 		$this->interface['default'] = &Utils::$NoOperation;
 	}
 
-	public function registerInterface($nodeType, $options=null, $func=null){
+	public function registerInterface($ifaceType, $options=null, $func=null){
 		if($func === null)
 			$func = &$options;
 
-		$this->interface[$nodeType] = $func;
+		$this->interface[$ifaceType] = $func;
 	}
 
 	public function registerNode($namespace, $func){
-		Utils::deepProperty($this->handler, explode('/', $namespace), $func);
+		Utils::deepProperty($this->nodes, explode('/', $namespace), $func);
 	}
 
 	public function importJSON($json){
@@ -33,38 +33,38 @@ class Interpreter{
 		$version = &$json['version'];
 		unset($json['version']);
 
-		$inserted = &$this->nodes;
-		$handlers = [];
+		$inserted = &$this->ifaces;
+		$nodes = [];
 
-		// Prepare all nodes depend on the namespace
+		// Prepare all ifaces depend on the namespace
 		// before we create cables for them
-		foreach($json as $namespace => &$nodes){
-			// Every nodes that using this namespace name
-			foreach ($nodes as &$node) {
-				$nodeOpt = [];
-				if(isset($node['options']))
-					$nodeOpt['options'] = &$node['options'];
+		foreach($json as $namespace => &$ifaces){
+			// Every ifaces that using this namespace name
+			foreach ($ifaces as &$iface) {
+				$ifaceOpt = [];
+				if(isset($iface['options']))
+					$ifaceOpt['options'] = &$iface['options'];
 
-				$inserted[$node['id']] = $this->createNode($namespace, $nodeOpt, $handlers);
+				$inserted[$iface['id']] = $this->createNode($namespace, $ifaceOpt, $nodes);
 			}
 		}
 
 		// Create cable only from outputs and properties
-		// > Important to be separated from above, so the cable can reference to loaded nodes
-		foreach($json as $namespace => &$nodes){
-			// Every nodes that using this namespace name
-			foreach ($nodes as &$node) {
-				$current = &$inserted[$node['id']];
+		// > Important to be separated from above, so the cable can reference to loaded ifaces
+		foreach($json as $namespace => &$ifaces){
+			// Every ifaces that using this namespace name
+			foreach ($ifaces as &$iface) {
+				$current = &$inserted[$iface['id']];
 
 				// If have outputs connection
-				if(isset($node['outputs'])){
-					$out = &$node['outputs'];
+				if(isset($iface['outputs'])){
+					$out = &$iface['outputs'];
 
 					// Every outputs port that have connection
 					foreach($out as $portName => &$ports){
 						$linkPortA = &$current->outputs[$portName];
 						if($linkPortA === null)
-							throw new \Exception("Node port not found for node id $node[id], with name: $portName");
+							throw new \Exception("Node port not found for iface id $iface[id], with name: $portName");
 
 						// Current outputs's available targets
 						foreach ($ports as &$target) {
@@ -87,8 +87,8 @@ class Interpreter{
 			}
 		}
 
-		// Call handler init after creation processes was finished
-		foreach ($handlers as &$val)
+		// Call nodes init after creation processes was finished
+		foreach ($nodes as &$val)
 			$val->init !== false && ($val->init)();
 	}
 
@@ -97,10 +97,10 @@ class Interpreter{
 	}
 
 	public function &getNodes($namespace){
-		$nodes = &$this->nodes;
+		$ifaces = &$this->ifaces;
 		$got = [];
 
-		foreach ($nodes as &$val) {
+		foreach ($ifaces as &$val) {
 			if($val->namespace === $namespace)
 				$got[] = $val;
 		}
@@ -108,43 +108,43 @@ class Interpreter{
 		return $got;
 	}
 
-	public function &createNode($namespace, $options=null, &$handlers=null){
-		$func = Utils::deepProperty($this->handler, explode('/', $namespace));
+	public function &createNode($namespace, $options=null, &$nodes=null){
+		$func = Utils::deepProperty($this->nodes, explode('/', $namespace));
 		if($func === null)
-			throw new \Exception("Node handler for $namespace was not found, maybe .registerNode() haven't being called?");
+			throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
 
-		// Processing scope is different with node scope
-		$handle = new Constructor\Handle;
-		$node = new Constructor\Node($handle, $namespace);
+		// Processing scope is different with iface scope
+		$node = new Constructor\Node;
+		$iface = new Constructor\NodeInterface($node, $namespace);
 
 		// Call the registered func (from this.registerNode)
-		$func($handle, $node);
+		$func($node, $iface);
 
-		if(isset($this->interface[$node->type]) === false)
-			throw new \Exception("Node type for '{$node->type}' was not found, maybe .registerInterface() haven't being called?");
+		if(isset($this->interface[$iface->interface]) === false)
+			throw new \Exception("Node interface for '{$iface->interface}' was not found, maybe .registerInterface() haven't being called?");
 
 		// Initialize for interface
-		$node->interface($this->interface[$node->type]);
+		$iface->interfacing($this->interface[$iface->interface]);
 
 		// Assign the saved options if exist
 		// Must be called here to avoid port trigger
-		if(isset($node->options) && isset($options['options']))
-			deepMerge($node->options, $options['options']);
+		if(isset($iface->options) && isset($options['options']))
+			deepMerge($iface->options, $options['options']);
 
-		// Create the linker between the handler and the node
-		$node->prepare();
+		// Create the linker between the nodes and the iface
+		$iface->prepare();
 
-		$this->nodes[] = &$node;
-		$node->importing = false;
+		$this->ifaces[] = &$iface;
+		$iface->importing = false;
 
-		isset($handle->imported) && ($handle->imported)();
+		isset($node->imported) && ($node->imported)();
 
-		if($handlers !== null)
-			$handlers[] = $handle;
-		elseif($handle->init)
-			($handle->init)();
+		if($nodes !== null)
+			$nodes[] = $node;
+		elseif($node->init)
+			($node->init)();
 
-		return $node;
+		return $iface;
 	}
 }
 

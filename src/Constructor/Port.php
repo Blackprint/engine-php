@@ -7,19 +7,19 @@ class Port{
 	public $type;
 	public $cables = [];
 	public $source;
-	public $node;
+	public $iface;
 	public $default;
 	public $value = null;
 	public $sync = false;
 	public $feature = null;
 	public $_call = null;
 
-	public function __construct(&$portName, &$type, &$def, &$which, &$node, &$feature){
+	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = $portName;
 		$this->type = $type;
 		$this->default = $def;
 		$this->source = $which;
-		$this->node = &$node;
+		$this->iface = &$iface;
 
 		if($feature === false)
 			return;
@@ -39,7 +39,7 @@ class Port{
 					$target = $cable->owner === $this ? $cable->target : $cable->owner;
 					// $cable->_print();
 
-					$target->node->handle->inputs[$target->name]($this, $cable);
+					$target->iface->node->inputs[$target->name]($this, $cable);
 				}
 			};
 		}
@@ -52,20 +52,20 @@ class Port{
 					if(count($this->cables) === 0)
 						return $this->default;
 
-					// Flag current node is requesting value to other node
-					$this->node->_requesting = true;
+					// Flag current iface is requesting value to other iface
+					$this->iface->_requesting = true;
 
 					// Return single data
 					if(count($this->cables) === 1){
 						$target = $this->cables[0]->owner === $this ? $this->cables[0]->$target : $this->cables[0]->owner;
 
 						// Request the data first
-						if($target->node->handle->request)
-							($target->node->handle->request)($target, $this->node);
+						if($target->iface->node->request)
+							($target->iface->node->request)($target, $this->iface);
 
 						// echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
 
-						$this->node->_requesting = false;
+						$this->iface->_requesting = false;
 
 						if($target->value === null)
 							return $target->default;
@@ -79,8 +79,8 @@ class Port{
 						$target = $cable->owner === $this ? $cable->$target : $cable->owner;
 
 						// Request the data first
-						if($target->node->handle->request)
-							$target->node->handle->request($target, $this->node);
+						if($target->iface->node->request)
+							$target->iface->node->request($target, $this->iface);
 
 						// echo "\n2. {$this->name} -> {$target->name} ({$target->value})";
 
@@ -90,7 +90,7 @@ class Port{
 							$data[] = $target->value;
 					}
 
-					$this->node->_requesting = false;
+					$this->iface->_requesting = false;
 					return $data;
 				}
 
@@ -126,8 +126,8 @@ class Port{
 			if($target->feature === \Blackprint\PortListener)
 				($target->_call)($cable->owner === $this ? $cable->owner : $cable->target, $this->value);
 
-			if($target->node->_requesting === false && $target->node->handle->update !== false)
-				($target->node->handle->update)($cable);
+			if($target->iface->_requesting === false && $target->iface->node->update !== false)
+				($target->iface->node->update)($cable);
 		}
 	}
 }

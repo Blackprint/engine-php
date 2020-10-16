@@ -2,8 +2,13 @@
 namespace Blackprint\Constructor;
 
 class Cable{
+	/** @var String */
 	public $type;
+
+	/** @var NodeInterface */
 	public $owner;
+
+	/** @var NodeInterface */
 	public $target;
 
 	public function __construct(&$owner, &$target){

@@ -18,30 +18,30 @@ $instance = new Interpreter;
 // These comment can be collapsed depend on your IDE
 
 // === Register Node Interface ===
-	$instance->registerInterface('button', function($self){
-		$self->clicked = function($ev=null) use($self) {
+	$instance->registerInterface('button', function($iface){
+		$iface->clicked = function($ev=null) use($iface) {
 			colorLog("Interpreter: 'Trigger' button clicked, going to run the handler");
 
-			isset($self->handle->clicked) && ($self->handle->clicked)($ev);
+			isset($iface->node->clicked) && ($iface->node->clicked)($ev);
 		};
 	});
 
-	$instance->registerInterface('input', function($self, $bind){
+	$instance->registerInterface('input', function($iface, $bind){
 		$theValue = '';
 		$bind([
 			'options'=>[
-				'value'=> function ($val = null) use(&$theValue, $self) {
+				'value'=> function ($val = null) use(&$theValue, $iface) {
 					if($val === null)
 						return $theValue;
 
 					$theValue = $val;
-					isset($self->handle->changed) && ($self->handle->changed)($val, null);
+					isset($iface->node->changed) && ($iface->node->changed)($val, null);
 				}
 			]
 		]);
 	});
 
-	$instance->registerInterface('logger', function($self, $bind){
+	$instance->registerInterface('logger', function($iface, $bind){
 		$log = '...';
 		$bind([
 			'log'=> function ($val = null) use(&$log) {
@@ -61,157 +61,157 @@ $instance = new Interpreter;
 
 // === Register Node Handler ===
 // Almost similar with the interpreter-js example version
-	$instance->registerNode('math/multiply', function($handle, $node){
-		$node->title = "Multiply";
+	$instance->registerNode('math/multiply', function($node, $iface){
+		$iface->title = "Multiply";
 
 		// Your own processing mechanism
-		$multiply = function() use($handle) {
-			colorLog("Multiplying {$handle->inputs['A']()} with {$handle->inputs['B']()}");
-			return $handle->inputs['A']() * $handle->inputs['B']();
+		$multiply = function() use($node) {
+			colorLog("Multiplying {$node->inputs['A']()} with {$node->inputs['B']()}");
+			return $node->inputs['A']() * $node->inputs['B']();
 		};
 
-		$handle->inputs = [
-			'Exec'=>function() use($handle, $multiply) {
-				$handle->outputs['Result']($multiply());
-				colorLog("Result has been set: ".$handle->outputs['Result']());
+		$node->inputs = [
+			'Exec'=>function() use($node, $multiply) {
+				$node->outputs['Result']($multiply());
+				colorLog("Result has been set: ".$node->outputs['Result']());
 			},
 			'A'=> Types\Numbers,
-			'B'=> PortValidator(Types\Numbers, function($val) use($node) {
+			'B'=> PortValidator(Types\Numbers, function($val) use($iface) {
 				// Executed when inputs.B is being obtained
 				// And the output from other node is being assigned
 				// as current port value in this node
-				colorLog("{$node->title} - Port B got input: $val");
+				colorLog("{$iface->title} - Port B got input: $val");
 				return $val+0;
 			})
 		];
 
-		$handle->outputs = [
+		$node->outputs = [
 			'Result'=> Types\Numbers,
 		];
 
 		// Event listener can only be registered after init
-		$handle->init = function() use($node) {
-			$node->on('cable.connect', function($cable){
+		$node->init = function() use($iface) {
+			$iface->on('cable.connect', function($cable){
 				colorLog("Cable connected from {$cable->owner->node->title} ({$cable->owner->name}) to {$cable->target->node->title} ({$cable->target->name})");
 			});
 		};
 
 		// When any output value from other node are updated
 		// Let's immediately change current node result
-		$handle->update = function($cable) use($multiply, $handle) {
-			$handle->outputs['Result']($multiply());
+		$node->update = function($cable) use($multiply, $node) {
+			$node->outputs['Result']($multiply());
 		};
 	});
 
-	$instance->registerNode('math/random', function($handle, $node){
-		$node->title = "Random";
+	$instance->registerNode('math/random', function($node, $iface){
+		$iface->title = "Random";
 
-		$handle->outputs = [
+		$node->outputs = [
 			'Out'=> Types\Numbers
 		];
 
 		$executed = false;
-		$handle->inputs = [
-			'Re-seed'=>function() use(&$executed, $handle) {
+		$node->inputs = [
+			'Re-seed'=>function() use(&$executed, $node) {
 				$executed = true;
-				$handle->outputs['Out'](random_int(0,100));
+				$node->outputs['Out'](random_int(0,100));
 			}
 		];
 
 		// When the connected node is requesting for the output value
-		$handle->request = function($port, $node) use(&$executed, $handle) {
+		$node->request = function($port, $iface) use(&$executed, $node) {
 			// Only run once this node never been executed
 			// Return false if no value was changed
 			if($executed === true)
 				return false;
 
-			colorLog("Value request for port: {$port->name}, from node: {$node->title}");
+			colorLog("Value request for port: {$port->name}, from node: {$iface->title}");
 
 			// Let's create the value for him
-			$handle->inputs['Re-seed']();
+			$node->inputs['Re-seed']();
 		};
 	});
 
-	$instance->registerNode('display/logger', function($handle, $node){
-		$node->title = "Logger";
-		$node->type = 'logger';
+	$instance->registerNode('display/logger', function($node, $iface){
+		$iface->title = "Logger";
+		$iface->interface = 'logger';
 
-		$refreshLogger = function($val) use($node) {
+		$refreshLogger = function($val) use($iface) {
 			if($val === null)
-				($node->log)('null');
+				($iface->log)('null');
 			else if(is_string($val) || is_numeric($val))
-				($node->log)($val);
+				($iface->log)($val);
 			else
-				($node->log)(json_encode($val));
+				($iface->log)(json_encode($val));
 		};
 
-		$handle->inputs = [
-			'Any'=> PortListener(function($port, $val) use($refreshLogger, $handle) {
-				colorLog("I connected to {$port->name} (port {$port->node->title}), that have new value: $val");
+		$node->inputs = [
+			'Any'=> PortListener(function($port, $val) use($refreshLogger, $node) {
+				colorLog("I connected to {$port->name} (port {$port->iface->title}), that have new value: $val");
 
 				// Let's take all data from all connected nodes
 				// Instead showing new single data-> val
-				$refreshLogger($handle->inputs['Any']());
+				$refreshLogger($node->inputs['Any']());
 			})
 		];
 
-		$handle->init = function() use($handle, $node, $refreshLogger) {
+		$node->init = function() use($node, $iface, $refreshLogger) {
 			// Let's show data after new cable was connected or disconnected
-			$node->on('cable.connect cable.disconnect', function() use($refreshLogger, $handle) {
+			$iface->on('cable.connect cable.disconnect', function() use($refreshLogger, $node) {
 				colorLog("A cable was changed on Logger, now refresing the input element");
-				$refreshLogger($handle->inputs['Any']());
+				$refreshLogger($node->inputs['Any']());
 			});
 		};
 	});
 
-	$instance->registerNode('button/simple', function($handle, $node){
-		// node = under ScarletsFrame element control
-		$node->title = "Button";
-		$node->type = 'button';
+	$instance->registerNode('button/simple', function($node, $iface){
+		// iface = under ScarletsFrame element control
+		$iface->title = "Button";
+		$iface->interface = 'button';
 
-		// handle = under Blackprint node flow control
-		$handle->outputs = [
+		// node = under Blackprint node flow control
+		$node->outputs = [
 			'Clicked'=> Types\Functions
 		];
 
-		// Proxy event object from: node.clicked -> handle.clicked -> outputs.Clicked
-		$handle->clicked = function($ev) use($handle) {
+		// Proxy event object from: iface.clicked -> node.clicked -> outputs.Clicked
+		$node->clicked = function($ev) use($node) {
 			colorLog("button/simple: got $ev, time to trigger to the other node");
-			$handle->outputs['Clicked']($ev);
+			$node->outputs['Clicked']($ev);
 		};
 	});
 
-	$instance->registerNode('input/simple', function($handle, $node){
-		// node = under ScarletsFrame element control
-		$node->title = "Input";
-		$node->type = 'input';
+	$instance->registerNode('input/simple', function($node, $iface){
+		// iface = under ScarletsFrame element control
+		$iface->title = "Input";
+		$iface->interface = 'input';
 
-		// handle = under Blackprint node flow control
-		$handle->outputs = [
+		// node = under Blackprint node flow control
+		$node->outputs = [
 			'Changed'=> Types\Functions,
 			'Value'=> 'wer', // Default to empty string
 		];
 
-		// Bring value from imported node to handle output
-		$handle->imported = function() use($handle, $node) {
-			if($node->options['value']())
-				colorLog("Saved options as outputs: {$node->options['value']()}");
+		// Bring value from imported iface to node output
+		$node->imported = function() use($node, $iface) {
+			if($iface->options['value']())
+				colorLog("Saved options as outputs: {$iface->options['value']()}");
 
-			$handle->outputs['Value']($node->options['value']());
+			$node->outputs['Value']($iface->options['value']());
 		};
 
-		// Proxy string value from: node.changed -> handle.changed -> outputs.Value
+		// Proxy string value from: iface.changed -> node.changed -> outputs.Value
 		// And also call outputs.Changed() if connected to other node
-		$handle->changed = function($text, $ev) use($handle, $node) {
+		$node->changed = function($text, $ev) use($node, $iface) {
 			// This node still being imported
-			if($node->importing !== false)
+			if($iface->importing !== false)
 				return;
 
 			colorLog("The input box have new value: $text");
-			$handle->outputs['Value']($text);
+			$node->outputs['Value']($text);
 
 			// This will call every connected node
-			$handle->outputs['Changed']();
+			$node->outputs['Changed']();
 		};
 	});
 
