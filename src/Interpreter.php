@@ -5,7 +5,7 @@ require_once __DIR__."/PortDefault.php";
 require_once __DIR__."/PortListener.php";
 require_once __DIR__."/PortValidator.php";
 
-class Interpreter{
+class Engine{
 	public $ifaces = [];
 	public $nodes = [];
 	public $settings = [];

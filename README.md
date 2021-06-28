@@ -1,21 +1,21 @@
 <p align="center"><a href="#" target="_blank" rel="noopener noreferrer"><img width="150" src="https://avatars2.githubusercontent.com/u/61224306?s=150&v=4" alt="Blackprint"></a></p>
 
-<h1 align="center">Blackprint Interpreter for PHP</h1>
+<h1 align="center">Blackprint Engine for PHP</h1>
 <p align="center">Run exported Blackprint on PHP environment.</p>
 
 <p align="center">
     <a href='https://github.com/Blackprint/Blackprint/blob/master/LICENSE'><img src='https://img.shields.io/badge/License-MIT-brightgreen.svg' height='20'></a>
 </p>
 
-This repository is designed to be used together with [Blackprint](https://github.com/Blackprint/Blackprint) as the interpreter on PHP environment.
+This repository is designed to be used together with [Blackprint](https://github.com/Blackprint/Blackprint) as the engine on PHP environment.
 
 ## Documentation
 > Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
 
 ```php
 <?php
-// Create Blackprint Interpreter instance, `instance` in this documentation will refer to this
-$instance = new Blackprint\Interpreter();
+// Create Blackprint Engine instance, `instance` in this documentation will refer to this
+$instance = new Blackprint\Engine();
 ```
 
 ### Register new node interface type
@@ -76,7 +76,7 @@ This repository provide an example with the JSON too, and you can try it with PH
 
 ```sh
 # Change your working directory into empty folder first
-$ git clone --depth 1 https://github.com/Blackprint/interpreter-php .
+$ git clone --depth 1 https://github.com/Blackprint/engine-php .
 $ composer install
 $ php ./example/init.php
 ```

@@ -2,7 +2,7 @@
 require_once('../vendor/autoload.php');
 
 use \Blackprint\{
-	Interpreter,
+	Engine,
 	Types,
 };
 use function \Blackprint\{
@@ -14,13 +14,13 @@ use function \Blackprint\{
  * We need to get or set like calling a function
  */
 
-$instance = new Interpreter;
+$instance = new Engine;
 // These comment can be collapsed depend on your IDE
 
 // === Register Node Interface ===
 	$instance->registerInterface('button', function($iface){
 		$iface->clicked = function($ev=null) use($iface) {
-			colorLog("Interpreter: 'Trigger' button clicked, going to run the handler");
+			colorLog("Engine: 'Trigger' button clicked, going to run the handler");
 
 			isset($iface->node->clicked) && ($iface->node->clicked)($ev);
 		};
@@ -60,7 +60,7 @@ $instance = new Interpreter;
 	}
 
 // === Register Node Handler ===
-// Almost similar with the interpreter-js example version
+// Almost similar with the engine-js example version
 	$instance->registerNode('math/multiply', function($node, $iface){
 		$iface->title = "Multiply";
 

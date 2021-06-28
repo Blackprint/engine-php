@@ -1,7 +1,7 @@
 {
-	"name":"blackprint/interpreter-php",
-	"description": "PHP Interpreter for Blackprint",
-	"keywords": ["blackprint", "interpreter"],
+	"name":"blackprint/engine-php",
+	"description": "PHP Engine for Blackprint",
+	"keywords": ["blackprint", "engine"],
 	"license":"MIT",
 	"require": {
 		"php": "^7.0",
