@@ -46,8 +46,8 @@ class Engine{
 					'id' => isset($iface['id']) ? $iface['id'] : null,
 					'i' => $iface['i']
 				];
-				if(isset($iface['options']))
-					$ifaceOpt['options'] = &$iface['options'];
+				if(isset($iface['data']))
+					$ifaceOpt['data'] = &$iface['data'];
 
 				$inserted[$iface['i']] = $this->createNode($namespace, $ifaceOpt, $nodes);
 			}
@@ -141,13 +141,19 @@ class Engine{
 
 		// Assign the saved options if exist
 		// Must be called here to avoid port trigger
-		if(isset($iface->options) && isset($options['options']))
-			deepMerge($iface->options, $options['options']);
+		if(isset($iface->data) && isset($options['data']))
+			deepMerge($iface->data, $options['data']);
 
 		// Create the linker between the nodes and the iface
 		$iface->prepare();
 
-		$this->ifaceList[] = &$iface;
+		if(isset($iface->id))
+			$this->iface[$iface->id] = &$iface;
+
+		if(isset($iface->i))
+			$this->ifaceList[$iface->i] = &$iface;
+		else $this->ifaceList[] = &$iface;
+
 		$iface->importing = false;
 
 		isset($node->imported) && ($node->imported)();

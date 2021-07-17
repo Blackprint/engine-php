@@ -33,7 +33,7 @@ $instance = new Engine;
 	$instance->registerInterface('i-input', function($iface, $bind){
 		$theValue = '';
 		$bind([
-			'options'=>[
+			'data'=>[
 				'value'=> function ($val = null) use(&$theValue, $iface) {
 					if($val === null)
 						return $theValue;
@@ -200,10 +200,10 @@ $instance = new Engine;
 
 		// Bring value from imported iface to node output
 		$node->imported = function() use($node, $iface) {
-			if($iface->options['value']())
-				colorLog("Saved options as outputs: {$iface->options['value']()}");
+			if($iface->data['value']())
+				colorLog("Saved data as outputs: {$iface->data['value']()}");
 
-			$node->outputs['Value']($iface->options['value']());
+			$node->outputs['Value']($iface->data['value']());
 		};
 
 		// Proxy string value from: iface.changed -> node.changed -> outputs.Value
@@ -224,7 +224,7 @@ $instance = new Engine;
 
 // === Import JSON after all nodes was registered ===
 // You can import this to Blackprint Sketch if you want to view the nodes visually
-$instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"outputs":{"Out":[{"i":2,"name":"A"}]}},{"i":1,"x":298,"y":239,"outputs":{"Out":[{"i":2,"name":"B"}]}}],"Example/Math/Multiply":[{"i":2,"x":525,"y":155,"outputs":{"Result":[{"i":3,"name":"Any"}]}}],"Example/Display/Logger":[{"i":3,"x":763,"y":169}],"Example/Button/Simple":[{"i":4,"x":41,"y":59,"outputs":{"Clicked":[{"i":2,"name":"Exec"}]}}],"Example/Input/Simple":[{"i":5,"x":38,"y":281,"options":{"value":"saved input"},"outputs":{"Changed":[{"i":1,"name":"Re-seed"}],"Value":[{"i":3,"name":"Any"}]}}]}');
+$instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"outputs":{"Out":[{"i":2,"name":"A"}]}},{"i":1,"x":298,"y":239,"outputs":{"Out":[{"i":2,"name":"B"}]}}],"Example/Math/Multiply":[{"i":2,"x":525,"y":155,"outputs":{"Result":[{"i":3,"name":"Any"}]}}],"Example/Display/Logger":[{"i":3,"x":763,"y":169}],"Example/Button/Simple":[{"i":4,"x":41,"y":59,"outputs":{"Clicked":[{"i":2,"name":"Exec"}]}}],"Example/Input/Simple":[{"i":5,"x":38,"y":281,"data":{"value":"saved input"},"outputs":{"Changed":[{"i":1,"name":"Re-seed"}],"Value":[{"i":3,"name":"Any"}]}}]}');
 
 
 // Time to run something :)
@@ -238,7 +238,7 @@ echo "\n\n>> I got the output value: ".($logger->log)();
 
 echo "\n\n>> I'm writing something to the input box";
 $input = $instance->getNodes('Example/Input/Simple')[0]->iface;
-$input->options['value']('hello wrold');
+$input->data['value']('hello wrold');
 
 $logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n\n>> I got the output value: ".($logger->log)();
