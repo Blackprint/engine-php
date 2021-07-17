@@ -8,8 +8,8 @@ class Temp{
 Temp::$list = ['inputs', 'outputs', 'properties'];
 
 class NodeInterface extends CustomEvents{
-	public $id = '?';
-	public $_i;
+	public $id = '?'; // Named ID
+	public $i; // Generated Index
 	public $title = 'No title';
 	public $interface = 'default';
 	public $importing = true;

@@ -44,12 +44,12 @@ class Engine{
 			foreach ($ifaces as &$iface) {
 				$ifaceOpt = [
 					'id' => isset($iface['id']) ? $iface['id'] : null,
-					'_i' => $iface['_i']
+					'i' => $iface['i']
 				];
 				if(isset($iface['options']))
 					$ifaceOpt['options'] = &$iface['options'];
 
-				$inserted[$iface['_i']] = $this->createNode($namespace, $ifaceOpt, $nodes);
+				$inserted[$iface['i']] = $this->createNode($namespace, $ifaceOpt, $nodes);
 			}
 		}
 
@@ -58,7 +58,7 @@ class Engine{
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$iface) {
-				$current = &$inserted[$iface['_i']];
+				$current = &$inserted[$iface['i']];
 
 				// If have outputs connection
 				if(isset($iface['outputs'])){
@@ -68,11 +68,11 @@ class Engine{
 					foreach($out as $portName => &$ports){
 						$linkPortA = &$current->outputs[$portName];
 						if($linkPortA === null)
-							throw new \Exception("Node port not found for iface _i $iface[_i], with name: $portName");
+							throw new \Exception("Node port not found for iface (index: $iface[i]), with name: $portName");
 
 						// Current outputs's available targets
 						foreach ($ports as &$target) {
-							$targetNode = &$inserted[$target['_i']];
+							$targetNode = &$inserted[$target['i']];
 
 							// Outputs can only meet input port
 							$linkPortB = &$targetNode->inputs[$target['name']];
@@ -104,7 +104,7 @@ class Engine{
 		$ifaces = &$this->ifaceList;
 
 		foreach ($ifaces as &$val) {
-			if($val->id === $id || $val->_i === $id)
+			if($val->id === $id || $val->i === $id)
 				return $val->node;
 		}
 	}
