@@ -104,7 +104,7 @@ class Engine{
 		$ifaces = &$this->ifaceList;
 
 		foreach ($ifaces as &$val) {
-			if(isset($val->id) ? $val->id === $id : $val->_i === $id)
+			if($val->id === $id || $val->_i === $id)
 				return $val->node;
 		}
 	}

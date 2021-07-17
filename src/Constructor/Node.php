@@ -10,4 +10,7 @@ class Node{
 	public $init = false;
 	public $request = false;
 	public $update = false;
+
+	/** @var NodeInterface */
+	public $iface = false;
 }

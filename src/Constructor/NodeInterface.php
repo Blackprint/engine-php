@@ -8,6 +8,8 @@ class Temp{
 Temp::$list = ['inputs', 'outputs', 'properties'];
 
 class NodeInterface extends CustomEvents{
+	public $id = '?';
+	public $_i;
 	public $title = 'No title';
 	public $interface = 'default';
 	public $importing = true;
@@ -17,13 +19,9 @@ class NodeInterface extends CustomEvents{
 	public $namespace;
 	public $_requesting = false;
 
-	// Deprecated
-	public $inputs;
-	public $outputs;
-	public $properties;
-
 	public function __construct(&$node, &$namespace){
 		$this->node = &$node;
+		$node->iface = &$this;
 		$this->namespace = &$namespace;
 	}
 
