@@ -6,7 +6,8 @@ require_once __DIR__."/PortListener.php";
 require_once __DIR__."/PortValidator.php";
 
 class Engine{
-	public $ifaces = [];
+	public $iface = [];
+	public $ifaceList = [];
 	public $nodes = [];
 	public $settings = [];
 	public $interface = [];
@@ -33,7 +34,7 @@ class Engine{
 		$version = &$json['version'];
 		unset($json['version']);
 
-		$inserted = &$this->ifaces;
+		$inserted = &$this->ifaceList;
 		$nodes = [];
 
 		// Prepare all ifaces depend on the namespace
@@ -41,11 +42,14 @@ class Engine{
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$iface) {
-				$ifaceOpt = [];
+				$ifaceOpt = [
+					'id' => isset($iface['id']) ? $iface['id'] : null,
+					'_i' => $iface['_i']
+				];
 				if(isset($iface['options']))
 					$ifaceOpt['options'] = &$iface['options'];
 
-				$inserted[$iface['id']] = $this->createNode($namespace, $ifaceOpt, $nodes);
+				$inserted[$iface['_i']] = $this->createNode($namespace, $ifaceOpt, $nodes);
 			}
 		}
 
@@ -54,7 +58,7 @@ class Engine{
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$iface) {
-				$current = &$inserted[$iface['id']];
+				$current = &$inserted[$iface['_i']];
 
 				// If have outputs connection
 				if(isset($iface['outputs'])){
@@ -64,11 +68,11 @@ class Engine{
 					foreach($out as $portName => &$ports){
 						$linkPortA = &$current->outputs[$portName];
 						if($linkPortA === null)
-							throw new \Exception("Node port not found for iface id $iface[id], with name: $portName");
+							throw new \Exception("Node port not found for iface _i $iface[_i], with name: $portName");
 
 						// Current outputs's available targets
 						foreach ($ports as &$target) {
-							$targetNode = &$inserted[$target['id']];
+							$targetNode = &$inserted[$target['_i']];
 
 							// Outputs can only meet input port
 							$linkPortB = &$targetNode->inputs[$target['name']];
@@ -96,13 +100,22 @@ class Engine{
 		$this->settings[$which] = &$val;
 	}
 
+	public function &getNode($id){
+		$ifaces = &$this->ifaceList;
+
+		foreach ($ifaces as &$val) {
+			if(isset($val->id) ? $val->id === $id : $val->_i === $id)
+				return $val->node;
+		}
+	}
+
 	public function &getNodes($namespace){
-		$ifaces = &$this->ifaces;
+		$ifaces = &$this->ifaceList;
 		$got = [];
 
 		foreach ($ifaces as &$val) {
 			if($val->namespace === $namespace)
-				$got[] = $val;
+				$got[] = &$val->node;
 		}
 
 		return $got;
@@ -134,7 +147,7 @@ class Engine{
 		// Create the linker between the nodes and the iface
 		$iface->prepare();
 
-		$this->ifaces[] = &$iface;
+		$this->ifaceList[] = &$iface;
 		$iface->importing = false;
 
 		isset($node->imported) && ($node->imported)();
