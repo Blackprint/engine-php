@@ -18,7 +18,11 @@ $instance = new Engine;
 // These comment can be collapsed depend on your IDE
 
 // === Register Node Interface ===
-	$instance->registerInterface('button', function($iface){
+	// When creating your own interface please use specific interface naming
+	// 'LibraryName/FeatureName/NodeName'
+	// Example below is using 'i-' to make it easier to understand
+	$instance->registerInterface('i-button', function($iface){
+		// Will be used for 'Example/Button/Simple' node
 		$iface->clicked = function($ev=null) use($iface) {
 			colorLog("Engine: 'Trigger' button clicked, going to run the handler");
 
@@ -26,7 +30,7 @@ $instance = new Engine;
 		};
 	});
 
-	$instance->registerInterface('input', function($iface, $bind){
+	$instance->registerInterface('i-input', function($iface, $bind){
 		$theValue = '';
 		$bind([
 			'options'=>[
@@ -34,14 +38,14 @@ $instance = new Engine;
 					if($val === null)
 						return $theValue;
 
-					$theValue = $val;
+					$theValue = $val; // Don't use &$val or the data will not being saved
 					isset($iface->node->changed) && ($iface->node->changed)($val, null);
 				}
 			]
 		]);
 	});
 
-	$instance->registerInterface('logger', function($iface, $bind){
+	$instance->registerInterface('i-logger', function($iface, $bind){
 		$log = '...';
 		$bind([
 			'log'=> function ($val = null) use(&$log) {
@@ -61,8 +65,9 @@ $instance = new Engine;
 
 // === Register Node Handler ===
 // Almost similar with the engine-js example version
-	$instance->registerNode('math/multiply', function($node, $iface){
+	$instance->registerNode('Example/Math/Multiply', function($node, $iface){
 		$iface->title = "Multiply";
+		// $iface->interface = undefined; // default interface
 
 		// Your own processing mechanism
 		$multiply = function() use($node) {
@@ -103,8 +108,9 @@ $instance = new Engine;
 		};
 	});
 
-	$instance->registerNode('math/random', function($node, $iface){
+	$instance->registerNode('Example/Math/Random', function($node, $iface){
 		$iface->title = "Random";
+		// $iface->interface = undefined; // default interface
 
 		$node->outputs = [
 			'Out'=> Types\Numbers
@@ -132,9 +138,9 @@ $instance = new Engine;
 		};
 	});
 
-	$instance->registerNode('display/logger', function($node, $iface){
+	$instance->registerNode('Example/Display/Logger', function($node, $iface){
 		$iface->title = "Logger";
-		$iface->interface = 'logger';
+		$iface->interface = 'i-logger';
 
 		$refreshLogger = function($val) use($iface) {
 			if($val === null)
@@ -164,10 +170,10 @@ $instance = new Engine;
 		};
 	});
 
-	$instance->registerNode('button/simple', function($node, $iface){
+	$instance->registerNode('Example/Button/Simple', function($node, $iface){
 		// iface = under ScarletsFrame element control
 		$iface->title = "Button";
-		$iface->interface = 'button';
+		$iface->interface = 'i-button';
 
 		// node = under Blackprint node flow control
 		$node->outputs = [
@@ -176,15 +182,15 @@ $instance = new Engine;
 
 		// Proxy event object from: iface.clicked -> node.clicked -> outputs.Clicked
 		$node->clicked = function($ev) use($node) {
-			colorLog("button/simple: got $ev, time to trigger to the other node");
+			colorLog("Example/Button/Simple: got $ev, time to trigger to the other node");
 			$node->outputs['Clicked']($ev);
 		};
 	});
 
-	$instance->registerNode('input/simple', function($node, $iface){
+	$instance->registerNode('Example/Input/Simple', function($node, $iface){
 		// iface = under ScarletsFrame element control
 		$iface->title = "Input";
-		$iface->interface = 'input';
+		$iface->interface = 'i-input';
 
 		// node = under Blackprint node flow control
 		$node->outputs = [
@@ -218,21 +224,21 @@ $instance = new Engine;
 
 // === Import JSON after all nodes was registered ===
 // You can import this to Blackprint Sketch if you want to view the nodes visually
-$instance->importJSON('{"math/random":[{"id":0,"x":298,"y":73,"outputs":{"Out":[{"id":2,"name":"A"}]}},{"id":1,"x":298,"y":239,"outputs":{"Out":[{"id":2,"name":"B"}]}}],"math/multiply":[{"id":2,"x":525,"y":155,"outputs":{"Result":[{"id":3,"name":"Any"}]}}],"display/logger":[{"id":3,"x":763,"y":169}],"button/simple":[{"id":4,"x":41,"y":59,"outputs":{"Clicked":[{"id":2,"name":"Exec"}]}}],"input/simple":[{"id":5,"x":38,"y":281,"options":{"value":"saved input"},"outputs":{"Changed":[{"id":1,"name":"Re-seed"}],"Value":[{"id":3,"name":"Any"}]}}]}');
+$instance->importJSON('{"Example/Math/Random":[{"_i":0,"x":298,"y":73,"outputs":{"Out":[{"_i":2,"name":"A"}]}},{"_i":1,"x":298,"y":239,"outputs":{"Out":[{"_i":2,"name":"B"}]}}],"Example/Math/Multiply":[{"_i":2,"x":525,"y":155,"outputs":{"Result":[{"_i":3,"name":"Any"}]}}],"Example/Display/Logger":[{"_i":3,"x":763,"y":169}],"Example/Button/Simple":[{"_i":4,"x":41,"y":59,"outputs":{"Clicked":[{"_i":2,"name":"Exec"}]}}],"Example/Input/Simple":[{"_i":5,"x":38,"y":281,"options":{"value":"saved input"},"outputs":{"Changed":[{"_i":1,"name":"Re-seed"}],"Value":[{"_i":3,"name":"Any"}]}}]}');
 
 
 // Time to run something :)
-$button = $instance->getNodes('button/simple')[0];
+$button = $instance->getNodes('Example/Button/Simple')[0]->iface;
 
 echo "\n\n>> I'm clicking the button";
 ($button->clicked)();
 
-$logger = $instance->getNodes('display/logger')[0];
+$logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n\n>> I got the output value: ".($logger->log)();
 
 echo "\n\n>> I'm writing something to the input box";
-$input = $instance->getNodes('input/simple')[0];
+$input = $instance->getNodes('Example/Input/Simple')[0]->iface;
 $input->options['value']('hello wrold');
 
-$logger = $instance->getNodes('display/logger')[0];
+$logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n\n>> I got the output value: ".($logger->log)();
