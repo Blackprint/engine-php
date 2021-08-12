@@ -5,7 +5,7 @@ use \Blackprint\Types;
 class Temp{
 	public static $list = [];
 }
-Temp::$list = ['inputs', 'outputs', 'properties'];
+Temp::$list = ['input', 'output', 'property'];
 
 class NodeInterface extends CustomEvents{
 	public $id; // Named ID (String)
@@ -26,8 +26,8 @@ class NodeInterface extends CustomEvents{
 	}
 
 	public function interfacing(&$interFunc){
-		$interFunc($this, function($properties){
-			foreach ($properties as $key => &$val) {
+		$interFunc($this, function($property){
+			foreach ($property as $key => &$val) {
 				$this->{$key} = $val;
 			}
 		});
@@ -81,7 +81,7 @@ class NodeInterface extends CustomEvents{
 				}
 
 				$linkedPort = $this->{$which}[$portName] = new Port($portName, /* the types */ $type, $def, $which, $this, $feature);
-				if(is_callable($port) && $which !== 'outputs')
+				if(is_callable($port) && $which !== 'output')
 					continue;
 
 				$localPorts[$portName] = $linkedPort->createLinker();

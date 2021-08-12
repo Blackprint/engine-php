@@ -31,7 +31,7 @@ class Port{
 	}
 
 	public function createLinker(){
-		// Only for outputs
+		// Only for output
 		if($this->type === Types\Functions){
 			return function(){
 				$cables = $this->cables;
@@ -39,7 +39,7 @@ class Port{
 					$target = $cable->owner === $this ? $cable->target : $cable->owner;
 					// $cable->_print();
 
-					$target->iface->node->inputs[$target->name]($this, $cable);
+					$target->iface->node->input[$target->name]($this, $cable);
 				}
 			};
 		}
@@ -47,8 +47,8 @@ class Port{
 		return function($val=null){
 			// Getter value
 			if($val === null){
-				// This port must use values from connected outputs
-				if($this->source === 'inputs'){
+				// This port must use values from connected output
+				if($this->source === 'input'){
 					if(count($this->cables) === 0)
 						return $this->default;
 

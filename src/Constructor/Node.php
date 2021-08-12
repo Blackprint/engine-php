@@ -3,9 +3,9 @@ namespace Blackprint\Constructor;
 
 class Node{
 	/** @var array Port */
-	public $outputs = [];
-	public $inputs = [];
-	public $properties = [];
+	public $output = [];
+	public $input = [];
+	public $property = [];
 
 	public $init = false;
 	public $request = false;
