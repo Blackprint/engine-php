@@ -8,23 +8,10 @@ require_once __DIR__."/PortValidator.php";
 class Engine{
 	public $iface = [];
 	public $ifaceList = [];
-	public $nodes = [];
 	public $settings = [];
-	public $interface = [];
 
 	public function __construct(){
-		$this->interface['default'] = &Utils::$NoOperation;
-	}
 
-	public function registerInterface($ifaceType, $options=null, $func=null){
-		if($func === null)
-			$func = &$options;
-
-		$this->interface[$ifaceType] = $func;
-	}
-
-	public function registerNode($namespace, $func){
-		Utils::deepProperty($this->nodes, explode('/', $namespace), $func);
 	}
 
 	public function importJSON($json){
@@ -53,29 +40,29 @@ class Engine{
 			}
 		}
 
-		// Create cable only from outputs and properties
+		// Create cable only from output and property
 		// > Important to be separated from above, so the cable can reference to loaded ifaces
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$iface) {
 				$current = &$inserted[$iface['i']];
 
-				// If have outputs connection
-				if(isset($iface['outputs'])){
-					$out = &$iface['outputs'];
+				// If have output connection
+				if(isset($iface['output'])){
+					$out = &$iface['output'];
 
-					// Every outputs port that have connection
+					// Every output port that have connection
 					foreach($out as $portName => &$ports){
-						$linkPortA = &$current->outputs[$portName];
+						$linkPortA = &$current->output[$portName];
 						if($linkPortA === null)
 							throw new \Exception("Node port not found for iface (index: $iface[i]), with name: $portName");
 
-						// Current outputs's available targets
+						// Current output's available targets
 						foreach ($ports as &$target) {
 							$targetNode = &$inserted[$target['i']];
 
-							// Outputs can only meet input port
-							$linkPortB = &$targetNode->inputs[$target['name']];
+							// output can only meet input port
+							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null)
 								throw new \Exception("Node port not found for $targetNode with name: $target[name]");
 
@@ -122,7 +109,7 @@ class Engine{
 	}
 
 	public function &createNode($namespace, $options=null, &$nodes=null){
-		$func = Utils::deepProperty($this->nodes, explode('/', $namespace));
+		$func = Utils::deepProperty(Blackprint::$nodes, explode('/', $namespace));
 		if($func === null)
 			throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
 
@@ -133,11 +120,11 @@ class Engine{
 		// Call the registered func (from this.registerNode)
 		$func($node, $iface);
 
-		if(isset($this->interface[$iface->interface]) === false)
+		if(isset(Blackprint::$interface[$iface->interface]) === false)
 			throw new \Exception("Node interface for '{$iface->interface}' was not found, maybe .registerInterface() haven't being called?");
 
 		// Initialize for interface
-		$iface->interfacing($this->interface[$iface->interface]);
+		$iface->interfacing(Blackprint::$interface[$iface->interface]);
 
 		// Assign the saved options if exist
 		// Must be called here to avoid port trigger
