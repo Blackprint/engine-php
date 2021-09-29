@@ -11,7 +11,7 @@ class NodeInterface extends CustomEvents{
 	public $id; // Named ID (String)
 	public $i; // Generated Index
 	public $title = 'No title';
-	public $interface = 'default';
+	public $interface = 'BP/default';
 	public $importing = true;
 
 	/** @var Node */
@@ -23,14 +23,6 @@ class NodeInterface extends CustomEvents{
 		$this->node = &$node;
 		$node->iface = &$this;
 		$this->namespace = &$namespace;
-	}
-
-	public function interfacing(&$interFunc){
-		$interFunc($this, function($property){
-			foreach ($property as $key => &$val) {
-				$this->{$key} = $val;
-			}
-		});
 	}
 
 	public function prepare(){

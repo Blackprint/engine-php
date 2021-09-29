@@ -6,9 +6,9 @@ use \Blackprint\{
 	Engine,
 	Types,
 };
-use function \Blackprint\{
-	PortListener,
-	PortValidator,
+use function \Blackprint\Port\{
+	Listener,
+	Validator,
 };
 
 /* Because PHP lack of getter and setter
@@ -20,8 +20,7 @@ use function \Blackprint\{
 // === Register Node Interface ===
 	// When creating your own interface please use specific interface naming
 	// 'LibraryName/FeatureName/NodeName'
-	// Example below is using 'i-' to make it easier to understand
-	Blackprint::registerInterface('i-button', function($iface){
+	Blackprint::registerInterface('BPIC/Example/button', function($iface){
 		// Will be used for 'Example/Button/Simple' node
 		$iface->clicked = function($ev=null) use($iface) {
 			colorLog("Engine: 'Trigger' button clicked, going to run the handler");
@@ -30,7 +29,7 @@ use function \Blackprint\{
 		};
 	});
 
-	Blackprint::registerInterface('i-input', function($iface, $bind){
+	Blackprint::registerInterface('BPIC/Example/input', function($iface, $bind){
 		$theValue = '';
 		$bind([
 			'data'=>[
@@ -45,7 +44,7 @@ use function \Blackprint\{
 		]);
 	});
 
-	Blackprint::registerInterface('i-logger', function($iface, $bind){
+	Blackprint::registerInterface('BPIC/Example/logger', function($iface, $bind){
 		$log = '...';
 		$bind([
 			'log'=> function ($val = null) use(&$log) {
@@ -65,9 +64,9 @@ use function \Blackprint\{
 
 // === Register Node Handler ===
 // Almost similar with the engine-js example version
-	Blackprint::registerNode('Example/Math/Multiply', function($node, $iface){
+	Blackprint::registerNode('Example/Math/Multiply', function($node){
+		$iface = $node->setInterface(); // default interface
 		$iface->title = "Multiply";
-		// $iface->interface = undefined; // default interface
 
 		// Your own processing mechanism
 		$multiply = function() use($node) {
@@ -81,7 +80,7 @@ use function \Blackprint\{
 				colorLog("Result has been set: ".$node->output['Result']());
 			},
 			'A'=> Types\Numbers,
-			'B'=> PortValidator(Types\Numbers, function($val) use($iface) {
+			'B'=> Validator(Types\Numbers, function($val) use($iface) {
 				// Executed when input.B is being obtained
 				// And the output from other node is being assigned
 				// as current port value in this node
@@ -108,9 +107,9 @@ use function \Blackprint\{
 		};
 	});
 
-	Blackprint::registerNode('Example/Math/Random', function($node, $iface){
+	Blackprint::registerNode('Example/Math/Random', function($node){
+		$iface = $node->setInterface(); // default interface
 		$iface->title = "Random";
-		// $iface->interface = undefined; // default interface
 
 		$node->output = [
 			'Out'=> Types\Numbers
@@ -138,9 +137,9 @@ use function \Blackprint\{
 		};
 	});
 
-	Blackprint::registerNode('Example/Display/Logger', function($node, $iface){
+	Blackprint::registerNode('Example/Display/Logger', function($node){
+		$iface = $node->setInterface('BPIC/Example/logger');
 		$iface->title = "Logger";
-		$iface->interface = 'i-logger';
 
 		$refreshLogger = function($val) use($iface) {
 			if($val === null)
@@ -152,7 +151,7 @@ use function \Blackprint\{
 		};
 
 		$node->input = [
-			'Any'=> PortListener(function($port, $val) use($refreshLogger, $node) {
+			'Any'=> Listener(function($port, $val) use($refreshLogger, $node) {
 				colorLog("I connected to {$port->name} (port {$port->iface->title}), that have new value: $val");
 
 				// Let's take all data from all connected nodes
@@ -170,10 +169,9 @@ use function \Blackprint\{
 		};
 	});
 
-	Blackprint::registerNode('Example/Button/Simple', function($node, $iface){
-		// iface = under ScarletsFrame element control
+	Blackprint::registerNode('Example/Button/Simple', function($node){
+		$iface = $node->setInterface('BPIC/Example/button');
 		$iface->title = "Button";
-		$iface->interface = 'i-button';
 
 		// node = under Blackprint node flow control
 		$node->output = [
@@ -187,10 +185,9 @@ use function \Blackprint\{
 		};
 	});
 
-	Blackprint::registerNode('Example/Input/Simple', function($node, $iface){
-		// iface = under ScarletsFrame element control
+	Blackprint::registerNode('Example/Input/Simple', function($node){
+		$iface = $node->setInterface('BPIC/Example/input');
 		$iface->title = "Input";
-		$iface->interface = 'i-input';
 
 		// node = under Blackprint node flow control
 		$node->output = [
@@ -225,21 +222,22 @@ use function \Blackprint\{
 // === Import JSON after all nodes was registered ===
 // You can import the JSON to Blackprint Sketch if you want to view the nodes visually
 $instance = new Engine;
-$instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"output":{"Out":[{"i":2,"name":"A"}]}},{"i":1,"x":298,"y":239,"output":{"Out":[{"i":2,"name":"B"}]}}],"Example/Math/Multiply":[{"i":2,"x":525,"y":155,"output":{"Result":[{"i":3,"name":"Any"}]}}],"Example/Display/Logger":[{"i":3,"x":763,"y":169}],"Example/Button/Simple":[{"i":4,"x":41,"y":59,"output":{"Clicked":[{"i":2,"name":"Exec"}]}}],"Example/Input/Simple":[{"i":5,"x":38,"y":281,"data":{"value":"saved input"},"output":{"Changed":[{"i":1,"name":"Re-seed"}],"Value":[{"i":3,"name":"Any"}]}}]}');
+$instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"output":{"Out":[{"i":2,"name":"A"}]}},{"i":1,"x":298,"y":239,"output":{"Out":[{"i":2,"name":"B"}]}}],"Example/Math/Multiply":[{"i":2,"x":525,"y":155,"output":{"Result":[{"i":3,"name":"Any"}]}}],"Example/Display/Logger":[{"i":3,"id":"myLogger","x":763,"y":169}],"Example/Button/Simple":[{"i":4,"id":"myButton","x":41,"y":59,"output":{"Clicked":[{"i":2,"name":"Exec"}]}}],"Example/Input/Simple":[{"i":5,"id":"myInput","x":38,"y":281,"data":{"value":"saved input"},"output":{"Changed":[{"i":1,"name":"Re-seed"}],"Value":[{"i":3,"name":"Any"}]}}]}');
 
 
 // Time to run something :)
-$button = $instance->getNodes('Example/Button/Simple')[0]->iface;
+$button = $instance->iface['myButton'];
 
 echo "\n\n>> I'm clicking the button";
 ($button->clicked)();
 
-$logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
+$logger = $instance->iface['myLogger'];
 echo "\n\n>> I got the output value: ".($logger->log)();
 
 echo "\n\n>> I'm writing something to the input box";
-$input = $instance->getNodes('Example/Input/Simple')[0]->iface;
+$input = $instance->iface['myInput'];
 $input->data['value']('hello wrold');
 
+// you can also use getNodes if you haven't set the ID
 $logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n\n>> I got the output value: ".($logger->log)();

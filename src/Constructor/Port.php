@@ -123,7 +123,7 @@ class Port{
 		foreach ($cables as &$cable) {
 			$target = $cable->owner === $this ? $cable->target : $cable->owner;
 
-			if($target->feature === \Blackprint\PortListener)
+			if($target->feature === \Blackprint\Port\Listener)
 				($target->_call)($cable->owner === $this ? $cable->owner : $cable->target, $this->value);
 
 			if($target->iface->_requesting === false && $target->iface->node->update !== false)

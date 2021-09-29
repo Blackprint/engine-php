@@ -1,19 +1,16 @@
 <?php
 namespace Blackprint;
 require_once __DIR__."/Types.php";
-require_once __DIR__."/PortDefault.php";
-require_once __DIR__."/PortListener.php";
-require_once __DIR__."/PortValidator.php";
+require_once __DIR__."/Port/Default_.php";
+require_once __DIR__."/Port/Listener.php";
+require_once __DIR__."/Port/Validator.php";
 
 class Engine{
 	public $iface = [];
 	public $ifaceList = [];
 	public $settings = [];
 
-	public function __construct(){
-
-	}
-
+	// public function __construct(){ }
 	public function importJSON($json){
 		if(is_string($json))
 			$json = json_decode($json, true);
@@ -115,38 +112,42 @@ class Engine{
 
 		// Processing scope is different with iface scope
 		$node = new Constructor\Node;
-		$iface = new Constructor\NodeInterface($node, $namespace);
 
 		// Call the registered func (from this.registerNode)
-		$func($node, $iface);
+		$func($node);
+		$iface = &$node->iface;
 
-		if(isset(Blackprint::$interface[$iface->interface]) === false)
-			throw new \Exception("Node interface for '{$iface->interface}' was not found, maybe .registerInterface() haven't being called?");
-
-		// Initialize for interface
-		$iface->interfacing(Blackprint::$interface[$iface->interface]);
+		if($iface === false)
+			throw new \Exception("Node interface was not found, do you forget to call \$node->setInterface() ?");
 
 		// Assign the saved options if exist
 		// Must be called here to avoid port trigger
-		if(isset($iface->data) && isset($options['data']))
-			deepMerge($iface->data, $options['data']);
+		if(isset($options['data'])){
+			if(isset($iface->data))
+				deepMerge($iface->data, $options['data']);
+			else $iface->data = &$options['data'];
+		}
 
 		// Create the linker between the nodes and the iface
 		$iface->prepare();
 
-		if(isset($iface->id))
+		$iface->namespace = &$namespace;
+		if(isset($options['id'])){
+			$iface->id = &$options['id'];
 			$this->iface[$iface->id] = &$iface;
+		}
 
-		if(isset($iface->i))
+		if(isset($options['i'])){
+			$iface->i = &$options['i'];
 			$this->ifaceList[$iface->i] = &$iface;
+		}
 		else $this->ifaceList[] = &$iface;
 
 		$iface->importing = false;
-
 		isset($node->imported) && ($node->imported)();
 
 		if($nodes !== null)
-			$nodes[] = $node;
+			$nodes[] = &$node;
 		elseif($node->init)
 			($node->init)();
 
