@@ -1,7 +1,7 @@
 <?php
 namespace Blackprint\Port;
 
-const Validator = 3;
+const Validator = 6;
 function Validator($type, $func = null){
 	if($func === null)
 		return [

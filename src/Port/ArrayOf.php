@@ -1,17 +1,17 @@
 <?php
 namespace Blackprint\Port;
 
-const Listener = 2;
-function Listener($type, $func = null){
+const ArrayOf = 1;
+function ArrayOf($type, $func = null){
 	if($func === null)
 		return [
-			'feature'=>Listener,
+			'feature'=>ArrayOf,
 			'type'=>null,
 			'func'=>&$type
 		];
 
 	return [
-		'feature'=>Listener,
+		'feature'=>ArrayOf,
 		'type'=>&$type,
 		'func'=>&$func
 	];
