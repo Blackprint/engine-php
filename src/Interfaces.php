@@ -1,13 +1,13 @@
 <?php
-namespace Blackprint\Constructor;
+namespace Blackprint;
 use \Blackprint\Types;
+use \Blackprint\Constructor\Port;
 
 class Temp{
-	public static $list = [];
+	public static $list = ['input', 'output', 'property'];
 }
-Temp::$list = ['input', 'output', 'property'];
 
-class NodeInterface extends CustomEvents{
+class Interfaces extends Constructor\CustomEvent {
 	public $id; // Named ID (String)
 	public $i; // Generated Index
 	public $title = 'No title';
@@ -19,13 +19,11 @@ class NodeInterface extends CustomEvents{
 	public $namespace;
 	public $_requesting = false;
 
-	public function __construct(&$node, &$namespace){
+	public function __construct(&$node){
 		$this->node = &$node;
-		$node->iface = &$this;
-		$this->namespace = &$namespace;
 	}
 
-	public function prepare(){
+	public function _prepare_(){
 		$node = &$this->node;
 		foreach (Temp::$list as &$which) {
 			$localPorts = &$node->{$which};
@@ -37,10 +35,10 @@ class NodeInterface extends CustomEvents{
 
 				if(is_callable($port)){
 					$def = $port;
-					$type = Types\Functions;
+					$type = Types::Function;
 				}
 				elseif(is_array($port)){
-					if($port['type'] === null || strpos($port['type'], '>?><') === 0){
+					if($port['type'] === null){
 						$type = &$port['type'];
 
 						if(isset($port['value']))
@@ -50,25 +48,25 @@ class NodeInterface extends CustomEvents{
 					}
 					else{
 						$def = $port;
-						$type = Types\Arrays;
+						$type = Types::Array;
 					}
 				}
 				elseif(is_string($port)){
-					if($type === Types\Numbers)
+					if($type === Types::Number)
 						$def = 0;
-					elseif($type === Types\Booleans)
+					elseif($type === Types::Boolean)
 						$def = false;
-					elseif($type === Types\Strings)
+					elseif($type === Types::String)
 						$def = '';
-					elseif($type === Types\Arrays)
+					elseif($type === Types::Array)
 						$def = [];
 					elseif($type === null)
 						0;
-					elseif($type === Types\Functions)
+					elseif($type === Types::Function)
 						0;
 					else{
 						$def = $port;
-						$type = Types\Strings;
+						$type = Types::String;
 					}
 				}
 
