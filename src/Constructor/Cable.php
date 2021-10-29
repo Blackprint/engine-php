@@ -17,8 +17,31 @@ class Cable{
 		$this->target = &$target;
 	}
 
+	public function _connected(){
+		$owner = &$this->owner;
+		$target = &$this->target;
+
+		$temp = ['cable'=> &$this, 'port'=> &$owner, 'target'=> &$target];
+		$owner->_trigger('cable.connect', $temp);
+
+		$temp2 = ['cable'=> &$this, 'port'=> &$owner, 'target'=> &$target];
+		$target->_trigger('cable.connect', $temp2);
+
+		if($target->source === 'input'){
+			$inp = &$target;
+			$out = &$owner;
+		}
+		else{
+			$inp = &$target;
+			$out = &$owner;
+		}
+
+		if($out->value === null) return;
+		$inp->_trigger('value', $out);
+	}
+
 	// For debugging
 	public function _print(){
-		echo "\nCable: {$this->owner->node->title}.{$this->owner->name} -> {$this->target->name}.{$this->target->node->title}";
+		echo "\nCable: {$this->owner->iface->title}.{$this->owner->name} -> {$this->target->name}.{$this->target->iface->title}";
 	}
 }

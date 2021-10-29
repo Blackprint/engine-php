@@ -2,7 +2,7 @@
 namespace Blackprint\Constructor;
 use \Blackprint\Types;
 
-class Port{
+class Port extends CustomEvent {
 	public $name;
 	public $type;
 	public $cables = [];
@@ -32,7 +32,7 @@ class Port{
 
 	public function createLinker(){
 		// Only for output
-		if($this->type === Types\Functions){
+		if($this->type === Types::Function){
 			return function(){
 				$cables = $this->cables;
 				foreach ($cables as &$cable) {
@@ -44,28 +44,43 @@ class Port{
 			};
 		}
 
-		return function($val=null){
+		return function&($val=null){
 			// Getter value
 			if($val === null){
 				// This port must use values from connected output
 				if($this->source === 'input'){
-					if(count($this->cables) === 0)
+					if(count($this->cables) === 0){
+						if($this->feature === \Blackprint\Port\ArrayOf){
+							$temp = [];
+							return $temp;
+						}
+
 						return $this->default;
+					}
 
 					// Flag current iface is requesting value to other iface
 					$this->iface->_requesting = true;
 
 					// Return single data
 					if(count($this->cables) === 1){
-						$target = $this->cables[0]->owner === $this ? $this->cables[0]->$target : $this->cables[0]->owner;
+						$temp = $this->cables[0]; # Don't use pointer
+
+						if($temp->owner === $this)
+							$target = &$temp->target;
+						else $target = &$temp->owner;
 
 						// Request the data first
-						if($target->iface->node->request)
-							($target->iface->node->request)($target, $this->iface);
+						if(method_exists($target->iface->node, 'request'))
+							$target->iface->node->request($target, $this->iface);
 
-						// echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
+						echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
 
 						$this->iface->_requesting = false;
+
+						if($this->feature === \Blackprint\Port\ArrayOf){
+							$temp = [$target->value ?? $target->default];
+							return $temp;
+						}
 
 						if($target->value === null)
 							return $target->default;
@@ -73,13 +88,15 @@ class Port{
 					}
 
 					// Return multiple data as an array
-					$cables = $this->cables;
+					$cables = &$this->cables;
 					$data = [];
 					foreach ($cables as &$cable) {
-						$target = $cable->owner === $this ? $cable->$target : $cable->owner;
+						if($cable->owner === $this)
+							$target = &$cable->target;
+						else $target = &$cable->owner;
 
 						// Request the data first
-						if($target->iface->node->request)
+						if(method_exists($target->iface->node, 'request'))
 							$target->iface->node->request($target, $this->iface);
 
 						// echo "\n2. {$this->name} -> {$target->name} ({$target->value})";
@@ -91,43 +108,63 @@ class Port{
 					}
 
 					$this->iface->_requesting = false;
+
+					if($this->feature !== \Blackprint\Port\ArrayOf)
+						return $data[0];
+
 					return $data;
+				}
+
+				if($this->feature === \Blackprint\Port\ArrayOf){
+					$temp = [$target->value ?? $target->default];
+					return $temp;
 				}
 
 				if($this->value === null)
 					return $this->default;
 				return $this->value;
 			}
+			// else setter (only for output port)
+
+			if($this->source === 'input')
+				throw new \Exception("Can't set data to input port");
 
 			$type = gettype($val);
 
 			// Data type validation
-			if($this->type === Types\Numbers)
-				($type !== 'integer' || $type !== 'double' || $type !== 'float') && Types\Numbers($val);
-			elseif($this->type === Types\Booleans)
-				$type !== 'boolean' && Types\Booleans($val);
-			elseif($this->type === Types\Strings)
-				$type !== 'string' && Types\Strings($val);
-			elseif($this->type === Types\Arrays)
-				$type !== 'array' && Types\Arrays($val);
-			else
-				throw new \Exception("Can't validate type of ID: {$this->type}");
+			if($this->type === Types::Number && ($type === 'integer' || $type === 'double' || $type === 'float')){}
+			elseif($this->type === Types::Boolean && $type === 'boolean'){}
+			elseif($this->type === Types::String && $type === 'string'){}
+			elseif($this->type === Types::Array && $type === 'array'){}
+			elseif($this->type === Types::Function && is_callable($val)){}
+			elseif($this->type === null){}
+			else{
+				$bpType = \Blackprint\getTypeName($this->type);
+				throw new \Exception("Can't validate type of ID: $bpType == $type");
+			}
+
+			// echo "\n3. {$this->name} = {$val}";
 
 			$this->value = &$val;
+			$this->_trigger('value', $this);
 			$this->sync();
+
+			return $val;
 		};
 	}
 
+	// Only for output port
 	public function sync(){
 		$cables = &$this->cables;
 		foreach ($cables as &$cable) {
-			$target = $cable->owner === $this ? $cable->target : $cable->owner;
+			if($cable->owner === $this)
+				$target = &$cable->target;
+			else $target = &$cable->owner;
 
-			if($target->feature === \Blackprint\Port\Listener)
-				($target->_call)($cable->owner === $this ? $cable->owner : $cable->target, $this->value);
+			if($target->iface->_requesting === false && method_exists($target->iface->node, 'update'))
+				$target->iface->node->update($cable);
 
-			if($target->iface->_requesting === false && $target->iface->node->update !== false)
-				($target->iface->node->update)($cable);
+			$target->_trigger('value', $this);
 		}
 	}
 }
