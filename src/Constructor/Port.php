@@ -73,7 +73,7 @@ class Port extends CustomEvent {
 						if(method_exists($target->iface->node, 'request'))
 							$target->iface->node->request($target, $this->iface);
 
-						echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
+						// echo "\n1. {$this->name} -> {$target->name} ({$target->value})";
 
 						$this->iface->_requesting = false;
 
