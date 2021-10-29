@@ -1,8 +1,12 @@
 <?php
 namespace Blackprint;
+require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
+require_once __DIR__."/Port/ArrayOf.php";
 require_once __DIR__."/Port/Default_.php";
-require_once __DIR__."/Port/Listener.php";
+require_once __DIR__."/Port/Switch_.php";
+require_once __DIR__."/Port/Trigger.php";
+require_once __DIR__."/Port/Union.php";
 require_once __DIR__."/Port/Validator.php";
 
 class Engine{
@@ -68,6 +72,7 @@ class Engine{
 							$cable = new Constructor\Cable($linkPortA, $linkPortB);
 							$linkPortA->cables[] = $linkPortB->cables[] = $cable;
 
+							$cable->_connected();
 							// $cable->_print();
 						}
 					}
@@ -76,8 +81,10 @@ class Engine{
 		}
 
 		// Call nodes init after creation processes was finished
-		foreach ($nodes as &$val)
-			$val->init !== false && ($val->init)();
+		foreach ($nodes as &$val){
+			if(method_exists($val, 'init'))
+				$val->init();
+		}
 	}
 
 	public function settings($which, $val){
@@ -106,15 +113,18 @@ class Engine{
 	}
 
 	public function &createNode($namespace, $options=null, &$nodes=null){
-		$func = Utils::deepProperty(Blackprint::$nodes, explode('/', $namespace));
-		if($func === null)
-			throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
+		$func = Utils::deepProperty(Internal::$nodes, explode('/', $namespace));
 
-		// Processing scope is different with iface scope
-		$node = new Constructor\Node;
+		// Try to load from registered namespace folder if exist
+		if($func === null){
+			Internal::_loadNamespace($namespace);
+			$func = Utils::deepProperty(Internal::$nodes, explode('/', $namespace));
 
-		// Call the registered func (from this.registerNode)
-		$func($node);
+			if($func === null)
+				throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
+		}
+
+		$node = new $func($this);
 		$iface = &$node->iface;
 
 		if($iface === false)
@@ -129,7 +139,7 @@ class Engine{
 		}
 
 		// Create the linker between the nodes and the iface
-		$iface->prepare();
+		$iface->_prepare_();
 
 		$iface->namespace = &$namespace;
 		if(isset($options['id'])){
@@ -144,12 +154,16 @@ class Engine{
 		else $this->ifaceList[] = &$iface;
 
 		$iface->importing = false;
-		isset($node->imported) && ($node->imported)();
+		if(method_exists($node, 'imported'))
+			$node->imported();
 
 		if($nodes !== null)
 			$nodes[] = &$node;
-		elseif($node->init)
-			($node->init)();
+
+		if(method_exists($node, 'init'))
+			$node->init();
+		if(method_exists($iface, 'init'))
+			$iface->init();
 
 		return $iface;
 	}
