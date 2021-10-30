@@ -2,12 +2,7 @@
 namespace Blackprint;
 require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
-require_once __DIR__."/Port/ArrayOf.php";
-require_once __DIR__."/Port/Default_.php";
-require_once __DIR__."/Port/Switch_.php";
-require_once __DIR__."/Port/Trigger.php";
-require_once __DIR__."/Port/Union.php";
-require_once __DIR__."/Port/Validator.php";
+require_once __DIR__."/Port/_PortTypes.php";
 
 class Engine{
 	public $iface = [];
@@ -34,6 +29,7 @@ class Engine{
 					'id' => isset($iface['id']) ? $iface['id'] : null,
 					'i' => $iface['i']
 				];
+
 				if(isset($iface['data']))
 					$ifaceOpt['data'] = &$iface['data'];
 
