@@ -31,49 +31,32 @@ class Interfaces extends Constructor\CustomEvent {
 			foreach ($localPorts as $portName => &$port) {
 				$type = $port;
 				$def = null;
-				$feature = false;
+				$feature = is_array($port) ? $port['feature'] : false;
 
-				if(is_callable($port)){
-					$def = $port;
+				if($feature === \Blackprint\Port::Trigger_){
+					$def = &$port['func'];
 					$type = Types::Function;
 				}
-				elseif(is_array($port)){
-					if($port['type'] === null){
-						$type = &$port['type'];
-
-						if(isset($port['value']))
-							$def = &$port['value'];
-
-						$feature = $port;
-					}
-					else{
-						$def = $port;
-						$type = Types::Array;
-					}
-				}
-				elseif(is_string($port)){
-					if($type === Types::Number)
-						$def = 0;
-					elseif($type === Types::Boolean)
-						$def = false;
-					elseif($type === Types::String)
-						$def = '';
-					elseif($type === Types::Array)
-						$def = [];
-					elseif($type === null)
-						0;
-					elseif($type === Types::Function)
-						0;
-					else{
-						$def = $port;
-						$type = Types::String;
-					}
-				}
+				elseif($feature === \Blackprint\Port::ArrayOf_)
+					$type = &$port['type'];
+				elseif($type === Types::Number)
+					$def = 0;
+				elseif($type === Types::Boolean)
+					$def = false;
+				elseif($type === Types::String)
+					$def = '';
+				elseif($type === Types::Array)
+					$def = [];
+				elseif($type === null) 0; // Any
+				elseif($type === Types::Function) 0;
+				elseif($feature === false && !is_string($port))
+					throw new Exception("Port for initialization must be a types", 1);
+				// else{
+				// 	$def = $port;
+				// 	$type = Types::String;
+				// }
 
 				$linkedPort = $this->{$which}[$portName] = new Port($portName, /* the types */ $type, $def, $which, $this, $feature);
-				if(is_callable($port) && $which !== 'output')
-					continue;
-
 				$localPorts[$portName] = $linkedPort->createLinker();
 			}
 		}

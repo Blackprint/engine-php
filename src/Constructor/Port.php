@@ -12,7 +12,6 @@ class Port extends CustomEvent {
 	public $value = null;
 	public $sync = false;
 	public $feature = null;
-	public $_call = null;
 
 	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = $portName;
@@ -24,24 +23,24 @@ class Port extends CustomEvent {
 		if($feature === false)
 			return;
 
-		$this->feature = &$feature['feature'];
-
-		if(isset($feature['func']))
-			$this->_call = &$feature['func'];
+		$this->feature = &$feature;
 	}
 
 	public function createLinker(){
-		// Only for output
 		if($this->type === Types::Function){
-			return function(){
-				$cables = $this->cables;
-				foreach ($cables as &$cable) {
-					$target = $cable->owner === $this ? $cable->target : $cable->owner;
-					// $cable->_print();
+			if($this->source === 'output'){
+				return function($data=null){
+					$cables = $this->cables;
+					foreach ($cables as &$cable) {
+						$target = $cable->owner === $this ? $cable->target : $cable->owner;
+						// $cable->_print();
 
-					$target->iface->node->input[$target->name]($this, $cable);
-				}
-			};
+						($target->default)($data);
+					}
+				};
+			}
+
+			return $this->default;
 		}
 
 		return function&($val=null){
@@ -50,7 +49,7 @@ class Port extends CustomEvent {
 				// This port must use values from connected output
 				if($this->source === 'input'){
 					if(count($this->cables) === 0){
-						if($this->feature === \Blackprint\Port\ArrayOf){
+						if($this->feature === \Blackprint\Port::ArrayOf_){
 							$temp = [];
 							return $temp;
 						}
@@ -77,7 +76,7 @@ class Port extends CustomEvent {
 
 						$this->iface->_requesting = false;
 
-						if($this->feature === \Blackprint\Port\ArrayOf){
+						if($this->feature === \Blackprint\Port::ArrayOf_){
 							$temp = [$target->value ?? $target->default];
 							return $temp;
 						}
@@ -109,13 +108,13 @@ class Port extends CustomEvent {
 
 					$this->iface->_requesting = false;
 
-					if($this->feature !== \Blackprint\Port\ArrayOf)
+					if($this->feature !== \Blackprint\Port::ArrayOf_)
 						return $data[0];
 
 					return $data;
 				}
 
-				if($this->feature === \Blackprint\Port\ArrayOf){
+				if($this->feature === \Blackprint\Port::ArrayOf_){
 					$temp = [$target->value ?? $target->default];
 					return $temp;
 				}
