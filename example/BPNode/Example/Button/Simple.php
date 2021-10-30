@@ -22,7 +22,7 @@ class Simple extends \Blackprint\Node {
 \Blackprint\registerInterface('BPIC\Example\Button', ButtonIFace::class);
 class ButtonIFace extends \Blackprint\Interfaces {
 	function clicked($ev = null){
-		\App\colorLog("BPIC\Example\Button: got $ev, time to trigger to the other node");
+		\App\colorLog("Button\Simple:", "I got '$ev', time to trigger to the other node");
 
 		$this->node->output['Clicked']($ev);
 	}

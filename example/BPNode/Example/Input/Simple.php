@@ -22,7 +22,7 @@ class Simple extends \Blackprint\Node {
 	// Bring value from imported iface to node output
 	function imported() {
 		$val = $this->iface->data['value']();
-		if($val) \App\colorLog("Saved data as output: {$val}");
+		if($val) \App\colorLog("Input\Simple:", "Saved data as output: {$val}");
 
 		$this->output['Value']($val);
 	}
@@ -48,7 +48,7 @@ class InputIFace extends \Blackprint\Interfaces {
 		if($this->importing !== false)
 			return;
 
-		\App\colorLog("The input box have new value: $val");
+		\App\colorLog("Input\Simple:", "The input box have new value: $val");
 		$this->node->output['Value']($val);
 
 		// This will call every connected node

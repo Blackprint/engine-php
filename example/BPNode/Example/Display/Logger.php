@@ -26,7 +26,7 @@ class LoggerIFace extends \Blackprint\Interfaces {
 		if($val === null) return $this->_log;
 
 		$this->_log = &$val;
-		\App\colorLog("Logger: ".$val);
+		\App\colorLog("Logger Data =>", $val);
 	}
 
 	function init() {
@@ -45,12 +45,12 @@ class LoggerIFace extends \Blackprint\Interfaces {
 
 		// Let's show data after new cable was connected or disconnected
 		$this->on('cable.connect cable.disconnect', function() use($refreshLogger) {
-			\App\colorLog("A cable was changed on Logger, now refresing the input element");
+			\App\colorLog("Display\Logger:", "A cable was changed on Logger, now refresing the input element");
 			$refreshLogger($this->node->input['Any']());
 		});
 
 		$this->input['Any']->on('value', function(&$port) use($refreshLogger) {
-			\App\colorLog("I connected to {$port->name} (port {$port->iface->title}), that have new value: $port->value");
+			\App\colorLog("Display\Logger:", "I connected to {$port->name} (port {$port->iface->title}), that have new value: $port->value");
 
 			// Let's take all data from all connected nodes
 			// Instead showing new single data-> val
