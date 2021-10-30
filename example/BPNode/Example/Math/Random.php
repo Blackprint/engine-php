@@ -19,7 +19,7 @@ class Random extends \Blackprint\Node {
 
 		$this->executed = false;
 		$this->input = [
-			'Re-seed'=> Port\Trigger(function() {
+			'Re-seed'=> Port::Trigger(function() {
 				$this->executed = true;
 				$this->output['Out'](random_int(0, 100));
 			})

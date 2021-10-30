@@ -14,7 +14,7 @@ class Logger extends \Blackprint\Node {
 		$iface->title = "Logger";
 
 		$this->input = [
-			'Any'=> Port\ArrayOf(null) // null => Any
+			'Any'=> Port::ArrayOf(null) // null => Any
 		];
 	}
 }

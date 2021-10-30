@@ -14,12 +14,12 @@ class Multiply extends \Blackprint\Node {
 		$iface->title = "Multiply";
 
 		$this->input = [
-			'Exec'=> Port\Trigger(function(){
+			'Exec'=> Port::Trigger(function(){
 				$this->output['Result']($this->multiply());
 				\App\colorLog("Result has been set: ".$this->output['Result']());
 			}),
 			'A'=> Types::Number,
-			'B'=> Port\Validator(Types::Number, function($val) {
+			'B'=> Port::Validator(Types::Number, function($val) {
 				// Executed when input.B is being obtained
 				// And the output from other node is being assigned
 				// as current port value in this node

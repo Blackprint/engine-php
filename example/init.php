@@ -2,13 +2,11 @@
 namespace App;
 
 require_once('../vendor/autoload.php');
-use \Blackprint\{
-	Engine
-};
+use \Blackprint\Engine;
 
 function colorLog($val){
 	echo "\n\x1b[33m$val\x1b[0m";
-};
+}
 
 // The nodes and interface is almost similar with the engine-js example version
 // When creating your own interface please use specific interface naming
