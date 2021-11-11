@@ -29,7 +29,7 @@ class Port extends CustomEvent {
 	public function createLinker(){
 		if($this->type === Types::Function){
 			if($this->source === 'output'){
-				return function($data=null){
+				return function($data = null){
 					$cables = $this->cables;
 					foreach ($cables as &$cable) {
 						$target = $cable->owner === $this ? $cable->target : $cable->owner;
@@ -43,7 +43,7 @@ class Port extends CustomEvent {
 			return $this->default;
 		}
 
-		return function&($val=null){
+		return function&($val = null){
 			// Getter value
 			if($val === null){
 				// This port must use values from connected output
@@ -130,17 +130,29 @@ class Port extends CustomEvent {
 
 			$type = gettype($val);
 
-			// Data type validation
-			if($this->type === Types::Number && ($type === 'integer' || $type === 'double' || $type === 'float')){}
-			elseif($this->type === Types::Boolean && $type === 'boolean'){}
-			elseif($this->type === Types::String && $type === 'string'){}
-			elseif($this->type === Types::Array && $type === 'array'){}
-			elseif($this->type === Types::Function && is_callable($val)){}
-			elseif($this->type === null){}
-			else{
+			// Type check
+			$pass = match($this->type){
+				Types::Number => ($type === 'integer' || $type === 'double' || $type === 'float'),
+				Types::Boolean => $type === 'boolean',
+				Types::String => $type === 'string',
+				Types::Array => $type === 'array',
+				Types::Function => is_callable($val),
+				Types::Object => $type === 'object',
+				Types::Any => true,
+				default => null,
+			};
+
+			if($pass === null) {
+				if($type === 'object' && $this->type === $val::class){}
+				else $pass = false;
+			}
+
+			if($pass === false) {
 				$bpType = \Blackprint\getTypeName($this->type);
 				throw new \Exception("Can't validate type of ID: $bpType == $type");
 			}
+
+			// Data type validation (ToDo: optimize)
 
 			// echo "\n3. {$this->name} = {$val}";
 
