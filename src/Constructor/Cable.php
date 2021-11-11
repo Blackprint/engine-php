@@ -2,7 +2,7 @@
 namespace Blackprint\Constructor;
 
 class Cable{
-	/** @var String */
+	/** @var Blackprint\Types|String */
 	public $type;
 
 	/** @var NodeInterface */
