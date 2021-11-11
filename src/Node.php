@@ -13,10 +13,17 @@ class Node extends Constructor\CustomEvent{
 
 	/** @var Interfaces */
 	public $iface = false;
+	private $contructed = false;
 
-	function __construct(public $instance){}
+	// Reserved for future
+	function __construct(public $instance){
+		$this->contructed = true;
+	}
 
 	public function &setInterface($namespace='BP/default'){
+		if($this->contructed === false)
+			throw new \Exception("Make sure you have call 'parent::__construct(\$instance);' when constructing nodes before '->setInterface'");
+
 		if(isset(Internal::$interface[$namespace]) === false)
 			throw new \Exception("Node interface for '{$namespace}' was not found, maybe .registerInterface() haven't being called?");
 
