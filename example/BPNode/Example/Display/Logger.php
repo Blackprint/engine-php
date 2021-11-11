@@ -14,7 +14,7 @@ class Logger extends \Blackprint\Node {
 		$iface->title = "Logger";
 
 		$this->input = [
-			'Any'=> Port::ArrayOf(null) // null => Any
+			'Any'=> Port::ArrayOf(Types::Any)
 		];
 	}
 }
@@ -35,7 +35,7 @@ class LoggerIFace extends \Blackprint\Interfaces {
 				$val = 'null';
 				$this->log($val);
 			}
-			else if(is_string($val) || is_numeric($val))
+			elseif(is_string($val) || is_numeric($val))
 				$this->log($val);
 			else{
 				$val = json_encode($val);
