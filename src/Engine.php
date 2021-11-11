@@ -7,7 +7,7 @@ require_once __DIR__."/Port/_PortTypes.php";
 class Engine{
 	public $iface = [];
 	public $ifaceList = [];
-	public $settings = [];
+	protected $settings = [];
 
 	// public function __construct(){ }
 	public function importJSON($json){
@@ -17,10 +17,16 @@ class Engine{
 		$version = &$json['version'];
 		unset($json['version']);
 
+		$metaData = &$json['_'];
+		unset($json['_']);
+
+		if(isset($metaData['env']))
+			\Blackprint\Environment::import($metaData['env']);
+
 		$inserted = &$this->ifaceList;
 		$nodes = [];
 
-		// Prepare all ifaces depend on the namespace
+		// Prepare all ifaces based on the namespace
 		// before we create cables for them
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
@@ -61,9 +67,9 @@ class Engine{
 							// output can only meet input port
 							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null)
-								throw new \Exception("Node port not found for $targetNode with name: $target[name]");
+								throw new \Exception("Node port not found for $targetNode->title with name: $target[name]");
 
-							// echo "\n{$current->title}.{$linkPortA->name} => {$linkPortB->name}.{$targetNode->title}";
+							// echo "\n{$current->title}.{$linkPortA->name} => {$targetNode->title}.{$linkPortB->name}";
 
 							$cable = new Constructor\Cable($linkPortA, $linkPortB);
 							$linkPortA->cables[] = $linkPortB->cables[] = $cable;
@@ -84,6 +90,9 @@ class Engine{
 	}
 
 	public function settings($which, $val){
+		if($val === null)
+			return $this->settings[$which];
+
 		$this->settings[$which] = &$val;
 	}
 
