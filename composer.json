@@ -1,5 +1,5 @@
 {
-	"name":"blackprint/engine-php",
+	"name":"blackprint/engine",
 	"description": "PHP Engine for Blackprint",
 	"version": "0.3.0",
 	"keywords": ["blackprint", "engine"],
