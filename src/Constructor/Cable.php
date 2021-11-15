@@ -27,9 +27,9 @@ class Cable{
 		$temp2 = ['cable'=> &$this, 'port'=> &$owner, 'target'=> &$target];
 		$target->_trigger('cable.connect', $temp2);
 
-		if($target->source === 'input'){
-			$inp = &$target;
-			$out = &$owner;
+		if($owner->source === 'input'){
+			$inp = &$owner;
+			$out = &$target;
 		}
 		else{
 			$inp = &$target;
