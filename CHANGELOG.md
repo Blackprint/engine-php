@@ -16,6 +16,7 @@ This changes is just simplifying the `node` or `iface` field name (on `registerN
 - `BPAO` must be changed to `BPIC`
 - When constructing Node, `$node->interface = '...'` now must be changed to `$node->setInterface('...')` before accessing the target interface.
 - Port `Listener` now changed to event listener, please use `$port->on('value', callback)` instead
+- Interface Data now must be a class (to support getter and setter)
 
 # 0.2.0
 

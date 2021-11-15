@@ -181,6 +181,6 @@ function deepMerge(&$real, &$opt){
 			continue;
 		}
 
-		$real[$key]($val);
+		$real->{$key} = $val;
 	}
 }

@@ -23,18 +23,18 @@ $instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"output":{"
 
 // Because lack of getter and setter feature, we need to get or set like calling a function
 // Anyway.. lets to run something
-$button = $instance->iface['myButton'];
+$button = &$instance->iface['myButton'];
 
 echo "\n\n>> I'm clicking the button";
 $button->clicked(123);
 
-$logger = $instance->iface['myLogger'];
+$logger = &$instance->iface['myLogger'];
 echo "\n\n>> I got the output value: ".$logger->log();
 
 echo "\n\n>> I'm writing something to the input box";
-$input = $instance->iface['myInput'];
-$input->data['value']('hello wrold');
+$input = &$instance->iface['myInput'];
+$input->data->value = 'hello wrold';
 
 // you can also use getNodes if you haven't set the ID
-$logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
+$logger = &$instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n\n>> I got the output value: ".$logger->log();

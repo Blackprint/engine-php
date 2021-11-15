@@ -21,10 +21,29 @@ class Simple extends \Blackprint\Node {
 
 	// Bring value from imported iface to node output
 	function imported() {
-		$val = $this->iface->data['value']();
+		$val = $this->iface->data->value;
 		if($val) \App\colorLog("Input\Simple:", "Saved data as output: {$val}");
 
 		$this->output['Value']($val);
+	}
+}
+
+// Getter and setter should be changed with basic property accessor
+// After this draft was merged to PHP https://github.com/php/php-src/pull/6873
+class InputIFaceData {
+    // Constructor promotion, $iface as private InputIFaceData property
+	function __construct(private $iface){}
+
+	private $data = ["value"=> '...'];
+	function __get($key) {
+		return $this->data[$key];
+	}
+
+	function __set($key, $val) {
+		$this->data[$key] = &$val;
+
+		if($key === 'value')
+			$this->iface->changed($val);
 	}
 }
 
@@ -32,15 +51,7 @@ class Simple extends \Blackprint\Node {
 class InputIFace extends \Blackprint\Interfaces {
 	function __construct($node){
 		parent::__construct($node);
-
-		$value = '...';
-		$this->data = [
-			'value'=> function($val = null) use(&$value) {
-				if($val === null) return $value;
-				$value = $val;
-				$this->changed($val);
-			}
-		];
+		$this->data = new InputIFaceData($this);
 	}
 
 	function changed(&$val) {
