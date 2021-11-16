@@ -2,7 +2,6 @@
 
 ### New Feature
 - You can register nodes with namespace that follow PSR-4 with `Blackprint\registerNamespace`, please see `./example/init.php` for reference
--
 
 ### Breaking Changes
 This changes is just simplifying the `node` or `iface` field name (on `registerNode` or `registerInterface`). You can just use Replace All feature from your editor if you have created some custom nodes 😅

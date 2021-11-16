@@ -7,14 +7,11 @@
     <a href='https://github.com/Blackprint/Blackprint/blob/master/LICENSE'><img src='https://img.shields.io/badge/License-MIT-brightgreen.svg' height='20'></a>
 </p>
 
-This repository is designed as Blackprint engine on PHP environment.<br>
-Node and Interface module is class oriented design only.
-
 ## Documentation
 > Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
-> But please try to use it and help the author for improving this project
+> But please try to use it and help improve this project
 
-Blackprint Engine v0.3.0 for PHP will be relased after [Property Accessors](https://wiki.php.net/rfc/property_accessors) has been [merged](https://github.com/php/php-src/pull/6873) for PHP
+Node and Interface module is class design oriented only.
 
 ---
 ### Defining Blackprint Node and Interface
@@ -101,18 +98,34 @@ class HelloIFace extends \Blackprint\Interfaces {
     }
 }
 
+// Getter and setter should be changed with basic property accessor
 class MyData {
     // Constructor promotion, $iface as private MyData property
     function __construct(private $iface){}
 
+    // Draft: please design it like below after
+    // this PR was merged to PHP https://github.com/php/php-src/pull/6873
     private $_value = 123;
     public $value {
-        get {return $this->_value};
+        get { return $this->_value };
         set {
             $this->_value = $value;
             $this->iface->recalculate(); // Call recalculate() on HelloIFace
         };
     };
+
+    // Current polyfill for property accessor (https://github.com/php/php-src/pull/6873)
+    private $data = ["value"=> 123];
+    function __get($key) {
+        return $this->data[$key];
+    }
+
+    function __set($key, $val) {
+        $this->data[$key] = &$val;
+
+        if($key === 'value')
+            $this->iface->recalculate($val); // Call recalculate() on HelloIFace
+    }
 }
 ```
 
