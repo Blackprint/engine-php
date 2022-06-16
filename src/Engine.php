@@ -4,7 +4,7 @@ require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
 require_once __DIR__."/Port/_PortTypes.php";
 
-class Engine{
+class Engine extends Constructor\CustomEvent {
 	public $iface = [];
 	public $ifaceList = [];
 	protected $settings = [];
@@ -13,9 +13,6 @@ class Engine{
 	public function importJSON($json){
 		if(is_string($json))
 			$json = json_decode($json, true);
-
-		$version = &$json['version'];
-		unset($json['version']);
 
 		$metaData = &$json['_'];
 		unset($json['_']);
@@ -84,8 +81,7 @@ class Engine{
 
 		// Call nodes init after creation processes was finished
 		foreach ($nodes as &$val){
-			if(method_exists($val, 'init'))
-				$val->init();
+			$val->init();
 		}
 	}
 
@@ -159,16 +155,13 @@ class Engine{
 		else $this->ifaceList[] = &$iface;
 
 		$iface->importing = false;
-		if(method_exists($node, 'imported'))
-			$node->imported();
+		$node->imported();
 
 		if($nodes !== null)
 			$nodes[] = &$node;
 
-		if(method_exists($node, 'init'))
-			$node->init();
-		if(method_exists($iface, 'init'))
-			$iface->init();
+		$node->init();
+		$iface->init();
 
 		return $iface;
 	}

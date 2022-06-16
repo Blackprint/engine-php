@@ -7,15 +7,15 @@ use \Blackprint\{
 };
 
 class Simple extends \Blackprint\Node {
+	public static $output = [
+		'Clicked'=> Types::Function
+	];
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Button');
 		$iface->title = "Button";
-
-		$this->output = [
-			'Clicked'=> Types::Function
-		];
 	}
 }
 
@@ -24,6 +24,6 @@ class ButtonIFace extends \Blackprint\Interfaces {
 	function clicked($ev = null){
 		\App\colorLog("Button\Simple:", "I got '$ev', time to trigger to the other node");
 
-		$this->node->output['Clicked']($ev);
+		$this->node->output['Clicked']();
 	}
 }

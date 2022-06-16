@@ -1,19 +1,19 @@
 <?php
 namespace Blackprint;
 
-class Node extends Constructor\CustomEvent{
+class Node extends Constructor\CustomEvent {
 	/** @var array Constructor\Port */
 	public $output = [];
-	public $input = [];
-	public $property = [];
 
-	// public $init = false;
-	// public $request = false;
-	// public $update = false;
+	/** @var array Constructor\Port */
+	public $input = [];
 
 	/** @var Interfaces */
 	public $iface = false;
 	private $contructed = false;
+
+	/** @var Constructor\References */
+	public $ref;
 
 	// Reserved for future
 	function __construct(public $instance){
@@ -21,6 +21,9 @@ class Node extends Constructor\CustomEvent{
 	}
 
 	public function &setInterface($namespace='BP/default'){
+		if($this->iface !== false)
+			throw new \Exception('node->setInterface() can only be called once');
+
 		if($this->contructed === false)
 			throw new \Exception("Make sure you have call 'parent::__construct(\$instance);' when constructing nodes before '->setInterface'");
 
@@ -32,4 +35,44 @@ class Node extends Constructor\CustomEvent{
 
 		return $iface;
 	}
+
+	public function createPort($which, $name, $type){
+		if($which !== 'input' && $which !== 'output')
+			throw new \Exception("Can only create port for 'input' and 'output'");
+
+		return $this[$which]->_add($name, $type);
+	}
+
+	public function renamePort($which, $name, $to){
+		$iPort = $this->iface[$which];
+
+		if(!isset($iPort[$name]))
+			throw new \Exception("$which port with name '$name' was not found");
+
+		if(isset($iPort[$to]))
+			throw new \Exception("$which port with name '$to' already exist");
+
+		$temp = $iPort[$to] = $iPort[$name];
+		unset($iPort[$name]);
+		$temp->name = $to;
+
+		unset($this[$which][$name]);
+	}
+
+	public function deletePort($which, $name){
+		if($which !== 'input' && $which !== 'output')
+			throw new \Exception("Can only delete port for 'input' and 'output'");
+
+		return $this[$which]->_delete($name);
+	}
+
+	// ToDo: remote-control PHP
+	public function syncOut($id, $data){}
+
+	// To be overriden by module developer
+	public function imported($data){}
+	public function update($cable){}
+	public function request($myPort, $fromIface){}
+	public function init(){}
+	public function syncIn($id, $data){}
 }

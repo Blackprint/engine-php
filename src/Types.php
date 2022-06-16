@@ -9,6 +9,7 @@ enum Types {
 	case String;
 	case Boolean;
 	case Object;
+	case Route;
 }
 
 function getTypeName(&$type){
@@ -20,5 +21,6 @@ function getTypeName(&$type){
 		Types::String => 'String',
 		Types::Boolean => 'Boolean',
 		Types::Object => 'Object',
+		Types::Route => 'Route',
 	};
 }

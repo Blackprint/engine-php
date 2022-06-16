@@ -7,16 +7,16 @@ use \Blackprint\{
 };
 
 class Simple extends \Blackprint\Node {
+	public static $output = [
+		'Changed'=> Types::Function,
+		'Value'=> Types::String,
+	];
+
 	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Input');
 		$iface->title = "Input";
-
-		$this->output = [
-			'Changed'=> Types::Function,
-			'Value'=> Types::String,
-		];
 	}
 
 	// Bring value from imported iface to node output

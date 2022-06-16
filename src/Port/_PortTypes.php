@@ -14,6 +14,16 @@ class Port {
 		];
 	} const ArrayOf_ = 1;
 
+	static function ArrayOf_validate(&$type, &$target){
+		if($type === Types::Any || $target === Types::Any || $type === $target)
+			return true;
+	
+		if(is_array($type) && in_array($target, $type))
+			return true;
+	
+		return false;
+	}
+
 	/* This port can have default value if no cable was connected
 	 * type = Type Data that allowed for the Port
 	 * value = default value for the port
@@ -26,16 +36,6 @@ class Port {
 		];
 	} const Default_ = 2;
 
-	/* Allow many cable connected to a port
-	 * But only the last value that will used as value
-	 */
-	static function Switch($type){
-		return [
-			'feature'=>Port::Switch_,
-			'type'=>&$type
-		];
-	} const Switch_ = 3;
-
 	/* This port will be used as a trigger or callable input port
 	 * func = callback when the port was being called as a function
 	 */
@@ -44,7 +44,7 @@ class Port {
 			'feature'=>Port::Trigger_,
 			'func'=>&$func
 		];
-	} const Trigger_ = 4;
+	} const Trigger_ = 3;
 
 	/* This port can allow multiple different types
 	 * like an 'any' port, but can only contain one value
@@ -54,17 +54,20 @@ class Port {
 			'feature'=>Port::Union_,
 			'type'=>&$types
 		];
-	} const Union_ = 5;
+	} const Union_ = 4;
 
-	/* This port will allow any value to be passed to a function
-	 * then you can write custom data validation in the function
-	 * the value returned by your function will be used as the input value
-	 */
-	static function Validator($type, $func = null){
-		return [
-			'feature'=>Port::Validator_,
-			'type'=>&$type,
-			'func'=>&$func
-		];
-	} const Validator_ = 6;
+	static function Union_validate(&$types, &$target){
+		if(is_array($types) && is_array($target)){
+			if(sizeof($types) !== sizeof($target)) return false;
+	
+			foreach ($types as &$type) {
+				if(!in_array($type, $target))
+					return false;
+			}
+	
+			return true;
+		}
+	
+		return $target === Types::Any || in_array($target, $types);
+	}
 }

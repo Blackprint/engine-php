@@ -1,64 +1,59 @@
 <?php
 namespace Blackprint;
-use \Blackprint\Types;
-use \Blackprint\Constructor\Port;
 
 class Temp{
 	public static $list = ['input', 'output', 'property'];
 }
 
 class Interfaces extends Constructor\CustomEvent {
+	/** @var string */
 	public $id; // Named ID (String)
+	/** @var int */
 	public $i; // Generated Index
 	public $title = 'No title';
 	public $interface = 'BP/default';
 	public $importing = true;
+	public $_dynamicPort = false;
 
 	/** @var Node */
 	public $node;
+	/** @var string */
 	public $namespace;
 	public $_requesting = false;
+
+	/** @var Constructor\References */
+	public $ref;
 
 	public function __construct(&$node){
 		$this->node = &$node;
 	}
 
-	public function _prepare_(){
+	public function _prepare_($clazz){
 		$node = &$this->node;
-		foreach (Temp::$list as &$which) {
-			$localPorts = &$node->{$which};
+		$ref = new Constructor\References();
+		$node->ref = &$ref;
+		$this->ref = &$ref;
 
-			foreach ($localPorts as $portName => &$port) {
-				$type = $port;
-				$def = null;
-				$feature = is_array($port) ? $port['feature'] : false;
-
-				if($feature === \Blackprint\Port::Trigger_){
-					$def = &$port['func'];
-					$type = Types::Function;
-				}
-				elseif($feature === \Blackprint\Port::ArrayOf_)
-					$type = &$port['type'];
-				elseif($type === Types::Number)
-					$def = 0;
-				elseif($type === Types::Boolean)
-					$def = false;
-				elseif($type === Types::String)
-					$def = '';
-				elseif($type === Types::Array)
-					$def = [];
-				elseif($type === null) 0; // Any
-				elseif($type === Types::Function) 0;
-				elseif($feature === false && !is_string($port))
-					throw new Exception("Port for initialization must be a types", 1);
-				// else{
-				// 	$def = $port;
-				// 	$type = Types::String;
-				// }
-
-				$linkedPort = $this->{$which}[$portName] = new Port($portName, /* the types */ $type, $def, $which, $this, $feature);
-				$localPorts[$portName] = $linkedPort->createLinker();
-			}
+		if(isset($clazz::$output)){
+			$node->output = new Constructor\PortLink($node, 'output', $clazz::$output);
+			$ref->IOutput = &$this->output;
+			$ref->Output = &$node->output;
 		}
+
+		if(isset($clazz::$input)){
+			$node->input = new Constructor\PortLink($node, 'input', $clazz::$input);
+			$ref->IInput = &$this->input;
+			$ref->Input = &$node->input;
+		}
+
+		if(isset($clazz::$property))
+			throw new \Exception("'node.property', 'iface.property', and 'public static \$property' is reserved field for Blackprint");
 	}
+
+	public function _newPort($portName, $type, $def, $which, $haveFeature){
+		return new Constructor\Port($portName, $type, $def, $which, $this, $haveFeature);
+	}
+
+	public function init(){}
+	public function imported($data){}
 }

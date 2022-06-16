@@ -6,16 +6,18 @@ use \Blackprint\{
 	Port,
 };
 
+Logger::$input['Any'] = Port::ArrayOf(Types::Any);
+
 class Logger extends \Blackprint\Node {
+	public static $input = [
+		// 'Any'=> Port::ArrayOf(Types::Any)
+	];
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Logger');
 		$iface->title = "Logger";
-
-		$this->input = [
-			'Any'=> Port::ArrayOf(Types::Any)
-		];
 	}
 }
 

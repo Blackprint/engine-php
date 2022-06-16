@@ -1,8 +1,6 @@
 <?php
 namespace App;
-
 require_once('../vendor/autoload.php');
-use \Blackprint\Engine;
 
 function colorLog($bright, $dark=''){
 	echo "\n\x1b[1m\x1b[33m$bright\x1b[0m \x1b[33m$dark\x1b[0m";

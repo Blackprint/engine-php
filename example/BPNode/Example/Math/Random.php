@@ -6,24 +6,27 @@ use \Blackprint\{
 	Port,
 };
 
+Random::$input['Re-seed'] = Port::Trigger(function() {
+	$this->executed = true;
+	$this->output['Out'](random_int(0, 100));
+});
+
 class Random extends \Blackprint\Node {
+	public static $output = [
+		'Out'=> Types::Number
+	];
+
+	public static $input = [
+		// 'Re-seed'=> Port::Trigger,
+	];
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Random";
 
-		$this->output = [
-			'Out'=> Types::Number
-		];
-
 		$this->executed = false;
-		$this->input = [
-			'Re-seed'=> Port::Trigger(function() {
-				$this->executed = true;
-				$this->output['Out'](random_int(0, 100));
-			})
-		];
 	}
 
 	// When the connected node is requesting for the output value

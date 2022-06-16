@@ -6,31 +6,27 @@ use \Blackprint\{
 	Port,
 };
 
+Multiply::$input['Exec'] = Port::Trigger(function($self){
+	$self->output['Result']($self->multiply());
+	\App\colorLog("Math\Multiply:", "Result has been set: ".$self->output['Result']());
+});
+
 class Multiply extends \Blackprint\Node {
+	public static $input = [
+		// 'Exec'=> Port::Trigger,
+		'A'=> Types::Number,
+		'B'=> Types::Any,
+	];
+
+	public static $output = [
+		'Result'=> Types::Number,
+	];
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Multiply";
-
-		$this->input = [
-			'Exec'=> Port::Trigger(function(){
-				$this->output['Result']($this->multiply());
-				\App\colorLog("Math\Multiply:", "Result has been set: ".$this->output['Result']());
-			}),
-			'A'=> Types::Number,
-			'B'=> Port::Validator(Types::Number, function($val) {
-				// Executed when input.B is being obtained
-				// And the output from other node is being assigned
-				// as current port value in this node
-				\App\colorLog("Math\Multiply:", "{$this->iface->title} - Port B got input: $val");
-				return $val+0;
-			})
-		];
-
-		$this->output = [
-			'Result'=> Types::Number,
-		];
 
 		$this->on('cable.connect', function($ev){
 			\App\colorLog("Math\Multiply:", "Cable connected from {$ev->port->node->title} ({$ev->port->name}) to {$ev->target->node->title} ({$ev->target->name})");
