@@ -229,7 +229,7 @@ class Engine extends Constructor\CustomEvent {
 		// deepProperty
 
 		// BPVariable = ./nodes/Var.js
-		$temp = $this->variables[$id] = new Nodes\Variables($id, $options);
+		$temp = $this->variables[$id] = new Nodes\BPVariable($id, $options);
 		$this->emit('variable.new', $temp);
 
 		return $temp;
@@ -242,7 +242,7 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		// BPFunction = ./nodes/Fn.js
-		$temp = $this->functions[$id] = new Nodes\Functions($id, $options, $this);
+		$temp = $this->functions[$id] = new Nodes\BPFunction($id, $options, $this);
 
 		if($options->vars != null){
 			$vars = $options->vars;
