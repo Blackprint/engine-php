@@ -1,7 +1,7 @@
 <?php
 namespace Blackprint;
 
-class Temp{
+class Temp {
 	public static $list = ['input', 'output', 'property'];
 }
 
@@ -55,5 +55,6 @@ class Interfaces extends Constructor\CustomEvent {
 	}
 
 	public function init(){}
+	public function destroy(){}
 	public function imported($data){}
 }

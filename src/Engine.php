@@ -3,13 +3,67 @@ namespace Blackprint;
 require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
 require_once __DIR__."/Port/_PortTypes.php";
+require_once __DIR__."/PortGhost.php";
 
 class Engine extends Constructor\CustomEvent {
 	public $iface = [];
 	public $ifaceList = [];
 	protected $settings = [];
 
+	public $variables = []; // { category => { name, value, type, childs:{ category } } }
+	public $functions = []; // { category => { name, variables, input, output, used: [], node, description, childs:{ category } } }
+	public $ref = []; // { id => Port references }
+
 	// public function __construct(){ }
+
+	public function deleteNode($iface){
+		$list = $this->ifaceList;
+		$i = array_search($iface, $list);
+
+		if($i !== -1)
+			array_splice($list, $i, 1);
+		else return $this->emit('error', [
+			"type" => 'node_delete_not_found',
+			"data" => ["iface" => &$iface]
+		]);
+
+		// $iface._bpDestroy = true;
+
+		$eventData = ["iface" => &$iface];
+		$this->emit('node.delete', $eventData);
+
+		$iface->node->destroy();
+		$iface->destroy();
+
+		$check = \Blackprint\Temp::$list;
+		foreach ($check as &$val) {
+			$portList = &$iface[$val];
+			foreach ($portList as &$port) {
+				if(substr($port, 0, 1) === '_') continue;
+				$portList[$port]->disconnectAll($this->_remote != null);
+			}
+		}
+
+		// Delete reference
+		unset($this->iface[$iface->id]);
+		unset($this->ref[$iface->id]);
+
+		$this->emit('node.deleted', $eventData);
+	}
+
+	public function clearNodes(){
+		$list = $this->ifaceList;
+		foreach ($list as &$iface) {
+			$iface->node->destroy();
+			$iface->destroy();
+		}
+
+		$this->ifaceList = [];
+		$this->iface = [];
+		$this->ref = [];
+	}
+
+	// ToDo: sync with js
 	public function importJSON($json){
 		if(is_string($json))
 			$json = json_decode($json, true);
@@ -164,6 +218,54 @@ class Engine extends Constructor\CustomEvent {
 		$iface->init();
 
 		return $iface;
+	}
+
+	public function &createVariable($id, $options){
+		if(isset($this->variables[$id])){
+			$this->variables[$id]->destroy();
+			unset($this->variables[$id]);
+		}
+
+		// deepProperty
+
+		// BPVariable = ./nodes/Var.js
+		$temp = $this->variables[$id] = new Nodes\Variables($id, $options);
+		$this->emit('variable.new', $temp);
+
+		return $temp;
+	}
+
+	public function &createFunction($id, $options){
+		if(isset($this->functions[$id])){
+			$this->functions[$id]->destroy();
+			unset($this->functions[$id]);
+		}
+
+		// BPFunction = ./nodes/Fn.js
+		$temp = $this->functions[$id] = new Nodes\Functions($id, $options, $this);
+
+		if($options->vars != null){
+			$vars = $options->vars;
+			foreach ($vars as &$val) {
+				$temp->createVariable($val, ["scope" => 'shared']);
+			}
+		}
+
+		if($options->privateVars != null){
+			$privateVars = $options->privateVars;
+			foreach ($privateVars as &$val) {
+				$temp->addPrivateVars($val);
+			}
+		}
+
+		$this->emit('function.new', $temp);
+		return $temp;
+	}
+
+	public function destroy(){
+		$this->iface = [];
+		$this->ifaceList = [];
+		$this->clearNodes();
 	}
 }
 

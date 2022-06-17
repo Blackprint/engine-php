@@ -1,19 +1,19 @@
 <?php
 namespace Blackprint;
-$_noEvent = false;
 
 class Environment {
+	public static $_noEvent = false;
 	public static $map = [];
 
 	// arr = ["KEY": "value"]
 	public static function import($arr){
-		$_noEvent = true;
+		Environment::$_noEvent = true;
 		foreach ($arr as $key => &$value) {
 			Environment::set($key, $value);
 		}
 
-		$_noEvent = false;
-		// Blackprint.emit('environment-imported');
+		Environment::$_noEvent = false;
+		Event->emit('environment-imported');
 	}
 
 	public static function set($key, string $val){
@@ -23,14 +23,14 @@ class Environment {
 		$map = &Environment::$map;
 		$map[$key] = &$val;
 
-		// if(!$_noEvent)
-		// 	Blackprint.emit('environment-added', temp);
+		if(!Environment::$_noEvent)
+			Event->emit('environment-added', ["key" => $key, "value" => $val]);
 	}
 
 	public static function delete($key){
 		$map = &Environment::$map;
 		unset($map[$key]);
 
-		// Blackprint.emit('environment-deleted', {key});
+		Event->emit('environment-deleted', ["key" => $key]);
 	}
 }

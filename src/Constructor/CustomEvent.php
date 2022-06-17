@@ -55,7 +55,7 @@ class CustomEvent {
 			array_splice($this->once[$eventName], $i, 1);
 	}
 
-	public function emit($eventName, &$data){
+	public function emit($eventName, &$data=null){
 		$events = &$this->events;
 		$once = &$this->once;
 

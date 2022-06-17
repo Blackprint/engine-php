@@ -73,6 +73,7 @@ class Node extends Constructor\CustomEvent {
 	public function imported($data){}
 	public function update($cable){}
 	public function request($myPort, $fromIface){}
+	public function destroy(){}
 	public function init(){}
 	public function syncIn($id, $data){}
 }
