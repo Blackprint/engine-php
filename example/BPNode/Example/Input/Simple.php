@@ -49,20 +49,23 @@ class InputIFaceData {
 
 \Blackprint\registerInterface('BPIC\Example\Input', InputIFace::class);
 class InputIFace extends \Blackprint\Interfaces {
-	function __construct($node){
+	function __construct(&$node){
 		parent::__construct($node);
 		$this->data = new InputIFaceData($this);
 	}
 
 	function changed(&$val) {
+		$node = &$this->node;
+
 		// This node still being imported
 		if($this->importing !== false)
 			return;
 
 		\App\colorLog("Input\Simple:", "The input box have new value: $val");
-		$this->node->output['Value']($val);
+		$node->output['Value']($val);
+		$node->syncOut('data', ['value' => $this->data->value]);
 
 		// This will call every connected node
-		$this->node->output['Changed']();
+		$node->output['Changed']();
 	}
 }

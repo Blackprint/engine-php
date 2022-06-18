@@ -78,7 +78,7 @@ namespace \BPNode\Example;
 // Your Interface namespace must use "BPIC" as the prefix
 \Blackprint\registerInterface('BPIC\Example\Hello', HelloIFace::class);
 class HelloIFace extends \Blackprint\Interfaces {
-    function __construct($node){
+    function __construct(&$node){
         // Call the parent constructor first, passing the $node (Blackprint\Node)
         parent::__construct($node);
         // $this->node => Blackprint\Node

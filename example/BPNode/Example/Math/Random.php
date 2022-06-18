@@ -15,13 +15,13 @@ class Random extends \Blackprint\Node {
 		// 'Re-seed'=> Port::Trigger,
 	];
 
+	public $executed = false;
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Random";
-
-		$this->executed = false;
 	}
 
 	// When the connected node is requesting for the output value
@@ -43,4 +43,6 @@ Random::$Input['Re-seed'] = Port::Trigger(function(&$self) {
 
 	$node->executed = true;
 	$node->output['Out'](random_int(0, 100));
+
+	// echo "\nRe-seed called\n";
 });

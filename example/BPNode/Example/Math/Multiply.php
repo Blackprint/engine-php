@@ -7,12 +7,14 @@ use \Blackprint\{
 };
 
 class Multiply extends \Blackprint\Node {
+	// Define input port here
 	public static $Input = [
 		// 'Exec'=> Port::Trigger,
 		'A'=> Types::Number,
 		'B'=> Types::Any,
 	];
 
+	// Define output port here
 	public static $Output = [
 		'Result'=> Types::Number,
 	];
@@ -22,22 +24,28 @@ class Multiply extends \Blackprint\Node {
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Multiply";
-
-		$this->on('cable.connect', function($ev){
-			\App\colorLog("Math\Multiply:", "Cable connected from {$ev->port->node->title} ({$ev->port->name}) to {$ev->target->node->title} ({$ev->target->name})");
-		});
 	}
 
-	// Your own processing mechanism
-	function multiply(){
-		\App\colorLog("Math\Multiply:", "Multiplying {$this->input['A']()} with {$this->input['B']()}");
-		return $this->input['A']() * $this->input['B']();
+	function init(){
+		$iface = &$this->iface;
+
+		$iface->on('cable.connect', function($ev){
+			\App\colorLog("Math\Multiply:", "Cable connected from {$ev->port->iface->title} ({$ev->port->name}) to {$ev->target->iface->title} ({$ev->target->name})");
+		});
 	}
 
 	// When any output value from other node are updated
 	// Let's immediately change current node result
 	function update($cable){
 		$this->output['Result']($this->multiply());
+	}
+
+	// Your own processing mechanism
+	function multiply(){
+		$input = &$this->input;
+
+		\App\colorLog("Math\Multiply:", "Multiplying {$input['A']()} with {$input['B']()}");
+		return $input['A']() * $input['B']();
 	}
 }
 
