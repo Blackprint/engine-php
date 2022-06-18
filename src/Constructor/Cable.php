@@ -49,9 +49,11 @@ class Cable{
 
 		$temp = new \Blackprint\EvPortValue($owner, $target, $this);
 		$owner->emit('cable.connect', $temp);
+		$owner->iface->emit('cable.connect', $temp);
 
 		$temp2 = new \Blackprint\EvPortValue($target, $owner, $this);
 		$target->emit('cable.connect', $temp2);
+		$target->iface->emit('cable.connect', $temp2);
 
 		if($this->output->value === null) return;
 
