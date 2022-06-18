@@ -6,17 +6,12 @@ use \Blackprint\{
 	Port,
 };
 
-Random::$input['Re-seed'] = Port::Trigger(function() {
-	$this->executed = true;
-	$this->output['Out'](random_int(0, 100));
-});
-
 class Random extends \Blackprint\Node {
-	public static $output = [
+	public static $Output = [
 		'Out'=> Types::Number
 	];
 
-	public static $input = [
+	public static $Input = [
 		// 'Re-seed'=> Port::Trigger,
 	];
 
@@ -42,3 +37,10 @@ class Random extends \Blackprint\Node {
 		$this->input['Re-seed']();
 	}
 }
+
+Random::$Input['Re-seed'] = Port::Trigger(function(&$self) {
+	$node = &$self->iface->node;
+
+	$node->executed = true;
+	$node->output['Out'](random_int(0, 100));
+});

@@ -3,24 +3,30 @@ namespace Blackprint\Constructor;
 use Blackprint\Utils;
 
 class PortLink {
-	private $_iface;
-	private $_which;
+	private $iface;
+	private $which;
+	private $nodePort;
 
 	public function __construct($node, $which, $portMeta){
-		$iface = $this->_iface = &$node->iface;
-		$this->_which = &$which;
+		$iface = &$node->iface;
+		$this->iface = &$iface;
+		$this->which = &$which;
 
-		$iface[$which] = [];
+		$iface->{$which} = [];
+
+		$link = [];
+		$node->{$which} = &$link;
+		$this->nodePort = &$link;
 
 		// Create linker for all port
-		foreach($portMeta as $portName){
+		foreach($portMeta as $portName => &$val){
 			if(substr($portName, 0, 1) === '_') continue;
-			$this->_add($portName, $portMeta[$portName]);
+			$this->_add($portName, $val);
 		}
 	}
 
-	public function &_add($portName, $val){
-		$iPort = &$this->_iface[$this->_which];
+	public function &_add(&$portName, $val){
+		$iPort = &$this->iface->{$this->which};
 		$exist = &$iPort[$portName];
 
 		if(isset($iPort[$portName]))
@@ -29,20 +35,16 @@ class PortLink {
 		// Determine type and add default value for each type
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($val, $this);
 
-		$linkedPort = $this->_iface->_newPort($portName, $type, $def, $this->_which, $haveFeature);
+		$linkedPort = $this->iface->_newPort($portName, $type, $def, $this->which, $haveFeature);
 		$iPort[$portName] = &$linkedPort;
 
-		$linkValue = $linkedPort->createLinker();
+		$this->nodePort[$portName] = $linkedPort->createLinker();
 
-		if($this->_which === 'output')
-			$this[$portName] = &$linkValue;
-		else $this[$portName] = &$def;
-
-		return $linkedPort;
+		return $linkedPort; // IFace Port
 	}
 
-	public function _delete($portName){
-		$iPort = &$this->_iface[$this->_which];
+	public function _delete(&$portName){
+		$iPort = &$this->iface[$this->which];
 		if(!isset($iPort)) return;
 
 		// Destroy cable first
@@ -50,6 +52,6 @@ class PortLink {
 		$port->disconnectAll();
 
 		unset($iPort[$portName]);
-		unset($this[$portName]);
+		unset($this->nodePort[$portName]);
 	}
 }

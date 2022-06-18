@@ -18,8 +18,8 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		$this->id = $this->title = &$id;
 		$this->description = $options?->description ?? '';
 
-		$input_ = &$this->input;
-		$output_ = &$this->output;
+		$input = &$this->input;
+		$output = &$this->output;
 		$this->used = []; // [\Blackprint\Node, ...]
 
 		// This will be updated if the function sketch was modified
@@ -31,32 +31,19 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		$temp = &$this;
 		$uniqId = 0;
 
-		$this->node = asd::class;
-		class asd extends BPFunctionNode { // Main function node -> BPI/F/{FunctionName}
-			public static $input = $input_;
-			public static $output = $output_;
-			public static $namespace = $id;
-			public static $type = 'function';
+		$this->node = function(&$instance) use(&$input, &$output, &$id, &$temp, &$uniqId) {
+			BPFunctionNode::$Input = &$input;
+			BPFunctionNode::$Output = &$output;
+			BPFunctionNode::$namespace = &$id;
 
-			/** @var FnMain */
-			public $iface = null;
+			$node = new BPFunctionNode($instance);
+			$iface = &$node->iface;
 
-			public function __construct($instance){
-				parent::__construct($instance);
-				$instance->_funcInstance = $this->_funcInstance = &$temp;
-
-				$iface = $this->setInterface("BPIC/BP/Fn/Main");
-				$iface->description = &$temp->description;
-				$iface->title = &$temp->title;
-				$iface->type = 'function';
-				$iface->uniqId = $uniqId++;
-
-				$iface->enum = Enums::BPFnMain;
-			}
-
-			public function init(){
-				if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
-			}
+			$instance->_funcInstance = &$temp;
+			$node->_funcInstance = &$temp;
+			$iface->description = &$temp->description;
+			$iface->title = &$temp->title;
+			$iface->uniqId = $uniqId++;
 		};
 	}
 
@@ -150,7 +137,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		}
 	}
 
-	public function createNode($instance, $options){
+	public function createNode(&$instance, &$options){
 		return $instance->createNode($this->node, $options);
 	}
 
@@ -176,8 +163,10 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	public function addPrivateVars($id){
 		if(!in_array($id, $this->privateVars)){
 			$this->privateVars[] = &$id;
-			$this->emit('variable.new', ["scope" => 'private', "id" => $id]);
-			$this->rootInstance->emit('variable.new', ["scope" => 'private', "id" => $id]);
+
+			$temp = new \Blackprint\EvVariableNew('private', $id);
+			$this->emit('variable.new', $temp);
+			$this->rootInstance->emit('variable.new', $temp);
 		}
 		else return;
 
@@ -188,7 +177,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		}
 	}
 
-	public function refreshPrivateVars($instance){
+	public function refreshPrivateVars(&$instance){
 		$vars = &$instance->variables;
 
 		$list = &$this->privateVars;
@@ -205,7 +194,26 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	}
 }
 
-class BPFunctionNode extends \Blackprint\Node {
+class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{FunctionName}
+	public static $Input = null;
+	public static $Output = null;
+	public static $namespace = null;
+
+	public static $type = 'function';
+	public function __construct(&$instance){
+		parent::__construct($instance);
+		$iface = $this->setInterface("BPIC/BP/Fn/Main");
+		$iface->type = 'function';
+		$iface->enum = Enums::BPFnMain;
+	}
+
+	/** @var FnMain */
+	public $iface = null;
+
+	public function init(){
+		if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
+	}
+
 	public function imported($data){
 		$instance = $this->_funcInstance;
 		$instance->used[] = &$this;
@@ -241,15 +249,16 @@ class BPFunctionNode extends \Blackprint\Node {
 
 \Blackprint\registerInterface('BP/Fn/Input', NodeInput::class);
 class NodeInput extends \Blackprint\Node {
-	public static $output = [];
-	public function __construct($instance){
+	public static $Output = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Input');
 		$iface->enum = Enums::BPFnInput;
 		$iface->_proxyInput = true; // Port is initialized dynamically
 
-		$funcMain = $iface->_funcMain = &$this->_instance->_funcMain;
+		$funcMain = &$this->_instance->_funcMain;
+		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyInput = &$this;
 	}
 	public function imported($data){
@@ -262,15 +271,16 @@ class NodeInput extends \Blackprint\Node {
 
 \Blackprint\registerInterface('BP/Fn/Output', NodeOutput::class);
 class NodeOutput extends \Blackprint\Node {
-	public static $input = [];
-	public function __construct($instance){
+	public static $Input = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Output');
 		$iface->enum = Enums::BPFnOutput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 
-		$funcMain = $iface->_funcMain = &$this->_instance->_funcMain;
+		$funcMain = &$this->_instance->_funcMain;
+		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyOutput = &$this;
 	}
 
@@ -346,7 +356,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			throw new \Exception("Function Input can't be connected directly to Output");
 
 		$name = $customName || $port->name;
-		$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+		$portType = $port->feature != null ? $port->_getPortFeature() : $port->type;
 
 		// $nodeA, $nodeB; // Main (input) -> Input (output), Output (input) -> Main (output)
 		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
@@ -431,7 +441,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 
 \Blackprint\registerInterface('BPIC/BP/Fn/Input', FnInput::class);
 class FnInput extends BPFnInOut {
-	public static $output = [];
+	public static $Output = [];
 	public function __construct($node){
 		parent::__construct($node);
 		$this->title = 'Input';
@@ -441,7 +451,7 @@ class FnInput extends BPFnInOut {
 
 \Blackprint\registerInterface('BPIC/BP/Fn/Output', FnOutput::class);
 class FnOutput extends BPFnInOut {
-	public static $input = [];
+	public static $Input = [];
 	public function __construct($node){
 		parent::__construct($node);
 		$this->title = 'Output';

@@ -1,6 +1,7 @@
 <?php
 namespace Blackprint;
 
+// ToDo: still unfinished
 class RoutePort {
 	public $in = []; // Allow incoming route from multiple path
 	public $out = null; // Only one route/path
@@ -8,23 +9,25 @@ class RoutePort {
 	public $disabled = false;
 	public $_isPaused = false;
 	public $iface = null;
-	public $_scope = null;
 
 	public function __construct(&$iface){
 		$this->iface = &$iface;
-		$this->_scope = &$iface->_scope;
 	}
 
 	// For creating output cable
-	public function &createCable($cable){
+	public function connectPort(RoutePort $port){
+		if($port === $this) return false;
 		$this->out->disconnect();
-		if(!$cable)
-			$cable = $this->out = new Constructor\Cable($this, null); // ToDo: null?
+
+		$cable = new Constructor\Cable($port, $this); // ToDo: null?
+		$this->out = &$cable;
+		$port->in[] = &$cable;
 
 		$cable->isRoute = true;
 		$cable->output = &$this;
+		$cable->_connected();
 
-		return $cable;
+		return true;
 	}
 
 	// Connect to input route
@@ -36,7 +39,8 @@ class RoutePort {
 		}
 
 		$this->in[] = &$cable;
-		$cable->target = $cable->input = &$this;
+		$cable->input = &$this;
+		$cable->target = &$this;
 		$cable->connected = true;
 
 		return true;

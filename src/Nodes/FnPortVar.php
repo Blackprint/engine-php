@@ -2,8 +2,8 @@
 namespace Blackprint\Nodes;
 
 class FnInput extends \Blackprint\Node {
-	public static $output = [];
-	public function __construct($instance){
+	public static $Output = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/FnVar/Input');
@@ -21,8 +21,8 @@ class FnInput extends \Blackprint\Node {
 }
 
 class FnOutput extends \Blackprint\Node {
-	public static $input = [];
-	public function __construct($instance){
+	public static $Input = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/FnVar/Output');

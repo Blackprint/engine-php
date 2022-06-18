@@ -7,7 +7,7 @@ use \Blackprint\{
 };
 
 class Simple extends \Blackprint\Node {
-	public static $output = [
+	public static $Output = [
 		'Clicked'=> Types::Function
 	];
 

@@ -14,6 +14,7 @@ class Interfaces extends Constructor\CustomEvent {
 	public $interface = 'BP/default';
 	public $importing = true;
 	public $_dynamicPort = false;
+	public $enum = null;
 
 	/** @var Node */
 	public $node;
@@ -28,20 +29,22 @@ class Interfaces extends Constructor\CustomEvent {
 		$this->node = &$node;
 	}
 
-	public function _prepare_($clazz){
+	public function _prepare_($clazz, &$iface){
 		$node = &$this->node;
 		$ref = new Constructor\References();
 		$node->ref = &$ref;
 		$this->ref = &$ref;
 
-		if(isset($clazz::$output)){
-			$node->output = new Constructor\PortLink($node, 'output', $clazz::$output);
+		$node->routes = new \Blackprint\RoutePort($iface);
+
+		if(isset($clazz::$Output)){
+			$node->_outputLink = new Constructor\PortLink($node, 'output', $clazz::$Output);
 			$ref->IOutput = &$this->output;
 			$ref->Output = &$node->output;
 		}
 
-		if(isset($clazz::$input)){
-			$node->input = new Constructor\PortLink($node, 'input', $clazz::$input);
+		if(isset($clazz::$Input)){
+			$node->_inputLink = new Constructor\PortLink($node, 'input', $clazz::$Input);
 			$ref->IInput = &$this->input;
 			$ref->Input = &$node->input;
 		}

@@ -6,10 +6,8 @@ use \Blackprint\{
 	Port,
 };
 
-Logger::$input['Any'] = Port::ArrayOf(Types::Any);
-
 class Logger extends \Blackprint\Node {
-	public static $input = [
+	public static $Input = [
 		// 'Any'=> Port::ArrayOf(Types::Any)
 	];
 
@@ -20,6 +18,8 @@ class Logger extends \Blackprint\Node {
 		$iface->title = "Logger";
 	}
 }
+
+Logger::$Input['Any'] = Port::ArrayOf(Types::Any);
 
 \Blackprint\registerInterface('BPIC\Example\Logger', LoggerIFace::class);
 class LoggerIFace extends \Blackprint\Interfaces {
@@ -51,7 +51,9 @@ class LoggerIFace extends \Blackprint\Interfaces {
 			$refreshLogger($this->node->input['Any']());
 		});
 
-		$this->input['Any']->on('value', function(&$port) use($refreshLogger) {
+		$this->input['Any']->on('value', function(&$ev) use($refreshLogger) {
+			$port = &$ev->port;
+
 			\App\colorLog("Display\Logger:", "I connected to {$port->name} (port {$port->iface->title}), that have new value: $port->value");
 
 			// Let's take all data from all connected nodes

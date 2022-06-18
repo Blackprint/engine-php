@@ -9,6 +9,8 @@ class Engine extends Constructor\CustomEvent {
 	public $iface = [];
 	public $ifaceList = [];
 	protected $settings = [];
+	public $disablePorts = false;
+	public $throwOnError = true;
 
 	public $variables = []; // { category => { name, value, type, childs:{ category } } }
 	public $functions = []; // { category => { name, variables, input, output, used: [], node, description, childs:{ category } } }
@@ -22,14 +24,20 @@ class Engine extends Constructor\CustomEvent {
 
 		if($i !== -1)
 			array_splice($list, $i, 1);
-		else return $this->emit('error', [
-			"type" => 'node_delete_not_found',
-			"data" => ["iface" => &$iface]
-		]);
+		else{
+			// if($this->throwOnError)
+				throw new \Exception("Node to be deleted was not found");
+
+			// $temp = [
+			// 	"type" => 'node_delete_not_found',
+			// 	"data" => new EvIface($iface)
+			// ];
+			// return $this->emit('error', $temp);
+		}
 
 		// $iface._bpDestroy = true;
 
-		$eventData = ["iface" => &$iface];
+		$eventData = new EvIface($iface);
 		$this->emit('node.delete', $eventData);
 
 		$iface->node->destroy();
@@ -122,10 +130,12 @@ class Engine extends Constructor\CustomEvent {
 
 							// echo "\n{$current->title}.{$linkPortA->name} => {$targetNode->title}.{$linkPortB->name}";
 
-							$cable = new Constructor\Cable($linkPortA, $linkPortB);
-							$linkPortA->cables[] = $linkPortB->cables[] = $cable;
+							$linkPortA->connectPort($linkPortB);
+							// $cable = new Constructor\Cable($linkPortA, $linkPortB);
+							// $linkPortA->cables[] = &$cable;
+							// $linkPortB->cables[] = &$cable;
 
-							$cable->_connected();
+							// $cable->_connected();
 							// $cable->_print();
 						}
 					}
@@ -179,22 +189,18 @@ class Engine extends Constructor\CustomEvent {
 				throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
 		}
 
+		/** @var Node */
 		$node = new $func($this);
 		$iface = &$node->iface;
 
-		if($iface === false)
+		// Disable data flow on any node ports
+		if($this->disablePorts) $node->disablePorts = true;
+
+		if($iface === null)
 			throw new \Exception("Node interface was not found, do you forget to call \$node->setInterface() ?");
 
-		// Assign the saved options if exist
-		// Must be called here to avoid port trigger
-		if(isset($options['data'])){
-			if(isset($iface->data))
-				deepMerge($iface->data, $options['data']);
-			else $iface->data = &$options['data'];
-		}
-
 		// Create the linker between the nodes and the iface
-		$iface->_prepare_();
+		$iface->_prepare_($func, $iface);
 
 		$iface->namespace = &$namespace;
 		if(isset($options['id'])){
@@ -209,13 +215,16 @@ class Engine extends Constructor\CustomEvent {
 		else $this->ifaceList[] = &$iface;
 
 		$iface->importing = false;
-		$node->imported();
+
+		$savedData = $options['data'] ?? null;
+		$iface->imported($savedData);
+		$node->imported($savedData);
 
 		if($nodes !== null)
 			$nodes[] = &$node;
 
-		$node->init();
 		$iface->init();
+		$node->init();
 
 		return $iface;
 	}
@@ -229,7 +238,8 @@ class Engine extends Constructor\CustomEvent {
 		// deepProperty
 
 		// BPVariable = ./nodes/Var.js
-		$temp = $this->variables[$id] = new Nodes\BPVariable($id, $options);
+		$temp = new Nodes\BPVariable($id, $options);
+		$this->variables[$id] = &$temp;
 		$this->emit('variable.new', $temp);
 
 		return $temp;
@@ -242,7 +252,8 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		// BPFunction = ./nodes/Fn.js
-		$temp = $this->functions[$id] = new Nodes\BPFunction($id, $options, $this);
+		$temp = new Nodes\BPFunction($id, $options, $this);
+		$this->functions[$id] = &$temp;
 
 		if($options->vars != null){
 			$vars = $options->vars;

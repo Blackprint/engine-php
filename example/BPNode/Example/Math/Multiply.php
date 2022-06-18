@@ -6,19 +6,14 @@ use \Blackprint\{
 	Port,
 };
 
-Multiply::$input['Exec'] = Port::Trigger(function($self){
-	$self->output['Result']($self->multiply());
-	\App\colorLog("Math\Multiply:", "Result has been set: ".$self->output['Result']());
-});
-
 class Multiply extends \Blackprint\Node {
-	public static $input = [
+	public static $Input = [
 		// 'Exec'=> Port::Trigger,
 		'A'=> Types::Number,
 		'B'=> Types::Any,
 	];
 
-	public static $output = [
+	public static $Output = [
 		'Result'=> Types::Number,
 	];
 
@@ -45,3 +40,10 @@ class Multiply extends \Blackprint\Node {
 		$this->output['Result']($this->multiply());
 	}
 }
+
+Multiply::$Input['Exec'] = Port::Trigger(function($self){
+	$node = &$self->iface->node;
+
+	$node->output['Result']($node->multiply());
+	\App\colorLog("Math\Multiply:", "Result has been set: ".$node->output['Result']());
+});

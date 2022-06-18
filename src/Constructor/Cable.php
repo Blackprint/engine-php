@@ -18,6 +18,7 @@ class Cable{
 	public $output;
 	public $disabled = false;
 	public $isRoute = false;
+	public $connected = false;
 
 	// For remote-control
 	public $_evDisconnected = false;
@@ -26,6 +27,7 @@ class Cable{
 		$this->type = &$owner->type;
 		$this->owner = &$owner;
 		$this->target = &$target;
+		$this->source = &$owner->source;
 
 		if($owner->source === 'input'){
 			$inp = &$owner;
@@ -43,20 +45,23 @@ class Cable{
 	public function _connected(){
 		$owner = &$this->owner;
 		$target = &$this->target;
+		$this->connected = true;
 
-		$temp = ['cable'=> &$this, 'port'=> &$owner, 'target'=> &$target];
+		$temp = new \Blackprint\EvPortValue($owner, $target, $this);
 		$owner->emit('cable.connect', $temp);
 
-		$temp2 = ['cable'=> &$this, 'port'=> &$owner, 'target'=> &$target];
+		$temp2 = new \Blackprint\EvPortValue($target, $owner, $this);
 		$target->emit('cable.connect', $temp2);
 
 		if($this->output->value === null) return;
-		$this->input->emit('value', $this->output);
+
+		$tempEv = new \Blackprint\EvPortSelf($this->output);
+		$this->input->emit('value', $tempEv);
 	}
 
 	// For debugging
 	public function _print(){
-		echo "\nCable: {$this->owner->iface->title}.{$this->owner->name} -> {$this->target->name}.{$this->target->iface->title}";
+		echo "\nCable: {$this->output->iface->title}.{$this->output->name} -> {$this->input->name}.{$this->input->iface->title}";
 	}
 
 	public function disconnect($which=false){ // which = port
@@ -78,7 +83,7 @@ class Cable{
 					array_splice($input->in, $i, 1);
 			}
 
-			// $this->connected = false;
+			$this->connected = false;
 			return;
 		}
 
@@ -96,12 +101,7 @@ class Cable{
 				array_splice($owner->cables, $i, 1);
 
 			if($this->connected){
-				$temp = [
-					"cable" => &$this,
-					"port" => &$owner,
-					"target" => &$target
-				];
-
+				$temp = new \Blackprint\EvPortValue($owner, $target, $this);
 				$owner->emit('disconnect', $temp);
 				$owner->iface->emit('cable.disconnect', $temp);
 				$owner->iface->node->_instance->emit('cable.disconnect', $temp);
@@ -109,7 +109,8 @@ class Cable{
 				$alreadyEmitToInstance = true;
 			}
 			else{
-				$temp = ["port" => &$owner, "cable" => &$this];
+				$nul = null;
+				$temp = new \Blackprint\EvPortValue($owner, $nul, $this);
 				$owner->iface->emit('cable.cancel', $temp);
 				// $owner->iface->node->_instance->emit('cable.cancel', temp);
 			}
@@ -121,12 +122,7 @@ class Cable{
 			if($i !== -1)
 				array_splice($target->cables, $i, 1);
 
-			$temp = [
-				"cable" => &$this,
-				"port" => &$target,
-				"target" => &$owner
-			];
-
+			$temp = new \Blackprint\EvPortValue($target, $owner, $this);
 			$target->emit('disconnect', $temp);
 			$target->iface->emit('cable.disconnect', $temp);
 

@@ -5,8 +5,8 @@ use \Blackprint\Environment;
 
 \Blackprint\registerNode('BP\Env\Get', BPEnvGet::class);
 class BPEnvGet extends \Blackprint\Node {
-	public static $output = ["Val" => Types::String];
-	public function __construct($instance){
+	public static $Output = ["Val" => Types::String];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Env/Get');
 
@@ -21,8 +21,8 @@ class BPEnvGet extends \Blackprint\Node {
 
 \Blackprint\registerNode('BP\Env\Set', BPEnvSet::class);
 class BPEnvSet extends \Blackprint\Node {
-	public static $input = ["Val" => Types::String];
-	public function __construct($instance){
+	public static $Input = ["Val" => Types::String];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Env/Set');
 		

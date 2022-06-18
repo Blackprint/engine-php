@@ -41,7 +41,7 @@ namespace \BPNode\Example;
 // The class name must match with the file name
 // This will be registered as Node definition
 class Hello extends \Blackprint\Node {
-    function __construct($instance){
+    function __construct(&$instance){
         // Call the parent constructor first, passing the $instance (Blackprint\Engine)
         parent::__construct($instance);
 

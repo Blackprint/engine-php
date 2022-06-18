@@ -7,12 +7,12 @@ use \Blackprint\{
 };
 
 class Simple extends \Blackprint\Node {
-	public static $output = [
+	public static $Output = [
 		'Changed'=> Types::Function,
 		'Value'=> Types::String,
 	];
 
-	function __construct($instance){
+	function __construct(&$instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Input');
@@ -20,7 +20,7 @@ class Simple extends \Blackprint\Node {
 	}
 
 	// Bring value from imported iface to node output
-	function imported() {
+	function imported($data) {
 		$val = $this->iface->data->value;
 		if($val) \App\colorLog("Input\Simple:", "Saved data as output: {$val}");
 

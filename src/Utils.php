@@ -37,18 +37,24 @@ class Utils{
 		$def = null;
 		$feature = is_array($val) ? $val['feature'] : false;
 	
-		if($feature === \Blackprint\Port::Trigger_){
+		if($feature === \Blackprint\PortType::Trigger){
 			$def = &$val['func'];
 			$type = Types::Function;
 		}
-		elseif($feature === \Blackprint\Port::ArrayOf_)
+		elseif($feature === \Blackprint\PortType::ArrayOf){
 			$type = &$val['type'];
-		elseif($feature === \Blackprint\Port::Union_)
+
+			if($type === Types::Any)
+				$def = null;
+			else $def = [];
+		}
+		elseif($feature === \Blackprint\PortType::Union)
 			$type = &$val['type'];
-		elseif($feature === \Blackprint\Port::Default_){
+		elseif($feature === \Blackprint\PortType::Default){
 			$type = &$val['type'];
 			$def = &$val['value'];
 		}
+		// Give default value for each primitive type
 		elseif($type === Types::Number)
 			$def = 0;
 		elseif($type === Types::Boolean)

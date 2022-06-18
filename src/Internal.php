@@ -46,3 +46,39 @@ function registerNamespace($nodeDirectory){
 }
 
 Internal::$interface['BP/default'] = \Blackprint\Interfaces::class;
+
+// Below is for internal only
+class EvIface {
+	function __construct(
+		public &$iface
+	){}
+}
+class EvPort {
+	function __construct(
+		public &$port
+	){}
+}
+class EvEnv {
+	function __construct(
+		public &$key,
+		public &$value=null,
+	){}
+}
+class EvVariableNew {
+	function __construct(
+		public $scope,
+		public &$id,
+	){}
+}
+class EvPortValue {
+	function __construct(
+		public &$port,
+		public &$target,
+		public &$cable,
+	){}
+}
+class EvPortSelf {
+	function __construct(
+		public &$port
+	){}
+}

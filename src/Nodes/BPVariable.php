@@ -3,8 +3,8 @@ namespace Blackprint\Nodes;
 
 \Blackprint\registerNode('BP\Var\Set', VarSet::class);
 class VarSet extends \Blackprint\Node {
-	public static $input = [];
-	public function __construct($instance){
+	public static $Input = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Set');
 
@@ -26,8 +26,8 @@ class VarSet extends \Blackprint\Node {
 
 \Blackprint\registerNode('BP\Var\Get', VarGet::class);
 class VarGet extends \Blackprint\Node {
-	public static $output = [];
-	public function __construct($instance){
+	public static $Output = [];
+	public function __construct(&$instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Get');
 
@@ -58,7 +58,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 
 	public function __construct($id, $options=null){
 		// this.rootInstance = instance;
-		$this->id = $this->title = $id;
+		$this->id = $this->title = &$id;
 		$this->type = &BPVarTemp::$typeNotSet;
 		
 		// The type need to be defined dynamically on first cable connect
@@ -162,10 +162,12 @@ class IVarGet extends BPVarGetSet {
 		if($this->_onChanged != null)
 			$this->_scope[$this->data->name]?->off('value', $this->_onChanged);
 
-		$scope = $this->_scope = parent::changeVar($name, $scopeName);
+		$scope = parent::changeVar($name, $scopeName);
+		$this->_scope = &$scope;
 		$this->title = "Get $name";
 
-		$temp = $this->_bpVarRef = &$scope[$this->data->name];
+		$temp = &$scope[$this->data->name];
+		$this->_bpVarRef = &$temp;
 		if($temp->type === BPVarTemp::$typeNotSet) return;
 
 		$this->_reinitPort();
@@ -208,7 +210,8 @@ class IVarSet extends BPVarGetSet {
 		$scope = parent::changeVar($name, $scopeName);
 		$this->title = "Set $name";
 
-		$temp = $this->_bpVarRef = &$scope[$this->data->name];
+		$temp = &$scope[$this->data->name];
+		$this->_bpVarRef = &$temp;
 		if($temp->type === BPVarTemp::$typeNotSet) return;
 
 		$this->_reinitPort();

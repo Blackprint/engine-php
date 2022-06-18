@@ -23,14 +23,17 @@ class Environment {
 		$map = &Environment::$map;
 		$map[$key] = &$val;
 
-		if(!Environment::$_noEvent)
-			Event->emit('environment-added', ["key" => $key, "value" => $val]);
+		if(!Environment::$_noEvent){
+			$temp = new EvEnv($key, $val);
+			Event->emit('environment-added', $temp);
+		}
 	}
 
 	public static function delete($key){
 		$map = &Environment::$map;
 		unset($map[$key]);
 
-		Event->emit('environment-deleted', ["key" => $key]);
+		$temp = new EvEnv($key);
+		Event->emit('environment-deleted', $temp);
 	}
 }

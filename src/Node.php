@@ -3,14 +3,18 @@ namespace Blackprint;
 
 class Node extends Constructor\CustomEvent {
 	/** @var array Constructor\Port */
+	public $_outputLink = [];
 	public $output = [];
 
 	/** @var array Constructor\Port */
+	public $_inputtLink = [];
 	public $input = [];
 
 	/** @var Interfaces */
-	public $iface = false;
+	public $iface = null;
 	private $contructed = false;
+	public $disablePorts = false;
+	public $routes = false;
 
 	/** @var Constructor\References */
 	public $ref;
@@ -21,7 +25,7 @@ class Node extends Constructor\CustomEvent {
 	}
 
 	public function &setInterface($namespace='BP/default'){
-		if($this->iface !== false)
+		if($this->iface !== null)
 			throw new \Exception('node->setInterface() can only be called once');
 
 		if($this->contructed === false)
@@ -44,7 +48,7 @@ class Node extends Constructor\CustomEvent {
 	}
 
 	public function renamePort($which, $name, $to){
-		$iPort = $this->iface[$which];
+		$iPort = &$this->iface[$which];
 
 		if(!isset($iPort[$name]))
 			throw new \Exception("$which port with name '$name' was not found");
@@ -52,10 +56,11 @@ class Node extends Constructor\CustomEvent {
 		if(isset($iPort[$to]))
 			throw new \Exception("$which port with name '$to' already exist");
 
-		$temp = $iPort[$to] = $iPort[$name];
+		$temp = &$iPort[$name];
+		$iPort[$to] = &$temp;
 		unset($iPort[$name]);
-		$temp->name = $to;
 
+		$temp->name = &$to;
 		unset($this[$which][$name]);
 	}
 
