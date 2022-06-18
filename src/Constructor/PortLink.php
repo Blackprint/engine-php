@@ -7,7 +7,7 @@ class PortLink {
 	private $which;
 	private $nodePort;
 
-	public function __construct($node, $which, $portMeta){
+	public function __construct(&$node, $which, $portMeta){
 		$iface = &$node->iface;
 		$this->iface = &$iface;
 		$this->which = &$which;

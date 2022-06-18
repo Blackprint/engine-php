@@ -442,7 +442,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 \Blackprint\registerInterface('BPIC/BP/Fn/Input', FnInput::class);
 class FnInput extends BPFnInOut {
 	public static $Output = [];
-	public function __construct($node){
+	public function __construct(&$node){
 		parent::__construct($node);
 		$this->title = 'Input';
 		$this->type = 'bp-fn-input';
@@ -452,7 +452,7 @@ class FnInput extends BPFnInOut {
 \Blackprint\registerInterface('BPIC/BP/Fn/Output', FnOutput::class);
 class FnOutput extends BPFnInOut {
 	public static $Input = [];
-	public function __construct($node){
+	public function __construct(&$node){
 		parent::__construct($node);
 		$this->title = 'Output';
 		$this->type = 'bp-fn-output';

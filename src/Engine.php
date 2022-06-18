@@ -131,11 +131,6 @@ class Engine extends Constructor\CustomEvent {
 							// echo "\n{$current->title}.{$linkPortA->name} => {$targetNode->title}.{$linkPortB->name}";
 
 							$linkPortA->connectPort($linkPortB);
-							// $cable = new Constructor\Cable($linkPortA, $linkPortB);
-							// $linkPortA->cables[] = &$cable;
-							// $linkPortB->cables[] = &$cable;
-
-							// $cable->_connected();
 							// $cable->_print();
 						}
 					}
@@ -224,7 +219,9 @@ class Engine extends Constructor\CustomEvent {
 			$nodes[] = &$node;
 
 		$iface->init();
-		$node->init();
+
+		if($nodes === null)
+			$node->init();
 
 		return $iface;
 	}

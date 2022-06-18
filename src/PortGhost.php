@@ -23,7 +23,7 @@ PortGhost::$fakeIface = &$fakeIface;
 // These may be useful for testing or creating custom port without creating nodes when scripting
 class OutputPort extends PortGhost {
 	public $_ghost = true;
-	public function __construct($type){
+	public function __construct(&$type){
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($type, PortGhost::$fakeIface);
 
 		parent::__construct('Blackprint.OutputPort', $type, $def, 'output', $fakeIface, $haveFeature);
@@ -32,7 +32,7 @@ class OutputPort extends PortGhost {
 
 class InputPort extends PortGhost {
 	public $_ghost = true;
-	public function __construct($type){
+	public function __construct(&$type){
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($type, PortGhost::$fakeIface);
 
 		parent::__construct('Blackprint.InputPort', $type, $def, 'input', $fakeIface, $haveFeature);

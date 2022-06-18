@@ -50,7 +50,7 @@ class BPFnVarInOut extends \Blackprint\Interfaces {
 
 \Blackprint\registerInterface('BPIC/BP/FnVar/Input', FnVarInput::class);
 class FnVarInput extends BPFnVarInOut {
-	public function __construct($node){
+	public function __construct(&$node){
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-input';
 	}
@@ -152,7 +152,7 @@ class FnVarInput extends BPFnVarInOut {
 
 \Blackprint\registerInterface('BPIC/BP/FnVar/Output', FnVarOutput::class);
 class FnVarOutput extends BPFnVarInOut {
-	public function __construct($node){
+	public function __construct(&$node){
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-output';
 	}

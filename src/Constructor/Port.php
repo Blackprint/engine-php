@@ -85,6 +85,9 @@ class Port extends CustomEvent {
 			else return $this->_callAll = createCallableRoutePort($this);
 		}
 
+		if($this->feature === PortType::Trigger)
+			return $this->default;
+
 		// Getter/Setter (no args == getter, with args == setter)
 		return function&($val = Args::NoArgs) {
 			// Getter value
@@ -170,7 +173,7 @@ class Port extends CustomEvent {
 			// else setter (only for output port)
 
 			if($this->value === $val || $this->iface->node->disablePorts)
-				return;
+				return $val;
 
 			if($this->source === 'input')
 				throw new \Exception("Can't set data to input port");
@@ -460,7 +463,7 @@ function createCallablePort($port){
 
 		$cables = &$port->cables;
 		foreach ($cables as &$cable) {
-			$target = $cable->input;
+			$target = &$cable->input;
 			if($target === null)
 				continue;
 
@@ -476,7 +479,7 @@ function createCallableRoutePort($port){
 	$port->iface->node->routes->disableOut = true;
 
 	return function() use(&$port) {
-		$cable = $port->cables[0];
+		$cable = &$port->cables[0];
 		if($cable === null) return;
 
 		$cable->input->routeIn();
