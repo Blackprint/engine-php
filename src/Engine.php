@@ -255,7 +255,7 @@ class Engine extends Constructor\CustomEvent {
 		if($options->vars != null){
 			$vars = $options->vars;
 			foreach ($vars as &$val) {
-				$temp->createVariable($val, ["scope" => 'shared']);
+				$temp->createVariable($val, ["scope" => VarScope::shared]);
 			}
 		}
 
@@ -271,8 +271,6 @@ class Engine extends Constructor\CustomEvent {
 	}
 
 	public function destroy(){
-		$this->iface = [];
-		$this->ifaceList = [];
 		$this->clearNodes();
 	}
 }

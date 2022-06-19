@@ -1,6 +1,13 @@
 <?php
 namespace Blackprint\Nodes;
 
+/** For internal library use only */
+class VarScope {
+	const public = 0;
+	const private = 1;
+	const shared = 2;
+};
+
 \Blackprint\registerNode('BP\Var\Set', VarSet::class);
 class VarSet extends \Blackprint\Node {
 	public static $Input = [];
@@ -11,7 +18,7 @@ class VarSet extends \Blackprint\Node {
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = [
 			"name" => '',
-			"scope" => 'public'
+			"scope" => VarScope::public
 		];
 
 		$iface->title = 'VarSet';
@@ -34,7 +41,7 @@ class VarGet extends \Blackprint\Node {
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = [
 			"name" => '',
-			"scope" => 'public'
+			"scope" => VarScope::public
 		];
 
 		$iface->title = 'VarGet';
@@ -90,29 +97,35 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$temp = &$this->_bpVarRef;
 		$temp->used->add($this);
 	}
-	public function &changeVar($name, $scopeName){
+	public function &changeVar($name, $scopeId){
 		if($this->data->name !== '')
 			throw new \Exception(`Can't change variable node that already be initialized`);
 			
 		$this->data->name = &$name;
-		$this->data->scope = &$scopeName;
+		$this->data->scope = &$scopeId;
 
 		$_funcInstance = &$this->node->_instance->_funcMain;
 		if($_funcInstance !== null)
 			$_funcInstance = &$_funcInstance->node->_funcInstance;
 
-		if($scopeName === 'public'){
+		if($scopeId === VarScope::public){
 			if($_funcInstance !== null)
 				$scope = &$_funcInstance->rootInstance->variables;
 			else $scope = &$this->node->_instance->variables;
 		}
-		else if($scopeName === 'shared')
+		else if($scopeId === VarScope::shared)
 			$scope = &$_funcInstance->variables;
 		else // private
 			$scope = &$this->node->_instance->variables;
 
-		if(!isset($scope[$name]))
-			throw new \Exception(`'{$name}' variable was not defined on the '{$scopeName}' instance`);
+		if(!isset($scope[$name])){
+			if($scopeId === VarScope::public) $_scopeName = 'public';
+			else if($scopeId === VarScope::private) $_scopeName = 'private';
+			else if($scopeId === VarScope::shared) $_scopeName = 'shared';
+			else $_scopeName = 'unknown';
+
+			throw new \Exception(`'{$name}' variable was not defined on the '{$_scopeName}' instance`);
+		}
 
 		return $scope;
 	}
@@ -155,15 +168,14 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 
 \Blackprint\registerInterface('BPIC/BP/Var/Get', IVarGet::class);
 class IVarGet extends BPVarGetSet {
-	public function changeVar($name, $scopeName){
+	public function changeVar($name, $scopeId){
 		if($this->data->name !== '')
 			throw new \Exception(`Can't change variable node that already be initialized`);
 
 		if($this->_onChanged != null)
-			$this->_scope[$this->data->name]?->off('value', $this->_onChanged);
+			$this->_bpVarRef?->off('value', $this->_onChanged);
 
-		$scope = parent::changeVar($name, $scopeName);
-		$this->_scope = &$scope;
+		$scope = parent::changeVar($name, $scopeId);
 		$this->title = "Get $name";
 
 		$temp = &$scope[$this->data->name];
@@ -206,8 +218,8 @@ class IVarGet extends BPVarGetSet {
 
 \Blackprint\registerInterface('BPIC/BP/Var/Set', IVarSet::class);
 class IVarSet extends BPVarGetSet {
-	public function changeVar($name, $scopeName){
-		$scope = parent::changeVar($name, $scopeName);
+	public function changeVar($name, $scopeId){
+		$scope = parent::changeVar($name, $scopeId);
 		$this->title = "Set $name";
 
 		$temp = &$scope[$this->data->name];

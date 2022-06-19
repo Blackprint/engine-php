@@ -14,7 +14,7 @@ class Node extends Constructor\CustomEvent {
 	public $iface = null;
 	private $contructed = false;
 	public $disablePorts = false;
-	public $routes = false;
+	public $routes = null;
 
 	/** @var Constructor\References */
 	public $ref;

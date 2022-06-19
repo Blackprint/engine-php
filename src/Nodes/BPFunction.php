@@ -1,6 +1,16 @@
 <?php
 namespace Blackprint\Nodes;
+
+use Blackprint\PortType;
+
 include_once("./FnPortVar.php");
+
+/** For internal library use only */
+class RefPortName {
+	function __construct(
+		public &$name,
+	){ }
+}
 
 // used for instance.createFunction
 class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstance
@@ -147,11 +157,10 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		// deepProperty
 
-		// BPVariable = ./Var.js
 		$temp = new BPVariable($id, $options);
 		$temp->funcInstance = &$this;
 
-		if($options->scope === 'shared')
+		if($options->scope === VarScope::shared)
 			$this->variables[$id] = &$temp;
 		else return $this->addPrivateVars($id);
 
@@ -164,7 +173,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		if(!in_array($id, $this->privateVars)){
 			$this->privateVars[] = &$id;
 
-			$temp = new \Blackprint\EvVariableNew('private', $id);
+			$temp = new \Blackprint\EvVariableNew(VarScope::private, $id);
 			$this->emit('variable.new', $temp);
 			$this->rootInstance->emit('variable.new', $temp);
 		}
@@ -229,8 +238,10 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 			$thisInput = &$this->input;
 
 			// Sync all port value
-			foreach ($IOutput as &$key)
+			foreach ($IOutput as &$key){
+				if($IOutput[$key]->feature === PortType::Trigger) continue;
 				$Output[$key]($thisInput[$key]());
+			}
 
 			return;
 		}
@@ -355,8 +366,14 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		if($port->iface->namespace->startsWith("BP/Fn"))
 			throw new \Exception("Function Input can't be connected directly to Output");
 
-		$name = $customName || $port->name;
-		$portType = $port->feature != null ? $port->_getPortFeature() : $port->type;
+		$name = $port->_name?->name || $customName || $port->name;
+
+		if($port->feature === PortType::Trigger){
+			$portType = \Blackprint\Port::Trigger(function() use(&$nodeB, &$inputPort) {
+				$nodeB->output[$inputPort->name]();
+			});
+		}
+		else $portType = $port->feature != null ? $port->_getPortFeature() : $port->type;
 
 		// $nodeA, $nodeB; // Main (input) -> Input (output), Output (input) -> Main (output)
 		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
@@ -395,10 +412,12 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		else $inputPort = $nodeA->createPort('input', $name, $portType);
 
 		if($this->type === 'bp-fn-input'){
+			$outputPort->_name = new RefPortName($name); // When renaming port, this also need to be changed
 			$this->emit(`_add.{$name}`, $outputPort);
 			return $outputPort;
 		}
 
+		$inputPort->_name = new RefPortName($name); // When renaming port, this also need to be changed
 		$this->emit(`_add.{$name}`, $inputPort);
 		return $inputPort;
 	}
@@ -410,7 +429,9 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$this->node->renamePort('output', $fromName, $toName);
 
 			$main = &$funcMainNode->_funcInstance->input;
-			$main[$toName] = &$main[$fromName];
+			$temp = &$main[$fromName];
+			$main[$toName] = &$temp;
+			$temp->_name->name = $toName;
 			unset($main[$fromName]);
 		}
 		else { // Output (input) -> Main (output)
@@ -418,7 +439,9 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$this->node->renamePort('input', $fromName, $toName);
 
 			$main = &$funcMainNode->_funcInstance->output;
-			$main[$toName] = &$main[$fromName];
+			$temp = &$main[$fromName];
+			$main[$toName] = &$temp;
+			$temp->_name->name = $toName;
 			unset($main[$fromName]);
 		}
 	}

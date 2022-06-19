@@ -20,10 +20,12 @@ class Port extends CustomEvent {
 	public $value = null;
 	public $sync = false;
 	public $_ghost = false;
+	public $_name = null;
 	public $feature = null;
 	public $onConnect = false;
 	public $_callAll = null;
 	public $_cache = null;
+	public $_func = null;
 
 	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = &$portName;
@@ -56,7 +58,7 @@ class Port extends CustomEvent {
 			return PortFeature::Default($this->type, $this->default);
 		}
 		elseif($this->feature === PortType::Trigger){
-			return PortFeature::Trigger($this->type);
+			return PortFeature::Trigger($this->_func);
 		}
 		elseif($this->feature === PortType::Union){
 			return PortFeature::Union($this->type);
@@ -298,6 +300,10 @@ class Port extends CustomEvent {
 			return false;
 		}
 
+		if(($this->onConnect !== false && ($this->onConnect)($cable, $cable->owner))
+		|| ($cable->owner->onConnect !== false && ($cable->owner->onConnect)($cable, $this)))
+			return false;
+
 		// Remove cable if ...
 		if(($cable->source === 'output' && $this->source !== 'input') // Output source not connected to input
 			|| ($cable->source === 'input' && $this->source !== 'output')  // Input source not connected to output
@@ -397,10 +403,6 @@ class Port extends CustomEvent {
 			}
 		}
 
-		if(($this->onConnect !== false && ($this->onConnect)($cable, $cable->owner))
-		|| ($cable->owner->onConnect !== false && ($cable->owner->onConnect)($cable, $this)))
-			return false;
-
 		// Put port reference to the cable
 		$cable->target = &$this;
 
@@ -467,7 +469,9 @@ function createCallablePort($port){
 			if($target === null)
 				continue;
 
-			($target->iface->input[$target->name]->default)();
+			if($target->_name != null)
+				($target->iface->_parentFunc->node->output[$target->_name->name])();
+			else ($target->iface->input[$target->name]->default)();
 		}
 
 		$port->emit('call');

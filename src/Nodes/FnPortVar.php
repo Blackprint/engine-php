@@ -1,6 +1,9 @@
 <?php
 namespace Blackprint\Nodes;
 
+use Blackprint\PortType;
+use Blackprint\Types;
+
 class FnInput extends \Blackprint\Node {
 	public static $Output = [];
 	public function __construct(&$instance){
@@ -16,7 +19,8 @@ class FnInput extends \Blackprint\Node {
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function imported($data){
-		$this->routes->disabled = true;
+		if($this->routes !== null)
+			$this->routes->disabled = true;
 	}
 }
 
@@ -71,14 +75,17 @@ class FnVarInput extends BPFnVarInOut {
 			$iPort->onConnect = function($cable, $port) use(&$iPort, &$proxyIface, &$name) {
 				unset($iPort->onConnect);
 				$proxyIface->off(`_add.{$name}`, $this->_waitPortInit);
+				$this->_waitPortInit = null;
 
 				$node = &$this->node;
 
 				$cable->disconnect();
 				$node->deletePort('output', 'Val');
 
-				$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+				$portName = new RefPortName($name);
+				$portType = getFnPortType($port, 'input', $this->_parentFunc, $portName);
 				$newPort = $node->createPort('output', 'Val', $portType);
+				$newPort->_name = &$portName;
 				$newPort->connectPort($port);
 
 				$proxyIface->addPort($port, $name);
@@ -89,6 +96,7 @@ class FnVarInput extends BPFnVarInOut {
 			// Run when main node is the missing port
 			$this->_waitPortInit = function($port) use(&$iPort) {
 				unset($iPort->onConnect);
+				$this->_waitPortInit = null;
 
 				$backup = [];
 				$cables = &$this->output->Val->cables;
@@ -99,7 +107,7 @@ class FnVarInput extends BPFnVarInOut {
 				$node = &$this->node;
 				$node->deletePort('output', 'Val');
 
-				$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+				$portType = getFnPortType($port, 'input', $this->_parentFunc, $port->_name);
 				$newPort = $node->createPort('output', 'Val', $portType);
 				$this->_addListener();
 
@@ -112,7 +120,7 @@ class FnVarInput extends BPFnVarInOut {
 		else{
 			if(!isset($this->output['Val'])){
 				$port = &$ports[$name];
-				$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+				$portType = getFnPortType($port, 'input', $this->_parentFunc, $port->_name);
 				$node->createPort('output', 'Val', $portType);
 			}
 
@@ -120,33 +128,48 @@ class FnVarInput extends BPFnVarInOut {
 		}
 	}
 	public function _addListener(){
-		$this->_listener = function($dat) {
-			$port = &$dat->port;
+		$port = &$this->_proxyIface->output[$this->data->name];
 
-			if($port->iface->node->routes->out != null){
-				$Val = &$this->ref->IOutput['Val'];
-				$Val->value = &$port->value; // Change value without trigger node.update
+		if($port->feature === PortType::Trigger){
+			$this->_listener = function() {
+				$this->ref->Output['Val']();
+			};
 
-				$list = &$Val->cables;
-				foreach ($list as &$temp) {
-					if($temp->hasBranch) continue;
-
-					// Clear connected cable's cache
-					$temp->input->_cache = null;
+			$port->on('call', $this->_listener);
+		}
+		else{
+			$this->_listener = function(&$dat) {
+				$port = &$dat->port;
+	
+				if($port->iface->node->routes->out != null){
+					$Val = &$this->ref->IOutput['Val'];
+					$Val->value = &$port->value; // Change value without trigger node.update
+	
+					$list = &$Val->cables;
+					foreach ($list as &$temp) {
+						if($temp->hasBranch) continue;
+	
+						// Clear connected cable's cache
+						$temp->input->_cache = null;
+					}
+					return;
 				}
-				return;
-			}
-
-			$this->ref->Output['Val'] = &$port->value;
-		};
-
-		$this->_proxyIface->output[$this->data->name]->on('value', $this->_listener);
+	
+				$this->ref->Output['Val'] = &$port->value;
+			};
+	
+			$port->on('value', $this->_listener);
+		}
 	}
 	public function destroy(){
 		parent::destroy();
 
 		if($this->_listener == null) return;
-		$this->_proxyIface->output[$this->data->name]->off('value', $this->_listener);
+
+		$port = &$this->_proxyIface->output[$this->data->name];
+		if($port->feature === PortType::Trigger)
+			$port->off('call', $this->_listener);
+		else $port->off('value', $this->_listener);
 	}
 }
 
@@ -173,13 +196,16 @@ class FnVarOutput extends BPFnVarInOut {
 			$iPort->onConnect = function($cable, $port) use(&$iPort, &$proxyIface, &$name) {
 				unset($iPort->onConnect);
 				$proxyIface->off(`_add.${name}`, $this->_waitPortInit);
+				$this->_waitPortInit = null;
 
 				$node = &$this->node;
 				$cable->disconnect();
 				$node->deletePort('input', 'Val');
 
-				$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+				$portName = new RefPortName($name);
+				$portType = getFnPortType($port, 'output', $this->_parentFunc, $portName);
 				$newPort = $node->createPort('input', 'Val', $portType);
+				$newPort->_name = &$portName;
 				$newPort->connectPort($port);
 
 				$proxyIface->addPort($port, $name);
@@ -189,6 +215,7 @@ class FnVarOutput extends BPFnVarInOut {
 			// Run when main node is the missing port
 			$this->_waitPortInit = function($port) use(&$iPort) {
 				unset($iPort->onConnect);
+				$this->_waitPortInit = null;
 
 				$backup = [];
 				$cables = &$this->input->Val->cables;
@@ -199,7 +226,7 @@ class FnVarOutput extends BPFnVarInOut {
 				$node = &$this->node;
 				$node->deletePort('input', 'Val');
 
-				$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+				$portType = getFnPortType($port, 'output', $this->_parentFunc, $port->_name);
 				$newPort = $node->createPort('input', 'Val', $portType);
 
 				foreach ($backup as &$value)
@@ -210,8 +237,19 @@ class FnVarOutput extends BPFnVarInOut {
 		}
 		else {
 			$port = $ports[$name];
-			$portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+			$portType = getFnPortType($port, 'output', $this->_parentFunc, $port->_name);
 			$node->createPort('input', 'Val', $portType);
 		}
 	}
+}
+
+function &getFnPortType(&$port, $which, &$parentNode, &$ref){
+	if($port->feature === \Blackprint\PortType::Trigger){
+		if($which === 'input') // Function Input (has output port inside, and input port on main node)
+			$portType = Types::Function;
+		else $portType = \Blackprint\Port::Trigger($parentNode->output[$ref->name]->_callAll);
+	}
+	else $portType = $port->feature != null ? $port->feature($port->type) : $port->type;
+
+	return $portType;
 }

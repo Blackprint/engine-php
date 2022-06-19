@@ -14,19 +14,26 @@ class RoutePort {
 		$this->iface = &$iface;
 	}
 
-	// For creating output cable
-	public function connectPort(RoutePort $port){
-		if($port === $this) return false;
-		$this->out->disconnect();
+	// Connect other route port (this .out to other .in port)
+	public function routeTo(Interfaces &$iface=null){
+		$this->out?->disconnect();
 
-		$cable = new Constructor\Cable($port, $this); // ToDo: null?
-		$this->out = &$cable;
-		$port->in[] = &$cable;
+		if($iface === null){ // Route ended
+			$cable = new Constructor\Cable($this, null);
+			$cable->isRoute = true;
+			$this->out = &$cable;
+			return true;
+		}
 
+		$port = &$iface->node->routes;
+
+		$cable = new Constructor\Cable($this, $port);
 		$cable->isRoute = true;
-		$cable->output = &$this;
-		$cable->_connected();
+		$cable->output = $this;
+		$this->out = &$cable;
+		$port->in[] = &$cable; // ToDo: check if this empty if the connected cable was disconnected
 
+		$cable->_connected();
 		return true;
 	}
 
