@@ -255,7 +255,7 @@ class Engine extends Constructor\CustomEvent {
 		if($options->vars != null){
 			$vars = $options->vars;
 			foreach ($vars as &$val) {
-				$temp->createVariable($val, ["scope" => VarScope::shared]);
+				$temp->createVariable($val, ["scope" => Nodes\VarScope::shared]);
 			}
 		}
 
