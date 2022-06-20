@@ -22,7 +22,7 @@ class Simple extends \Blackprint\Node {
 	// Bring value from imported iface to node output
 	function imported($data) {
 		$val = $this->iface->data->value;
-		if($val) \App\colorLog("Input\Simple:", "Saved data as output: {$val}");
+		if($val) \App\colorLog("Input/Simple:", "Saved data as output: {$val}");
 
 		$this->output['Value']($val);
 	}
@@ -47,7 +47,7 @@ class InputIFaceData {
 	}
 }
 
-\Blackprint\registerInterface('BPIC\Example\Input', InputIFace::class);
+\Blackprint\registerInterface('BPIC/Example/Input', InputIFace::class);
 class InputIFace extends \Blackprint\Interfaces {
 	function __construct(&$node){
 		parent::__construct($node);
@@ -61,7 +61,7 @@ class InputIFace extends \Blackprint\Interfaces {
 		if($this->importing !== false)
 			return;
 
-		\App\colorLog("Input\Simple:", "The input box have new value: $val");
+		\App\colorLog("Input/Simple:", "The input box have new value: $val");
 		$node->output['Value']($val);
 		$node->syncOut('data', ['value' => $this->data->value]);
 

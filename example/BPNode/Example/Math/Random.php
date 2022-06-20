@@ -31,7 +31,7 @@ class Random extends \Blackprint\Node {
 		if($this->executed === true)
 			return false;
 
-		\App\colorLog("Math\Random:", "Value request for port: {$port->name}, from node: {$iface->title}");
+		\App\colorLog("Math/Random:", "Value request for port: {$port->name}, from node: {$iface->title}");
 
 		// Let's create the value for him
 		$this->input['Re-seed']();

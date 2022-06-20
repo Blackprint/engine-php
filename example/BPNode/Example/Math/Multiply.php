@@ -30,7 +30,7 @@ class Multiply extends \Blackprint\Node {
 		$iface = &$this->iface;
 
 		$iface->on('cable.connect', function($ev){
-			\App\colorLog("Math\Multiply:", "Cable connected from {$ev->port->iface->title} ({$ev->port->name}) to {$ev->target->iface->title} ({$ev->target->name})");
+			\App\colorLog("Math/Multiply:", "Cable connected from {$ev->port->iface->title} ({$ev->port->name}) to {$ev->target->iface->title} ({$ev->target->name})");
 		});
 	}
 
@@ -44,7 +44,7 @@ class Multiply extends \Blackprint\Node {
 	function multiply(){
 		$input = &$this->input;
 
-		\App\colorLog("Math\Multiply:", "Multiplying {$input['A']()} with {$input['B']()}");
+		\App\colorLog("Math/Multiply:", "Multiplying {$input['A']()} with {$input['B']()}");
 		return $input['A']() * $input['B']();
 	}
 }
@@ -53,5 +53,5 @@ Multiply::$Input['Exec'] = Port::Trigger(function($self){
 	$node = &$self->iface->node;
 
 	$node->output['Result']($node->multiply());
-	\App\colorLog("Math\Multiply:", "Result has been set: ".$node->output['Result']());
+	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']());
 });
