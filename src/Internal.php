@@ -25,6 +25,11 @@ class Internal {
 }
 
 function registerNode($namespace, $claz){
+	$namespace = str_replace('\\', '/', $namespace);
+
+	if(gettype($claz) !== 'string' || !class_exists($claz))
+		throw new \Exception("$namespace: The second parameter for ->registerNode must be class that already been defined before this registration", 1);
+
 	\Blackprint\Utils::deepProperty(Internal::$nodes, explode('/', $namespace), $claz);
 }
 
@@ -35,7 +40,7 @@ function registerInterface($templatePath, $claz){
 		throw new \Exception("$templatePath: The first parameter of 'registerInterface' must be started with BPIC to avoid name conflict. Please name the interface similar with 'templatePrefix' for your module that you have set on 'blackprint.config.js'.", 1);
 
 	if(gettype($claz) !== 'string' || !class_exists($claz))
-		throw new \Exception("$templatePath: The second parameter for ->registerInterface must be class", 1);
+		throw new \Exception("$templatePath: The second parameter for ->registerInterface must be class that already been defined before this registration", 1);
 
 	Internal::$interface[$templatePath] = &$claz;
 }

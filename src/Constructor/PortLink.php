@@ -3,14 +3,14 @@ namespace Blackprint\Constructor;
 use Blackprint\Utils;
 
 class PortLink {
-	private $iface;
-	private $which;
+	public $_iface;
+	public $_which;
 	private $nodePort;
 
 	public function __construct(&$node, $which, $portMeta){
 		$iface = &$node->iface;
-		$this->iface = &$iface;
-		$this->which = &$which;
+		$this->_iface = &$iface;
+		$this->_which = &$which;
 
 		$iface->{$which} = [];
 
@@ -26,7 +26,7 @@ class PortLink {
 	}
 
 	public function &_add(&$portName, $val){
-		$iPort = &$this->iface->{$this->which};
+		$iPort = &$this->_iface->{$this->_which};
 		$exist = &$iPort[$portName];
 
 		if(isset($iPort[$portName]))
@@ -35,7 +35,7 @@ class PortLink {
 		// Determine type and add default value for each type
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($val, $this);
 
-		$linkedPort = $this->iface->_newPort($portName, $type, $def, $this->which, $haveFeature);
+		$linkedPort = $this->_iface->_newPort($portName, $type, $def, $this->_which, $haveFeature);
 		$iPort[$portName] = &$linkedPort;
 
 		$this->nodePort[$portName] = $linkedPort->createLinker();
@@ -44,7 +44,7 @@ class PortLink {
 	}
 
 	public function _delete(&$portName){
-		$iPort = &$this->iface[$this->which];
+		$iPort = &$this->_iface->{$this->_which};
 		if(!isset($iPort)) return;
 
 		// Destroy cable first

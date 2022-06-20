@@ -8,7 +8,6 @@ class VarScope {
 	const shared = 2;
 };
 
-\Blackprint\registerNode('BP\Var\Set', VarSet::class);
 class VarSet extends \Blackprint\Node {
 	public static $Input = [];
 	public function __construct(&$instance){
@@ -30,8 +29,8 @@ class VarSet extends \Blackprint\Node {
 		$this->iface->_bpVarRef->value = $this->input['Val'];
 	}
 };
+\Blackprint\registerNode('BP/Var/Set', VarSet::class);
 
-\Blackprint\registerNode('BP\Var\Get', VarGet::class);
 class VarGet extends \Blackprint\Node {
 	public static $Output = [];
 	public function __construct(&$instance){
@@ -50,6 +49,7 @@ class VarGet extends \Blackprint\Node {
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 };
+\Blackprint\registerNode('BP/Var/Get', VarGet::class);
 
 
 class BPVarTemp {
@@ -89,20 +89,22 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 }
 
 class BPVarGetSet extends \Blackprint\Interfaces {
+	public $_onChanged = null;
+
 	public function imported($data){
-		if($data->scope == null || $data->name == null)
+		if(!isset($data['scope']) || !isset($data['name']))
 			throw new \Exception("'scope' and 'name' options is required for creating variable node");
 
-		$this->changeVar($data->name, $data->scope);
+		$this->changeVar($data['name'], $data['scope']);
 		$temp = &$this->_bpVarRef;
-		$temp->used->add($this);
+		$temp->used[] = &$this;
 	}
 	public function &changeVar($name, $scopeId){
-		if($this->data->name !== '')
-			throw new \Exception(`Can't change variable node that already be initialized`);
+		if($this->data['name'] !== '')
+			throw new \Exception("Can't change variable node that already be initialized");
 			
-		$this->data->name = &$name;
-		$this->data->scope = &$scopeId;
+		$this->data['name'] = &$name;
+		$this->data['scope'] = &$scopeId;
 
 		$_funcInstance = &$this->node->_instance->_funcMain;
 		if($_funcInstance !== null)
@@ -124,7 +126,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 			else if($scopeId === VarScope::shared) $_scopeName = 'shared';
 			else $_scopeName = 'unknown';
 
-			throw new \Exception(`'{$name}' variable was not defined on the '{$_scopeName}' instance`);
+			throw new \Exception("'{$name}' variable was not defined on the '{$_scopeName} (scopeId: $scopeId)' instance");
 		}
 
 		return $scope;
@@ -144,7 +146,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		if($port === null) throw new \Exception("Can't set type with null");
 		$temp->type = &$port->type;
 
-		$targetPort = &$this->_reinitPort();
+		$targetPort = $this->_reinitPort();
 		$targetPort->connectPort($port);
 
 		// Also create port for other node that using $this variable
@@ -156,7 +158,8 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$temp = &$this->_bpVarRef;
 		if($temp === null) return;
 
-		$temp->used->delete($this);
+		$i = array_search($this, $temp->used);
+		if($i !== false) array_splice($temp->used, $i, 1);
 
 		$listener = &$this->_bpVarRef->listener;
 		if($listener == null) return;
@@ -166,11 +169,10 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	}
 }
 
-\Blackprint\registerInterface('BPIC/BP/Var/Get', IVarGet::class);
 class IVarGet extends BPVarGetSet {
-	public function changeVar($name, $scopeId){
-		if($this->data->name !== '')
-			throw new \Exception(`Can't change variable node that already be initialized`);
+	public function &changeVar($name, $scopeId){
+		if($this->data['name'] !== '')
+			throw new \Exception("Can't change variable node that already be initialized");
 
 		if($this->_onChanged != null)
 			$this->_bpVarRef?->off('value', $this->_onChanged);
@@ -178,9 +180,9 @@ class IVarGet extends BPVarGetSet {
 		$scope = parent::changeVar($name, $scopeId);
 		$this->title = "Get $name";
 
-		$temp = &$scope[$this->data->name];
+		$temp = &$scope[$this->data['name']];
 		$this->_bpVarRef = &$temp;
-		if($temp->type === BPVarTemp::$typeNotSet) return;
+		if($temp->type === BPVarTemp::$typeNotSet) return $scope;
 
 		$this->_reinitPort();
 	}
@@ -188,7 +190,7 @@ class IVarGet extends BPVarGetSet {
 	public function _reinitPort(){
 		$temp = $this->_bpVarRef;
 		$node = $this->node;
-		if($this->output->Val !== null)
+		if(isset($this->output['Val']))
 			$node->deletePort('output', 'Val');
 
 		$ref = $this->node->output;
@@ -206,7 +208,7 @@ class IVarGet extends BPVarGetSet {
 		}
 
 		$temp->on($this->_eventListen, $this->_onChanged);
-		return $this->output->Val;
+		return $this->output['Val'];
 	}
 	public function destroy(){
 		if($this->_eventListen != null)
@@ -215,16 +217,16 @@ class IVarGet extends BPVarGetSet {
 		parent::destroy();
 	}
 }
+\Blackprint\registerInterface('BPIC/BP/Var/Get', IVarGet::class);
 
-\Blackprint\registerInterface('BPIC/BP/Var/Set', IVarSet::class);
 class IVarSet extends BPVarGetSet {
-	public function changeVar($name, $scopeId){
+	public function &changeVar($name, $scopeId){
 		$scope = parent::changeVar($name, $scopeId);
 		$this->title = "Set $name";
 
-		$temp = &$scope[$this->data->name];
+		$temp = &$scope[$this->data['name']];
 		$this->_bpVarRef = &$temp;
-		if($temp->type === BPVarTemp::$typeNotSet) return;
+		if($temp->type === BPVarTemp::$typeNotSet) return $scope;
 
 		$this->_reinitPort();
 	}
@@ -234,7 +236,7 @@ class IVarSet extends BPVarGetSet {
 		$node = &$this->node;
 		$temp = &$this->_bpVarRef;
 
-		if($input['Val'] !== null)
+		if(isset($input['Val']))
 			$node->deletePort('input', 'Val');
 
 		if($temp->type === \Blackprint\Types::Function){
@@ -247,3 +249,4 @@ class IVarSet extends BPVarGetSet {
 		return $this->input['Val'];
 	}
 }
+\Blackprint\registerInterface('BPIC/BP/Var/Set', IVarSet::class);

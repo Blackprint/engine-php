@@ -46,6 +46,8 @@ class CustomEvent {
 			return;
 		}
 
+		if(!isset($this->events[$eventName])) return;
+
 		$i = array_search($this->events[$eventName], $func);
 		if($i !== false)
 			array_splice($this->events[$eventName], $i, 1);

@@ -31,10 +31,12 @@ class Utils{
 
 	public static function determinePortType($val, $that){
 		if($val === null)
-			throw new \Exception("Port type can't be undefined, error when processing: {$that->_iface->title}, {$that->_which} port");
+			throw new \Exception("Port type can't be null, error when processing: {$that->_iface->title}, {$that->_which} port");
 	
 		$type = $val;
 		$def = null;
+		if(is_array($val) && !isset($val['feature']))
+		debug_print_backtrace();
 		$feature = is_array($val) ? $val['feature'] : false;
 	
 		if($feature === \Blackprint\PortType::Trigger){

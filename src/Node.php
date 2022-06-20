@@ -12,6 +12,7 @@ class Node extends Constructor\CustomEvent {
 
 	/** @var Interfaces */
 	public $iface = null;
+	public $_instance = null;
 	private $contructed = false;
 	public $disablePorts = false;
 	public $routes = null;
@@ -20,8 +21,9 @@ class Node extends Constructor\CustomEvent {
 	public $ref;
 
 	// Reserved for future
-	function __construct(public $instance){
+	function __construct(public &$instance){
 		$this->contructed = true;
+		$this->_instance = &$instance;
 	}
 
 	public function &setInterface($namespace='BP/default'){
@@ -44,7 +46,7 @@ class Node extends Constructor\CustomEvent {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only create port for 'input' and 'output'");
 
-		return $this[$which]->_add($name, $type);
+		return $this->{"_{$which}Link"}->_add($name, $type);
 	}
 
 	public function renamePort($which, $name, $to){
@@ -68,7 +70,7 @@ class Node extends Constructor\CustomEvent {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only delete port for 'input' and 'output'");
 
-		return $this[$which]->_delete($name);
+		return $this->{"_{$which}Link"}->_delete($name);
 	}
 
 	// ToDo: remote-control PHP

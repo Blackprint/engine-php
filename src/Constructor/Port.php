@@ -67,7 +67,7 @@ class Port extends CustomEvent {
 		throw new \Exception("Port feature not recognized");
 	}
 
-	public function disconnectAll($hasRemote){
+	public function disconnectAll($hasRemote=false){
 		$cables = &$this->cables;
 		foreach ($cables as &$cable) {
 			if($hasRemote)
@@ -265,19 +265,19 @@ class Port extends CustomEvent {
 
 	public function _cableConnectError($name, $obj, $severe=true){
 		$msg = "Cable notify: {$name}";
-		if($obj['iface']) $msg += "\nIFace: {$obj['iface']->namespace}";
+		if(isset($obj['iface'])) $msg .= "\nIFace: {$obj['iface']->namespace}";
 
-		if($obj['port'])
-			$msg += "\nFrom port: {$obj['port']->name}\n - Type: {$obj['port']->source} ({$obj['port']->type->name})";
+		if(isset($obj['port']))
+			$msg .= "\nFrom port: {$obj['port']->name} (iface: {$obj['port']->iface->namespace})\n - Type: {$obj['port']->source} ({$obj['port']->type->name})";
 
-		if($obj['target'])
-			$msg += "\nTo port: {$obj['target']->name}\n - Type: {$obj['target']->source} ({$obj['target']->type->name})";
+		if(isset($obj['target']))
+			$msg .= "\nTo port: {$obj['target']->name} (iface: {$obj['target']->iface->namespace})\n - Type: {$obj['target']->source} ({$obj['target']->type->name})";
 
 		$obj['message'] = $msg;
 		$instance = &$this->iface->node->_instance;
 
 		if($severe && $instance->throwOnError)
-			throw new \Exception($msg);
+			throw new \Exception($msg."\n\n");
 
 		$temp = (object) $obj;
 		$instance->emit($name, $temp);

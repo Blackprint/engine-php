@@ -1,7 +1,6 @@
 <?php
 namespace Blackprint;
 
-// ToDo: still unfinished
 class RoutePort {
 	public $in = []; // Allow incoming route from multiple path
 	public $out = null; // Only one route/path
