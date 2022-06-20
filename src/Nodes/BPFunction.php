@@ -246,7 +246,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 
 			// Sync all port value
 			foreach ($IOutput as &$key){
-				if($IOutput[$key]->feature === PortType::Trigger) continue;
+				if($IOutput[$key]->type === \Blackprint\Types::Function) continue;
 				$Output[$key]($thisInput[$key]());
 			}
 
@@ -317,8 +317,11 @@ class NodeOutput extends \Blackprint\Node {
 			$Output = &$iface->node->output;
 			$thisInput = &$this->input;
 
-			foreach ($IOutput as &$key)
+			// Sync all port value
+			foreach ($IOutput as &$key){
+				if($IOutput[$key]->type === \Blackprint\Types::Function) continue;
 				$Output[$key]($thisInput[$key]());
+			}
 
 			return;
 		}
