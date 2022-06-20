@@ -111,7 +111,7 @@ class Port extends CustomEvent {
 						$cable = $this->cables[0]; # Don't use pointer
 
 						if($cable->connected === false || $cable->disabled){
-							$this->iface->_requesting = null;
+							$this->iface->_requesting = false;
 							if($this->feature === PortType::ArrayOf)
 								return $this->_cache = [];
 
@@ -121,7 +121,7 @@ class Port extends CustomEvent {
 						$output = &$cable->output;
 
 						// Request the data first
-						$output->iface->node->request($output, $this->iface);
+						$output->iface->node->request($cable);
 
 						// echo "\n1. {$this->name} -> {$output->name} ({$output->value})";
 
@@ -152,12 +152,12 @@ class Port extends CustomEvent {
 						$output = &$cable->output;
 
 						// Request the data first
-						$output->iface->node->request($output, $this->iface);
+						$output->iface->node->request($cable);
 
 						// echo "\n2. {$this->name} -> {$output->name} ({$output->value})";
 
 						if($isNotArrayPort){
-							$this->iface->_requesting = null;
+							$this->iface->_requesting = false;
 							return $this->_cache = $output->value ?? $this->default;
 						}
 
@@ -238,9 +238,11 @@ class Port extends CustomEvent {
 			// Skip sync if the node has route cable
 			if($skipSync) return;
 
+			// echo "\n4. {$inp->name} = {$inp->iface->title}, {$inp->iface->_requesting}";
+
 			$node = $inp->iface->node;
-			if($inp->iface->_requesting === null){
-				$node->update($inp, $this, $cable);
+			if($inp->iface->_requesting === false){
+				$node->update($cable);
 
 				if($node->iface->enum !== \Blackprint\Nodes\Enums::BPFnMain){
 					$node->routes->routeOut();
@@ -273,7 +275,7 @@ class Port extends CustomEvent {
 		if(isset($obj['target']))
 			$msg .= "\nTo port: {$obj['target']->name} (iface: {$obj['target']->iface->namespace})\n - Type: {$obj['target']->source} ({$obj['target']->type->name})";
 
-		$obj['message'] = $msg;
+		$obj['message'] = &$msg;
 		$instance = &$this->iface->node->_instance;
 
 		if($severe && $instance->throwOnError)
@@ -387,7 +389,7 @@ class Port extends CustomEvent {
 			return false;
 		}
 
-		$sourceCables = $cable->owner->cables;
+		$sourceCables = &$cable->owner->cables;
 
 		// Remove cable if there are similar connection for the ports
 		foreach ($sourceCables as &$_cable) {
@@ -486,6 +488,6 @@ function createCallableRoutePort($port){
 		$cable = &$port->cables[0];
 		if($cable === null) return;
 
-		$cable->input->routeIn();
+		$cable->input->routeIn($cable);
 	};
 }
