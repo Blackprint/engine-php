@@ -18,7 +18,7 @@ class FnVarInput extends \Blackprint\Node {
 		$iface->enum = Enums::BPFnVarInput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
-	public function imported($data){
+	public function imported(&$data){
 		if($this->routes !== null)
 			$this->routes->disabled = true;
 	}
@@ -39,7 +39,7 @@ class FnVarOutput extends \Blackprint\Node {
 		$iface->enum = Enums::BPFnVarOutput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
-	public function update($cable){
+	public function update(&$cable){
 		$id = &$this->iface->data['name'];
 		$this->refOutput[$id] = &$this->ref->Input["Val"];
 	}
@@ -47,7 +47,7 @@ class FnVarOutput extends \Blackprint\Node {
 \Blackprint\registerNode('BP\FnVar\Output', FnVarOutput::class);
 
 class BPFnVarInOut extends \Blackprint\Interfaces {
-	public function imported($data){
+	public function imported(&$data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = &$data['name'];
 		$this->_parentFunc = &$this->node->_instance->_funcMain;
@@ -59,7 +59,7 @@ class FnVarInputIface extends BPFnVarInOut {
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-input';
 	}
-	public function imported($data){
+	public function imported(&$data){
 		parent::imported($data);
 		$ports = &$this->_parentFunc->ref->IInput;
 		$node = &$this->node;
@@ -180,7 +180,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-output';
 	}
-	public function imported($data){
+	public function imported(&$data){
 		parent::imported($data);
 		$ports = &$this->_parentFunc->ref->IOutput;
 		$node = &$this->node;

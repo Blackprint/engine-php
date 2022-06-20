@@ -77,9 +77,9 @@ class Node extends Constructor\CustomEvent {
 	public function syncOut($id, $data){}
 
 	// To be overriden by module developer
-	public function imported($data){}
-	public function update($cable){}
-	public function request($myPort, $fromIface){}
+	public function imported(&$data){}
+	public function update(&$cable){}
+	public function request(&$cable){}
 	public function destroy(){}
 	public function init(){}
 	public function syncIn($id, $data){}

@@ -36,7 +36,7 @@ class Multiply extends \Blackprint\Node {
 
 	// When any output value from other node are updated
 	// Let's immediately change current node result
-	function update($cable){
+	function update(&$cable){
 		$this->output['Result']($this->multiply());
 	}
 

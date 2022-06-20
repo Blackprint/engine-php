@@ -25,8 +25,8 @@ class VarSet extends \Blackprint\Node {
 		$iface->enum = Enums::BPVarSet;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
-	public function update($cable){
-		$this->iface->_bpVarRef->value = $this->input['Val'];
+	public function update(&$cable){
+		$this->iface->_bpVarRef->value = $this->input['Val']();
 	}
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
@@ -91,7 +91,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 class BPVarGetSet extends \Blackprint\Interfaces {
 	public $_onChanged = null;
 
-	public function imported($data){
+	public function imported(&$data){
 		if(!isset($data['scope']) || !isset($data['name']))
 			throw new \Exception("'scope' and 'name' options is required for creating variable node");
 

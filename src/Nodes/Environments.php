@@ -32,14 +32,14 @@ class BPEnvSet extends \Blackprint\Node {
 
 		$iface->enum = Enums::BPEnvSet;
 	}
-	public function update($cable){
-		Environment::set($this->iface->data['name'], $this->input["Val"]);
+	public function update(&$cable){
+		Environment::set($this->iface->data['name'], $this->input["Val"]());
 	}
 }
 \Blackprint\registerNode('BP\Env\Set', BPEnvSet::class);
 
 class BPEnvGetSet extends \Blackprint\Interfaces {
-	public function imported($data){
+	public function imported(&$data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = $data['name'];
 
@@ -55,7 +55,7 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 };
 
 class IEnvGet extends BPEnvGetSet {
-	public function imported($data){
+	public function imported(&$data){
 		parent::imported($data);
 		$this->_listener = function($v) {
 			if($v->key !== $this->data['name']) return;

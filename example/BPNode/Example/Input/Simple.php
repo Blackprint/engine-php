@@ -20,11 +20,11 @@ class Simple extends \Blackprint\Node {
 	}
 
 	// Bring value from imported iface to node output
-	function imported($data) {
-		$val = $this->iface->data->value;
-		if($val) \App\colorLog("Input/Simple:", "Saved data as output: {$val}");
+	function imported(&$data) {
+		$val = $data['value'];
+		if($val) \App\colorLog("Input/Simple:", "Imported data: {$val}");
 
-		$this->output['Value']($val);
+		$this->iface->data->value = $val;
 	}
 }
 

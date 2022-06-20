@@ -230,23 +230,21 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 		if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
 	}
 
-	public function imported($data){
+	public function imported(&$data){
 		$instance = $this->_funcInstance;
 		$instance->used[] = &$this;
 	}
 
-	public function update($cable){
-		$port = &$cable->input;
-
+	public function update(&$cable){
 		$iface = $this->iface->_proxyInput->iface;
-		if($port === null){ // Triggered by port route
+		if($cable === null){ // Triggered by port route
 			$IOutput = &$iface->output;
 			$Output = &$iface->node->output;
 			$thisInput = &$this->input;
 
 			// Sync all port value
-			foreach ($IOutput as &$key){
-				if($IOutput[$key]->type === \Blackprint\Types::Function) continue;
+			foreach ($IOutput as $key => &$value){
+				if($value->type === \Blackprint\Types::Function) continue;
 				$Output[$key]($thisInput[$key]());
 			}
 
@@ -254,7 +252,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 		}
 
 		// port => input port from current node
-		$iface->node->output[$port->name] = $cable->value;
+		$iface->node->output[$cable->input->name]($cable->value());
 	}
 
 	public function destroy(){
@@ -278,7 +276,7 @@ class NodeInput extends \Blackprint\Node {
 		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyInput = &$this;
 	}
-	public function imported($data){
+	public function imported(&$data){
 		$input = &$this->iface->_funcMain->node->_funcInstance->input;
 
 		foreach ($input as $key => &$value)
@@ -301,32 +299,30 @@ class NodeOutput extends \Blackprint\Node {
 		$funcMain->_proxyOutput = &$this;
 	}
 
-	public function imported($data){
+	public function imported(&$data){
 		$output = &$this->iface->_funcMain->node->_funcInstance->output;
 
 		foreach ($output as $key => &$value)
 			$this->createPort('input', $key, $value);
 	}
 
-	public function update($cable){
-		$port = &$cable->input;
-
+	public function update(&$cable){
 		$iface = $this->iface->_funcMain;
-		if($port === null){ // Triggered by port route
+		if($cable === null){ // Triggered by port route
 			$IOutput = &$iface->output;
 			$Output = &$iface->node->output;
 			$thisInput = &$this->input;
 
 			// Sync all port value
-			foreach ($IOutput as &$key){
-				if($IOutput[$key]->type === \Blackprint\Types::Function) continue;
+			foreach ($IOutput as $key => &$value){
+				if($value->type === \Blackprint\Types::Function) continue;
 				$Output[$key]($thisInput[$key]());
 			}
 
 			return;
 		}
 
-		$iface->node->output[$port->name] = &$cable->value;
+		$iface->node->output[$cable->input->name]($cable->value());
 	}
 }
 \Blackprint\registerNode('BP/Fn/Output', NodeOutput::class);
@@ -383,7 +379,6 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		if($port->feature === PortType::Trigger){
 			$reff = ['node'=> [], 'port'=> []];
 			$portType = \Blackprint\Port::Trigger(function() use(&$reff) {
-				/** @noinspection */
 				$reff['node']->output[$reff['port']->name]();
 			});
 		}
