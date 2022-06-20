@@ -58,12 +58,19 @@ class Cable{
 		if($this->output->value === null) return;
 
 		$tempEv = new \Blackprint\EvPortSelf($this->output);
-		$this->input->emit('value', $tempEv);
+		$input = &$this->input;
+		$input->emit('value', $tempEv);
+		$input->iface->emit('value', $tempEv);
+		$input->iface->node->update($this);
 	}
 
 	// For debugging
 	public function _print(){
 		echo "\nCable: {$this->output->iface->title}.{$this->output->name} -> {$this->input->name}.{$this->input->iface->title}";
+	}
+
+	public function &value(){
+		return $this->output->value;
 	}
 
 	public function disconnect($which=false){ // which = port

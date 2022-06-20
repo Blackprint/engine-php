@@ -47,22 +47,24 @@ class RoutePort {
 		$this->in[] = &$cable;
 		$cable->input = &$this;
 		$cable->target = &$this;
-		$cable->connected = true;
+		$cable->_connected();
 
 		return true;
 	}
 
-	public function routeIn(){
+	public function routeIn(&$cable){
 		$node = &$this->iface->node;
-		$node->update();
+		$node->update($cable);
 		$node->routes->routeOut();
 	}
 
 	public function routeOut(){
 		if($this->disableOut) return;
 		if($this->out == null){
-			if($this->iface->enum === Nodes\Enums::BPFnOutput)
-				return $this->iface->_funcMain->node->routes->routeIn();
+			if($this->iface->enum === Nodes\Enums::BPFnOutput){
+				$temp = null;
+				return $this->iface->_funcMain->node->routes->routeIn($temp);
+			}
 
 			return;
 		}
@@ -73,18 +75,19 @@ class RoutePort {
 		if($targetRoute == null) return;
 
 		$_enum = $targetRoute->iface->enum;
+		$cable = $this->out;
 
 		if($_enum === null)
-			return $targetRoute->routeIn();
+			return $targetRoute->routeIn($cable);
 
 		if($_enum === Nodes\Enums::BPFnMain)
-			return $targetRoute->iface->_proxyInput->routes->routeIn();
+			return $targetRoute->iface->_proxyInput->routes->routeIn($cable);
 
 		if($_enum === Nodes\Enums::BPFnOutput){
-			$targetRoute->iface->node->update();
-			return $targetRoute->iface->_funcMain->node->routes->routeOut();
+			$targetRoute->iface->node->update($cable);
+			return $targetRoute->iface->_funcMain->node->routes->routeOut($cable);
 		}
 
-		return $targetRoute->routeIn();
+		return $targetRoute->routeIn($cable);
 	}
 }
