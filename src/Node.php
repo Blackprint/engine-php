@@ -12,7 +12,6 @@ class Node extends Constructor\CustomEvent {
 
 	/** @var Interfaces */
 	public $iface = null;
-	public $instance = null;
 	private $contructed = false;
 	public $disablePorts = false;
 	public $routes = null;
@@ -23,7 +22,6 @@ class Node extends Constructor\CustomEvent {
 	// Reserved for future
 	function __construct(public &$instance){
 		$this->contructed = true;
-		$this->instance = &$instance;
 	}
 
 	public function &setInterface($namespace='BP/default'){
@@ -73,6 +71,10 @@ class Node extends Constructor\CustomEvent {
 		return $this->{"_{$which}Link"}->_delete($name);
 	}
 
+	public function log($message){
+		$this->instance->_log(new NodeLog($this->iface, $message));
+	}
+
 	// ToDo: remote-control PHP
 	public function syncOut($id, $data){}
 
@@ -83,4 +85,11 @@ class Node extends Constructor\CustomEvent {
 	public function destroy(){}
 	public function init(){}
 	public function syncIn($id, $data){}
+}
+
+class NodeLog {
+	function __construct(
+		public &$iface,
+		public &$message,
+	) { }
 }

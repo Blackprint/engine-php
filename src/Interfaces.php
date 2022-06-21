@@ -14,7 +14,7 @@ class Interfaces extends Constructor\CustomEvent {
 	public $interface = 'BP/default';
 	public $importing = true;
 	public $_dynamicPort = false;
-	public $enum = null;
+	public $_enum = null;
 
 	/** @var Node */
 	public $node;
