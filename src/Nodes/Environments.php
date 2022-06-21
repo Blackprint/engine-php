@@ -14,7 +14,7 @@ class BPEnvGet extends \Blackprint\Node {
 		$iface->title = 'EnvGet';
 		$iface->type = 'bp-env-get';
 
-		$iface->enum = Enums::BPEnvGet;
+		$iface->_enum = Enums::BPEnvGet;
 	}
 }
 \Blackprint\registerNode('BP\Env\Get', BPEnvGet::class);
@@ -30,7 +30,7 @@ class BPEnvSet extends \Blackprint\Node {
 		$iface->title = 'EnvSet';
 		$iface->type = 'bp-env-set';
 
-		$iface->enum = Enums::BPEnvSet;
+		$iface->_enum = Enums::BPEnvSet;
 	}
 	public function update(&$cable){
 		Environment::set($this->iface->data['name'], $this->input["Val"]());
@@ -59,11 +59,11 @@ class IEnvGet extends BPEnvGetSet {
 		parent::imported($data);
 		$this->_listener = function($v) {
 			if($v->key !== $this->data['name']) return;
-			$this->ref->Output["Val"] = $v->value;
+			$this->ref->Output["Val"]($v->value);
 		};
 
 		\Blackprint\Event->on('environment-changed environment-added', $this->_listener);
-		$this->ref->Output["Val"] = Environment::$map[$this->data['name']];
+		$this->ref->Output["Val"](Environment::$map[$this->data['name']]);
 	}
 	public function destroy(){
 		parent::destroy();

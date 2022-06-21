@@ -68,13 +68,13 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		foreach ($list as &$node) {
 			if($node === $fromNode) continue;
 
-			$nodeInstance = &$node->iface->bpInstance;
+			$nodeInstance = &$node->iface->_bpInstance;
 			$nodeInstance->pendingRender = true; // Force recalculation for cable position
 
 			if($eventName === 'cable.connect' || $eventName === 'cable.disconnect'){
 				$input = &$obj->cable->input;
 				$output = &$obj->cable->output;
-				$ifaceList = &$fromNode->iface->bpInstance->ifaceList;
+				$ifaceList = &$fromNode->iface->_bpInstance->ifaceList;
 
 				// Skip event that also triggered when deleting a node
 				if($input->iface->_bpDestroy || $output->iface->_bpDestroy) continue;
@@ -102,14 +102,14 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 					$targetOutput = &$outputIface->output[$output->name];
 
 					if($targetInput === null){
-						if($inputIface->enum === Enums::BPFnOutput){
+						if($inputIface->_enum === Enums::BPFnOutput){
 							$targetInput = &$inputIface->addPort($targetOutput, $output->name);
 						}
 						else throw new \Exception("Output port was not found");
 					}
 
 					if($targetOutput === null){
-						if($outputIface->enum === Enums::BPFnInput){
+						if($outputIface->_enum === Enums::BPFnInput){
 							$targetOutput = &$outputIface->addPort($targetInput, $input->name);
 						}
 						else throw new \Exception("Input port was not found");
@@ -136,11 +136,11 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 				]);
 			}
 			else if($eventName === 'node.delete'){
-				$index = array_search($obj->iface, $fromNode->iface->bpInstance->ifaceList);
+				$index = array_search($obj->iface, $fromNode->iface->_bpInstance->ifaceList);
 				if($index === false)
 					throw new \Exception("Failed to get node index");
 
-				$iface = $nodeInstance->ifaceList[$index];
+				$iface = &$nodeInstance->ifaceList[$index];
 				if($iface->namespace !== $obj->iface->namespace){
 					echo $iface->namespace.' '.$obj->iface->namespace;
 					throw new \Exception("Failed to delete node from other function instance");
@@ -188,7 +188,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		$list = &$this->used;
 		foreach ($list as &$node) {
-			$vars = &$node->iface->bpInstance->variables;
+			$vars = &$node->iface->_bpInstance->variables;
 			$vars[$id] = new BPVariable($id);
 		}
 	}
@@ -205,7 +205,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	public function destroy(){
 		$map = &$this->used;
 		foreach ($map as &$iface) {
-			$iface->node->_instance->deleteNode($iface);
+			$iface->node->instance->deleteNode($iface);
 		}
 	}
 }
@@ -220,7 +220,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 		parent::__construct($instance);
 		$iface = $this->setInterface("BPIC/BP/Fn/Main");
 		$iface->type = 'function';
-		$iface->enum = Enums::BPFnMain;
+		$iface->_enum = Enums::BPFnMain;
 	}
 
 	/** @var FnMain */
@@ -231,12 +231,12 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 	}
 
 	public function imported(&$data){
-		$instance = $this->_funcInstance;
+		$instance = &$this->_funcInstance;
 		$instance->used[] = &$this;
 	}
 
 	public function update(&$cable){
-		$iface = $this->iface->_proxyInput->iface;
+		$iface = &$this->iface->_proxyInput->iface;
 		if($cable === null){ // Triggered by port route
 			$IOutput = &$iface->output;
 			$Output = &$iface->node->output;
@@ -269,10 +269,10 @@ class NodeInput extends \Blackprint\Node {
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Input');
-		$iface->enum = Enums::BPFnInput;
+		$iface->_enum = Enums::BPFnInput;
 		$iface->_proxyInput = true; // Port is initialized dynamically
 
-		$funcMain = &$this->_instance->_funcMain;
+		$funcMain = &$this->instance->_funcMain;
 		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyInput = &$this;
 	}
@@ -291,10 +291,10 @@ class NodeOutput extends \Blackprint\Node {
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Output');
-		$iface->enum = Enums::BPFnOutput;
+		$iface->_enum = Enums::BPFnOutput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 
-		$funcMain = &$this->_instance->_funcMain;
+		$funcMain = &$this->instance->_funcMain;
 		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyOutput = &$this;
 	}
@@ -307,7 +307,7 @@ class NodeOutput extends \Blackprint\Node {
 	}
 
 	public function update(&$cable){
-		$iface = $this->iface->_funcMain;
+		$iface = &$this->iface->_funcMain;
 		if($cable === null){ // Triggered by port route
 			$IOutput = &$iface->output;
 			$Output = &$iface->node->output;
@@ -336,23 +336,23 @@ class FnMain extends \Blackprint\Interfaces {
 		$this->_importOnce = true;
 		$node = &$this->node;
 
-		$this->bpInstance = new \Blackprint\Engine();
+		$this->_bpInstance = new \Blackprint\Engine();
 
 		$bpFunction = &$node->_funcInstance;
 
-		$newInstance = &$this->bpInstance;
+		$newInstance = &$this->_bpInstance;
 		$newInstance->variables = []; // private for one function
 		$newInstance->sharedVariables = &$bpFunction->variables; // shared between function
-		$newInstance->functions = &$node->_instance->functions;
+		$newInstance->functions = &$node->instance->functions;
 		$newInstance->_funcMain = &$this;
 		$newInstance->_mainInstance = &$bpFunction->rootInstance;
 
 		$bpFunction->refreshPrivateVars($newInstance);
 
 		$swallowCopy = array_slice($bpFunction->structure, 0);
-		$this->bpInstance->importJSON($swallowCopy);
+		$this->_bpInstance->importJSON($swallowCopy);
 
-		$this->bpInstance->on('cable.connect cable.disconnect node.created node.delete', function($ev, $eventName) use(&$bpFunction, &$newInstance) {
+		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete', function($ev, $eventName) use(&$bpFunction, &$newInstance) {
 			if($bpFunction->_syncing) return;
 
 			$ev->bpFunction = &$bpFunction;

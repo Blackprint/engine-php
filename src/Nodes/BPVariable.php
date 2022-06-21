@@ -22,11 +22,11 @@ class VarSet extends \Blackprint\Node {
 
 		$iface->title = 'VarSet';
 		$iface->type = 'bp-var-set';
-		$iface->enum = Enums::BPVarSet;
+		$iface->_enum = Enums::BPVarSet;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function update(&$cable){
-		$this->iface->_bpVarRef->value = $this->input['Val']();
+		$this->iface->_bpVarRef->value($this->input['Val']());
 	}
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
@@ -45,7 +45,7 @@ class VarGet extends \Blackprint\Node {
 
 		$iface->title = 'VarGet';
 		$iface->type = 'bp-var-get';
-		$iface->enum = Enums::BPVarGet;
+		$iface->_enum = Enums::BPVarGet;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 };
@@ -71,7 +71,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 		// The type need to be defined dynamically on first cable connect
 	}
 
-	private $_value = null;
+	public $_value = null;
 	public function value($val=null){
 		if($val == null) return $this->_value;
 		$this->_value = &$val;
@@ -81,7 +81,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	public function destroy(){
 		$map = &$this->used;
 		foreach ($map as &$iface) {
-			$iface->node->_instance->deleteNode($iface);
+			$iface->node->instance->deleteNode($iface);
 		}
 
 		array_splice($map, 0);
@@ -106,19 +106,19 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$this->data['name'] = &$name;
 		$this->data['scope'] = &$scopeId;
 
-		$_funcInstance = &$this->node->_instance->_funcMain;
+		$_funcInstance = &$this->node->instance->_funcMain;
 		if($_funcInstance !== null)
 			$_funcInstance = &$_funcInstance->node->_funcInstance;
 
 		if($scopeId === VarScope::public){
 			if($_funcInstance !== null)
 				$scope = &$_funcInstance->rootInstance->variables;
-			else $scope = &$this->node->_instance->variables;
+			else $scope = &$this->node->instance->variables;
 		}
 		else if($scopeId === VarScope::shared)
 			$scope = &$_funcInstance->variables;
 		else // private
-			$scope = &$this->node->_instance->variables;
+			$scope = &$this->node->instance->variables;
 
 		if(!isset($scope[$name])){
 			if($scopeId === VarScope::public) $_scopeName = 'public';
@@ -188,12 +188,12 @@ class IVarGet extends BPVarGetSet {
 	}
 
 	public function _reinitPort(){
-		$temp = $this->_bpVarRef;
-		$node = $this->node;
+		$temp = &$this->_bpVarRef;
+		$node = &$this->node;
 		if(isset($this->output['Val']))
 			$node->deletePort('output', 'Val');
 
-		$ref = $this->node->output;
+		$ref = &$this->node->output;
 		if($temp->type === \Blackprint\Types::Function){
 			$node->createPort('output', 'Val', $temp->type);
 
@@ -204,7 +204,7 @@ class IVarGet extends BPVarGetSet {
 			$node->createPort('output', 'Val', $temp->type);
 
 			$this->_eventListen = 'value';
-			$this->_onChanged = function() use(&$ref, &$temp) { $ref['Val'] = &$temp->_value; };
+			$this->_onChanged = function() use(&$ref, &$temp) { $ref['Val']($temp->_value); };
 		}
 
 		$temp->on($this->_eventListen, $this->_onChanged);

@@ -15,7 +15,7 @@ class FnVarInput extends \Blackprint\Node {
 		$iface->data = ["name" => ''];
 		$iface->title = 'FnInput';
 
-		$iface->enum = Enums::BPFnVarInput;
+		$iface->_enum = Enums::BPFnVarInput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function imported(&$data){
@@ -36,12 +36,12 @@ class FnVarOutput extends \Blackprint\Node {
 		$iface->data = ["name" => ''];
 		$iface->title = 'FnOutput';
 
-		$iface->enum = Enums::BPFnVarOutput;
+		$iface->_enum = Enums::BPFnVarOutput;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function update(&$cable){
 		$id = &$this->iface->data['name'];
-		$this->refOutput[$id] = &$this->ref->Input["Val"];
+		$this->refOutput[$id]($this->ref->Input["Val"]());
 	}
 }
 \Blackprint\registerNode('BP\FnVar\Output', FnVarOutput::class);
@@ -50,7 +50,7 @@ class BPFnVarInOut extends \Blackprint\Interfaces {
 	public function imported(&$data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = &$data['name'];
-		$this->_parentFunc = &$this->node->_instance->_funcMain;
+		$this->_parentFunc = &$this->node->instance->_funcMain;
 	}
 };
 
@@ -70,7 +70,7 @@ class FnVarInputIface extends BPFnVarInOut {
 		$name = $data['name'];
 		if(!isset($ports[$name])){
 			$iPort = $node->createPort('output', 'Val', Types::Any);
-			$proxyIface = $this->_proxyIface;
+			$proxyIface = &$this->_proxyIface;
 
 			// Run when $this node is being connected with other node
 			$iPort->onConnect = function($cable, $port) use(&$iPort, &$proxyIface, &$name) {
@@ -156,7 +156,7 @@ class FnVarInputIface extends BPFnVarInOut {
 					return;
 				}
 	
-				$this->ref->Output['Val'] = &$port->value;
+				$this->ref->Output['Val']($port->value);
 			};
 	
 			$port->on('value', $this->_listener);
@@ -237,7 +237,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 			$proxyIface->once("_add.{$name}", $this->_waitPortInit);
 		}
 		else {
-			$port = $ports[$name];
+			$port = &$ports[$name];
 			$portType = getFnPortType($port, 'output', $this->_parentFunc, $port->_name);
 			$node->createPort('input', 'Val', $portType);
 		}

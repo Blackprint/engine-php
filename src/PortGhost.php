@@ -11,7 +11,7 @@ class PortGhost extends Constructor\Port {
 
 $fakeIface = (object)[
 	"title" => "Blackprint.PortGhost",
-	"node" => (object)["_instance" => (object)["emit" => function($data){}]],
+	"node" => (object)["instance" => (object)["emit" => function($data){}]],
 	"emit" => function($data){},
 	"input" => [],
 	"output" => [],

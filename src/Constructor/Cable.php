@@ -113,7 +113,7 @@ class Cable{
 				$temp = new \Blackprint\EvPortValue($owner, $target, $this);
 				$owner->emit('disconnect', $temp);
 				$owner->iface->emit('cable.disconnect', $temp);
-				$owner->iface->node->_instance->emit('cable.disconnect', $temp);
+				$owner->iface->node->instance->emit('cable.disconnect', $temp);
 
 				$alreadyEmitToInstance = true;
 			}
@@ -121,7 +121,7 @@ class Cable{
 				$nul = null;
 				$temp = new \Blackprint\EvPortValue($owner, $nul, $this);
 				$owner->iface->emit('cable.cancel', $temp);
-				// $owner->iface->node->_instance->emit('cable.cancel', temp);
+				// $owner->iface->node->instance->emit('cable.cancel', temp);
 			}
 		}
 
@@ -136,7 +136,7 @@ class Cable{
 			$target->iface->emit('cable.disconnect', $temp);
 
 			if(!$alreadyEmitToInstance)
-				$target->iface->node->_instance->emit('cable.disconnect', $temp);
+				$target->iface->node->instance->emit('cable.disconnect', $temp);
 		}
 
 		// if(hasOwner || hasTarget) this.connected = false;

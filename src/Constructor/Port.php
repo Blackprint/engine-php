@@ -181,7 +181,7 @@ class Port extends CustomEvent {
 				throw new \Exception("Can't set data to input port");
 
 			if($val == null)
-				$val = $this->default;
+				$val = &$this->default;
 			else{
 				// Data type validation (ToDo: optimize)
 				$type = gettype($val);
@@ -240,11 +240,11 @@ class Port extends CustomEvent {
 
 			// echo "\n4. {$inp->name} = {$inp->iface->title}, {$inp->iface->_requesting}";
 
-			$node = $inp->iface->node;
+			$node = &$inp->iface->node;
 			if($inp->iface->_requesting === false){
 				$node->update($cable);
 
-				if($node->iface->enum !== \Blackprint\Nodes\Enums::BPFnMain){
+				if($node->iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain){
 					$node->routes->routeOut();
 				}
 				else {
@@ -276,7 +276,7 @@ class Port extends CustomEvent {
 			$msg .= "\nTo port: {$obj['target']->name} (iface: {$obj['target']->iface->namespace})\n - Type: {$obj['target']->source} ({$obj['target']->type->name})";
 
 		$obj['message'] = &$msg;
-		$instance = &$this->iface->node->_instance;
+		$instance = &$this->iface->node->instance;
 
 		if($severe && $instance->throwOnError)
 			throw new \Exception($msg."\n\n");
@@ -410,13 +410,13 @@ class Port extends CustomEvent {
 
 		if($cable->target->source === 'input'){
 			/** @var Port */
-			$inp = $cable->target;
-			$out = $cable->owner;
+			$inp = &$cable->target;
+			$out = &$cable->owner;
 		}
 		else {
 			/** @var Port */
-			$inp = $cable->owner;
-			$out = $cable->target;
+			$inp = &$cable->owner;
+			$out = &$cable->target;
 		}
 
 		// Remove old cable if the port not support array

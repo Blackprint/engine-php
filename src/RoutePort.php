@@ -28,7 +28,7 @@ class RoutePort {
 
 		$cable = new Constructor\Cable($this, $port);
 		$cable->isRoute = true;
-		$cable->output = $this;
+		$cable->output = &$this;
 		$this->out = &$cable;
 		$port->in[] = &$cable; // ToDo: check if this empty if the connected cable was disconnected
 
@@ -61,7 +61,7 @@ class RoutePort {
 	public function routeOut(){
 		if($this->disableOut) return;
 		if($this->out == null){
-			if($this->iface->enum === Nodes\Enums::BPFnOutput){
+			if($this->iface->_enum === Nodes\Enums::BPFnOutput){
 				$temp = null;
 				return $this->iface->_funcMain->node->routes->routeIn($temp);
 			}
@@ -71,11 +71,11 @@ class RoutePort {
 
 		$this->out->visualizeFlow();
 
-		$targetRoute = $this->out->input;
-		if($targetRoute == null) return;
+		$targetRoute = &$this->out->input;
+		if($targetRoute === null) return;
 
-		$_enum = $targetRoute->iface->enum;
-		$cable = $this->out;
+		$_enum = &$targetRoute->iface->_enum;
+		$cable = &$this->out;
 
 		if($_enum === null)
 			return $targetRoute->routeIn($cable);

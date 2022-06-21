@@ -19,7 +19,7 @@ class Engine extends Constructor\CustomEvent {
 	// public function __construct(){ }
 
 	public function deleteNode($iface){
-		$list = $this->ifaceList;
+		$list = &$this->ifaceList;
 		$i = array_search($iface, $list);
 
 		if($i !== -1)
@@ -60,7 +60,7 @@ class Engine extends Constructor\CustomEvent {
 	}
 
 	public function clearNodes(){
-		$list = $this->ifaceList;
+		$list = &$this->ifaceList;
 		foreach ($list as &$iface) {
 			$iface->node->destroy();
 			$iface->destroy();
@@ -144,14 +144,14 @@ class Engine extends Constructor\CustomEvent {
 						$linkPortA = &$iface->output[$portName];
 
 						if($linkPortA === null){
-							if($iface->enum === Nodes\Enums::BPFnInput){
-								$target = $this->_getTargetPortType($iface->node->_instance, 'input', $ports);
+							if($iface->_enum === Nodes\Enums::BPFnInput){
+								$target = $this->_getTargetPortType($iface->node->instance, 'input', $ports);
 								$linkPortA = $iface->addPort($target, $portName);
 
 								if($linkPortA === null)
 									throw new \Exception("Can't create output port ({$portName}) for function ({$iface->_funcMain->node->_funcInstance->id})");
 							}
-							else if($iface->enum === Nodes\Enums::BPVarGet){
+							else if($iface->_enum === Nodes\Enums::BPVarGet){
 								$target = $this->_getTargetPortType($this, 'input', $ports);
 								$iface->useType($target);
 								$linkPortA = $iface->output[$portName];
@@ -166,13 +166,13 @@ class Engine extends Constructor\CustomEvent {
 							// output can only meet input port
 							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null){
-								if($targetNode->enum === Nodes\Enums::BPFnOutput){
+								if($targetNode->_enum === Nodes\Enums::BPFnOutput){
 									$linkPortB = $targetNode->addPort($linkPortA, $target['name']);
 
 									if($linkPortB === null)
 										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->_funcMain->node->_funcInstance->id})");
 								}
-								else if($targetNode->enum === Nodes\Enums::BPVarSet){
+								else if($targetNode->_enum === Nodes\Enums::BPVarSet){
 									$targetNode->useType($linkPortA);
 									$linkPortB = $targetNode->input[$target['name']];
 								}
@@ -205,8 +205,8 @@ class Engine extends Constructor\CustomEvent {
 	}
 
 	public function &_getTargetPortType(&$instance, $whichPort, &$targetNodes){
-		$target = $targetNodes[0]; // ToDo: check all target in case if it's supporting Union type
-		$targetIface = $instance->ifaceList[$target['i']];
+		$target = &$targetNodes[0]; // ToDo: check all target in case if it's supporting Union type
+		$targetIface = &$instance->ifaceList[$target['i']];
 		return $targetIface->{$whichPort}[$target['name']];
 	}
 
@@ -323,14 +323,14 @@ class Engine extends Constructor\CustomEvent {
 		$this->functions[$id] = &$temp;
 
 		if(isset($options['vars'])){
-			$vars = $options['vars'];
+			$vars = &$options['vars'];
 			foreach ($vars as &$val) {
 				$temp->createVariable($val, ["scope" => Nodes\VarScope::shared]);
 			}
 		}
 
 		if(isset($options['privateVars'])){
-			$privateVars = $options['privateVars'];
+			$privateVars = &$options['privateVars'];
 			foreach ($privateVars as &$val) {
 				$temp->addPrivateVars($val);
 			}

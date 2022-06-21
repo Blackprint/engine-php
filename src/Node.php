@@ -12,7 +12,7 @@ class Node extends Constructor\CustomEvent {
 
 	/** @var Interfaces */
 	public $iface = null;
-	public $_instance = null;
+	public $instance = null;
 	private $contructed = false;
 	public $disablePorts = false;
 	public $routes = null;
@@ -23,7 +23,7 @@ class Node extends Constructor\CustomEvent {
 	// Reserved for future
 	function __construct(public &$instance){
 		$this->contructed = true;
-		$this->_instance = &$instance;
+		$this->instance = &$instance;
 	}
 
 	public function &setInterface($namespace='BP/default'){
