@@ -32,7 +32,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		$input = &$this->input;
 		$output = &$this->output;
-		$this->used = []; // [\Blackprint\Node, ...]
+		$this->used = []; // [\Blackprint\Interfaces, ...]
 
 		// This will be updated if the function sketch was modified
 		$this->structure = $options['structure'] ?? [
@@ -65,10 +65,10 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	public function _onFuncChanges($eventName, $obj, $fromNode){
 		$list = &$this->used;
 
-		foreach ($list as &$node) {
-			if($node === $fromNode) continue;
+		foreach ($list as &$iface_) {
+			if($iface_->node === $fromNode) continue;
 
-			$nodeInstance = &$node->iface->_bpInstance;
+			$nodeInstance = &$iface_->_bpInstance;
 			$nodeInstance->pendingRender = true; // Force recalculation for cable position
 
 			if($eventName === 'cable.connect' || $eventName === 'cable.disconnect'){
@@ -187,8 +187,8 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		else return;
 
 		$list = &$this->used;
-		foreach ($list as &$node) {
-			$vars = &$node->iface->_bpInstance->variables;
+		foreach ($list as &$iface) {
+			$vars = &$iface->_bpInstance->variables;
 			$vars[$id] = new BPVariable($id);
 		}
 	}
@@ -232,7 +232,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 
 	public function imported(&$data){
 		$instance = &$this->_funcInstance;
-		$instance->used[] = &$this;
+		$instance->used[] = &$this->iface;
 	}
 
 	public function update(&$cable){
@@ -258,7 +258,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 	public function destroy(){
 		$used = &$this->_funcInstance->used;
 
-		$i = array_search($this, $used);
+		$i = array_search($this->iface, $used);
 		if($i !== false) array_splice($used, $i, 1);
 	}
 }
@@ -281,6 +281,12 @@ class NodeInput extends \Blackprint\Node {
 
 		foreach ($input as $key => &$value)
 			$this->createPort('output', $key, $value);
+	}
+	public function request(&$cable){
+		$name = &$cable->output->name;
+
+		// This will trigger the port to request from outside and assign to this node's port
+		$this->output[$name]($this->iface->_funcMain->node->input[$name]());
 	}
 }
 \Blackprint\registerNode('BP/Fn/Input', NodeInput::class);

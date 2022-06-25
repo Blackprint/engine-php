@@ -22,6 +22,12 @@ class FnVarInput extends \Blackprint\Node {
 		if($this->routes !== null)
 			$this->routes->disabled = true;
 	}
+	public function request(&$cable){
+		$iface = &$this->iface;
+
+		// This will trigger the port to request from outside and assign to this node's port
+		$this->output['Val']($iface->_parentFunc->node->input[$iface->data['name']]());
+	}
 }
 \Blackprint\registerNode('BP\FnVar\Input', FnVarInput::class);
 
