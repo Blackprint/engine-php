@@ -52,6 +52,16 @@ class Engine extends Constructor\CustomEvent {
 			}
 		}
 
+		$routes = &$iface->node->routes;
+		if($routes->in->length !== 0){
+			$inp = &$routes->in;
+			foreach ($inp as &$cable) {
+				$cable->disconnect();
+			}
+		}
+
+		if($routes->out !== null) $routes->out->disconnect();
+
 		// Delete reference
 		unset($this->iface[$iface->id]);
 		unset($this->ref[$iface->id]);
