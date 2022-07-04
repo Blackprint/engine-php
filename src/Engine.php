@@ -12,9 +12,9 @@ class Engine extends Constructor\CustomEvent {
 	public $disablePorts = false;
 	public $throwOnError = true;
 
-	public $variables = []; // { category => { name, value, type, childs:{ category } } }
-	public $functions = []; // { category => { name, variables, input, output, used: [], node, description, childs:{ category } } }
-	public $ref = []; // { id => Port references }
+	public $variables = [];
+	public $functions = [];
+	public $ref = [];
 
 	// public function __construct(){ }
 
@@ -281,6 +281,7 @@ class Engine extends Constructor\CustomEvent {
 		if(isset($options['id'])){
 			$iface->id = &$options['id'];
 			$this->iface[$iface->id] = &$iface;
+			$this->ref[$iface->id] = &$iface->ref;
 		}
 
 		if(isset($options['i'])){
