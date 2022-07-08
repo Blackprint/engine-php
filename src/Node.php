@@ -20,6 +20,7 @@ class Node extends Constructor\CustomEvent {
 	public $ref;
 
 	// Reserved for future
+	/** @param Engine $instance */
 	function __construct(public &$instance){
 		$this->contructed = true;
 	}

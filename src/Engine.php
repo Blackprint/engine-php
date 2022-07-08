@@ -16,6 +16,9 @@ class Engine extends Constructor\CustomEvent {
 	public $functions = [];
 	public $ref = [];
 
+	/** @var Nodes/FnMain */
+	public $_funcMain = null;
+
 	// public function __construct(){ }
 
 	public function deleteNode($iface){
@@ -65,6 +68,10 @@ class Engine extends Constructor\CustomEvent {
 		// Delete reference
 		unset($this->iface[$iface->id]);
 		unset($this->ref[$iface->id]);
+
+		$parent = &$iface->node->instance->_funcMain;
+		if($parent != null)
+			unset($parent->ref[$iface->id]);
 
 		$this->emit('node.deleted', $eventData);
 	}
@@ -282,6 +289,10 @@ class Engine extends Constructor\CustomEvent {
 			$iface->id = &$options['id'];
 			$this->iface[$iface->id] = &$iface;
 			$this->ref[$iface->id] = &$iface->ref;
+
+			$parent = &$iface->node->instance->_funcMain;
+			if($parent != null)
+				$parent->ref[$iface->id] = &$iface->ref;
 		}
 
 		if(isset($options['i'])){

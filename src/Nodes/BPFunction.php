@@ -358,7 +358,7 @@ class FnMain extends \Blackprint\Interfaces {
 		$swallowCopy = array_slice($bpFunction->structure, 0);
 		$this->_bpInstance->importJSON($swallowCopy);
 
-		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete', function($ev, $eventName) use(&$bpFunction, &$newInstance) {
+		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed', function($ev, $eventName) use(&$bpFunction, &$newInstance) {
 			if($bpFunction->_syncing) return;
 
 			$ev->bpFunction = &$bpFunction;
