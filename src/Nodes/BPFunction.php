@@ -202,6 +202,36 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		}
 	}
 
+	public function renamePort($which, $fromName, $toName){
+		$main = &$this->{$which};
+		$main[$toName] = &$main[$fromName];
+		unset($main[$fromName]);
+
+		$used = &$this->used;
+		$proxyPort = $which === 'output' ? 'input' : 'output';
+
+		foreach($used as &$iface){
+			$iface->node->renamePort($which, $fromName, $toName);
+
+			$temp = $which === 'output' ? $iface->_proxyOutput : $iface->_proxyInput;
+			$temp->iface[$proxyPort][$fromName]->_name->name = $toName;
+			$temp->renamePort($proxyPort, $fromName, $toName);
+
+			$ifaces = &$iface->bpInstance->ifaceList;
+			foreach($ifaces as &$proxyVar){
+				if(($which === 'output' && $proxyVar->namespace !== "BP/FnVar/Output")
+					|| ($which === 'input' && $proxyVar->namespace !== "BP/FnVar/Input"))
+					continue;
+
+				if($proxyVar->data->name !== $fromName) continue;
+				$proxyVar->data->name = &$toName;
+
+				if($which === 'output')
+					$proxyVar[$proxyPort]['Val']->_name->name = &$toName;
+			}
+		}
+	}
+
 	public function destroy(){
 		$map = &$this->used;
 		foreach ($map as &$iface) {
@@ -335,6 +365,7 @@ class NodeOutput extends \Blackprint\Node {
 
 class FnMain extends \Blackprint\Interfaces {
 	public $_importOnce = false;
+	public $_save = null;
 	public function _BpFnInit(){
 		if($this->_importOnce)
 			throw new \Exception("Can't import function more than once");
@@ -358,8 +389,8 @@ class FnMain extends \Blackprint\Interfaces {
 		$swallowCopy = array_slice($bpFunction->structure, 0);
 		$this->_bpInstance->importJSON($swallowCopy);
 
-		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed', function($ev, $eventName) use(&$bpFunction, &$newInstance) {
-			if($bpFunction->_syncing) return;
+		$this->_save = function($ev, $eventName, $force=false) use(&$bpFunction, &$newInstance) {
+			if($force || $bpFunction->_syncing) return;
 
 			$ev->bpFunction = &$bpFunction;
 			$newInstance->_mainInstance->emit($eventName, $ev);
@@ -367,7 +398,13 @@ class FnMain extends \Blackprint\Interfaces {
 			$bpFunction->_syncing = true;
 			$bpFunction->_onFuncChanges($eventName, $ev, $this->node);
 			$bpFunction->_syncing = false;
-		});
+		};
+
+		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed', $this->_save);
+	}
+	public function renamePort($which, $fromName, $toName){
+		$this->node->_funcInstance->renamePort($which, $fromName, $toName);
+		($this->_save)(false, false, true);
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Fn/Main', FnMain::class);
@@ -444,44 +481,12 @@ class BPFnInOut extends \Blackprint\Interfaces {
 	public function renamePort($fromName, $toName){
 		$bpFunction = &$this->_funcMain->node->_funcInstance;
 
-		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
-			$main = &$bpFunction->input;
-			$main[$toName] = &$main[$fromName];
-			unset($main[$fromName]);
-
-			$mainPort = 'input';
-			$proxyPort = 'output';
-		}
-		else { // Output (input) -> Main (output)
-			$main = $bpFunction->output;
-			$main[$toName] = &$main[$fromName];
-			unset($main[$fromName]);
-
-			$mainPort = 'output';
-			$proxyPort = 'input';
-		}
-
-		$used = &$bpFunction->used;
-		foreach($used as &$iface){
-			$iface->node->renamePort($mainPort, $fromName, $toName);
-
-			$temp = $mainPort === 'output' ? $iface->_proxyOutput : $iface->_proxyInput;
-			$temp->iface[$proxyPort][$fromName]->_name->name = $toName;
-			$temp->renamePort($proxyPort, $fromName, $toName);
-
-			$ifaces = &$iface->bpInstance->ifaceList;
-			foreach($ifaces as &$proxyVar){
-				if(($mainPort === 'output' && $proxyVar->namespace !== "BP/FnVar/Output")
-					|| ($mainPort === 'input' && $proxyVar->namespace !== "BP/FnVar/Input"))
-					continue;
-
-				if($proxyVar->data->name !== $fromName) continue;
-				$proxyVar->data->name = &$toName;
-
-				if($mainPort === 'output')
-					$proxyVar[$proxyPort]['Val']->_name->name = &$toName;
-			}
-		}
+		// Main (input) -> Input (output)
+		if($this->type === 'bp-fn-input')
+			$bpFunction->renamePort('input', $fromName, $toName);
+		
+		// Output (input) -> Main (output)
+		else $bpFunction->renamePort('output', $fromName, $toName);
 	}
 	public function deletePort($name){
 		$funcMainNode = &$this->_funcMain->node;
