@@ -92,7 +92,8 @@ class Engine extends Constructor\CustomEvent {
 		if(is_string($json))
 			$json = json_decode($json, true);
 
-		if(!isset($options['appendMode']) || $options['appendMode'] === false) $this->clearNodes();
+		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
+		if(!$appendMode) $this->clearNodes();
 
 		$metadata = &$json['_'];
 		unset($json['_']);
@@ -118,12 +119,14 @@ class Engine extends Constructor\CustomEvent {
 
 		$inserted = &$this->ifaceList;
 		$nodes = [];
+		$appendLength = $appendMode ? count($inserted) : 0;
 
 		// Prepare all ifaces based on the namespace
 		// before we create cables for them
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$iface) {
+				$iface['i'] += $appendLength;
 				$ifaceOpt = [
 					'id' => isset($iface['id']) ? $iface['id'] : null,
 					'i' => $iface['i']
@@ -178,6 +181,7 @@ class Engine extends Constructor\CustomEvent {
 
 						// Current output's available targets
 						foreach ($ports as &$target) {
+							$target['i'] += $appendLength;
 							$targetNode = &$inserted[$target['i']];
 
 							// output can only meet input port
