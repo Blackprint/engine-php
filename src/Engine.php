@@ -305,6 +305,10 @@ class Engine extends Constructor\CustomEvent {
 		}
 		else $this->ifaceList[] = &$iface;
 
+		$defaultInputData = &$options['input_d'];
+		if($defaultInputData != null)
+			$iface->_importInputs($defaultInputData);
+
 		$iface->importing = false;
 
 		$savedData = $options['data'] ?? null;

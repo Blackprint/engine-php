@@ -60,6 +60,20 @@ class Interfaces extends Constructor\CustomEvent {
 		return new Constructor\Port($portName, $type, $def, $which, $this, $haveFeature);
 	}
 
+	public function _importInputs(&$ports){
+		// Load saved port data value
+		$inputs = &$this->input;
+		foreach($ports as $key => &$val) {
+			if(isset($inputs[$key])){
+				$port = &$inputs[$key];
+				$port->default = $val;
+
+				if($port->_boxInput != null)
+					$port->_boxInput->value = &$port->default;
+			}
+		}
+	}
+
 	public function init(){}
 	public function destroy(){}
 	public function imported(&$data){}
