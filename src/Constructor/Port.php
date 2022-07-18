@@ -26,6 +26,8 @@ class Port extends CustomEvent {
 	public $_callAll = null;
 	public $_cache = null;
 	public $_func = null;
+	public $splitted = false;
+	public $struct = null;
 
 	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = &$portName;
@@ -45,6 +47,8 @@ class Port extends CustomEvent {
 				$this->iface->node->routes->routeOut();
 			};
 		}
+		elseif($feature === PortType::Trigger)
+			$this->struct = &$def;
 		else $this->default = &$def;
 
 		$this->feature = &$feature;
@@ -215,8 +219,13 @@ class Port extends CustomEvent {
 
 			$temp = new \Blackprint\EvPortSelf($this);
 			$this->emit('value', $temp);
-			$this->sync();
 
+			if($this->feature === PortType::StructOf && $this->splitted){
+				PortFeature::StructOf_handle($this, $val);
+				return;
+			}
+
+			$this->sync();
 			return $val;
 		};
 	}

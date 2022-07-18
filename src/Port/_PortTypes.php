@@ -6,6 +6,7 @@ enum PortType {
 	case Default;
 	case Trigger;
 	case Union;
+	case StructOf;
 }
 
 class Port {
@@ -76,5 +77,66 @@ class Port {
 		}
 	
 		return $target === Types::Any || in_array($target, $types);
+	}
+
+	/* This port can allow multiple different types
+	 * like an 'any' port, but can only contain one value
+	 */
+	static function StructOf($type, $struct){
+		return [
+			'feature'=>PortType::StructOf,
+			'type'=>&$type,
+			'value'=>&$struct
+		];
+	}
+	
+	static function StructOf_split(&$port){
+		if($port->source === 'input')
+			throw new \Exception("Port with feature 'StructOf' only supported for output port");
+
+		$node = &$port->iface->node;
+		$struct = &$port->struct;
+		$port->structList ??= array_keys($port->struct);
+
+		foreach ($struct as $key => &$val) {
+			$val->_name ??= $port->name + ' ' + $key;
+
+			$newPort = $node->createPort('output', $val->_name, $val->type);
+			$newPort->_parent = &$port;
+			$newPort->_structSplitted = true;
+		}
+
+		$port->splitted = true;
+		$port->disconnectAll();
+
+		$data = &$node->output[$port->name];
+		if($data != null) Port::StructOf_handle($port, $data);
+	}
+
+	static function StructOf_unsplit(&$port){
+		$parent = &$port->_parent;
+		$parent->splitted = false;
+
+		$struct = &$parent->struct;
+		$node = &$port->iface->node;
+
+		foreach ($struct as &$val) {
+			$node->deletePort('output', $val->_name);
+		}
+	}
+
+	static function StructOf_handle(&$port, &$data){
+		$struct = &$port->struct;
+		$output = &$port->iface->node;
+
+		$structList = &$port->structList;
+		foreach ($structList as &$val) {
+			$ref = &$struct[$val];
+
+			if($ref->field != null)
+				$output[$ref->_name] = &$data[$ref->field];
+			else
+				$output[$ref->_name] = $ref->handle($data);
+		}
 	}
 }

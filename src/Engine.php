@@ -134,6 +134,10 @@ class Engine extends Constructor\CustomEvent {
 
 				if(isset($iface['data']))
 					$ifaceOpt['data'] = &$iface['data'];
+				if(isset($iface['input_d']))
+					$ifaceOpt['input_d'] = &$iface['input_d'];
+				if(isset($iface['output_sp']))
+					$ifaceOpt['output_sp'] = &$iface['output_sp'];
 
 				/** @var Interfaces | Nodes\FnMain */
 				$temp = $this->createNode($namespace, $ifaceOpt, $nodes);
@@ -309,9 +313,17 @@ class Engine extends Constructor\CustomEvent {
 		if($defaultInputData != null)
 			$iface->_importInputs($defaultInputData);
 
+		$savedData = &$options['data'];
+		$splittedPort = &$options['output_sp'];
+
+		if($splittedPort != null){
+			foreach($splittedPort as $key => &$val) {
+				Port::StructOf_split($iface->output[$key]);
+			}
+		}
+
 		$iface->importing = false;
 
-		$savedData = $options['data'] ?? null;
 		$iface->imported($savedData);
 		$node->imported($savedData);
 
