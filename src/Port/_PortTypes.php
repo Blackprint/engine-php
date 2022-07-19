@@ -99,7 +99,7 @@ class Port {
 		$port->structList ??= array_keys($port->struct);
 
 		foreach ($struct as $key => &$val) {
-			$val->_name ??= $port->name + ' ' + $key;
+			$val->_name ??= $port->name.$key;
 
 			$newPort = $node->createPort('output', $val->_name, $val->type);
 			$newPort->_parent = &$port;
@@ -115,6 +115,9 @@ class Port {
 
 	static function StructOf_unsplit(&$port){
 		$parent = &$port->_parent;
+		if($parent === null && $port->struct !== null)
+			$parent = $port;
+
 		$parent->splitted = false;
 
 		$struct = &$parent->struct;
