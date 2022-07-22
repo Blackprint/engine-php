@@ -1,6 +1,22 @@
+# 0.7.0
+Most features is adapted from [engine-js](https://github.com/Blackprint/engine-js).
+
+### Feature
+- Finishing environment variables feature
+- Add function, variable, environment node support
+- Add route feature to handle data flow
+- Add `instance->ref` where the `instance` can be `\Blackprint\Engine` this `ref` will have reference to `Output` or `Input` port
+- Add `instance->deleteNode` to delete node manually by using code
+- `Blackprint->Engine` is now using `CustomEvent`
+- and more
+
+### Breaking Changes
+- `iface->const` and `node->const` now changed into `iface->ref` and `node->ref`
+-Something may get changes
+
 # 0.3.0
 
-### New Feature
+### Feature
 - You can register nodes with namespace that follow PSR-4 with `Blackprint\registerNamespace`, please see `./example/init.php` for reference
 
 ### Breaking Changes
@@ -20,10 +36,10 @@ This changes is supposed to improve efficiency, and reduce possible future break
 # 0.2.0
 
 ### Breaking Changes
-- `Blackprint.Interpreter` is changed into `Blackprint.Engine`
-- `iface.options` now changed to `iface.data`, you will need to replace `options` from the exported JSON into `data`
-- `iface.id` now changed to `iface.i`, you will need to replace `id` from the exported JSON into `i`
-- `iface.id` now being used for named ID, and `iface.i` still being the generated index for the nodes
+- `Blackprint->Interpreter` is changed into `Blackprint->Engine`
+- `iface->options` now changed to `iface->data`, you will need to replace `options` from the exported JSON into `data`
+- `iface->id` now changed to `iface->i`, you will need to replace `id` from the exported JSON into `i`
+- `iface->id` now being used for named ID, and `iface->i` still being the generated index for the nodes
 
 # 0.1.1
 
