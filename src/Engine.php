@@ -136,8 +136,8 @@ class Engine extends Constructor\CustomEvent {
 					$ifaceOpt['data'] = &$iface['data'];
 				if(isset($iface['input_d']))
 					$ifaceOpt['input_d'] = &$iface['input_d'];
-				if(isset($iface['output_sp']))
-					$ifaceOpt['output_sp'] = &$iface['output_sp'];
+				if(isset($iface['output_sw']))
+					$ifaceOpt['output_sw'] = &$iface['output_sw'];
 
 				/** @var Interfaces | Nodes\FnMain */
 				$temp = $this->createNode($namespace, $ifaceOpt, $nodes);
@@ -314,11 +314,18 @@ class Engine extends Constructor\CustomEvent {
 			$iface->_importInputs($defaultInputData);
 
 		$savedData = &$options['data'];
-		$splittedPort = &$options['output_sp'];
+		$portSwitches = &$options['output_sw'];
 
-		if($splittedPort != null){
-			foreach($splittedPort as $key => &$val) {
-				Port::StructOf_split($iface->output[$key]);
+		if($portSwitches != null){
+			foreach($portSwitches as $key => &$val) {
+				$temp = &$portSwitches[$key];
+				$ref = &$iface->output[$key];
+
+				if(($temp | 1) === 1)
+					Port::StructOf_split($ref);
+
+				if(($temp | 2) === 2)
+					$ref->allowResync = true;
 			}
 		}
 

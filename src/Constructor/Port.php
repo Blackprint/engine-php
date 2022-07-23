@@ -19,6 +19,7 @@ class Port extends CustomEvent {
 	public $default;
 	public $value = null;
 	public $sync = false;
+	public $allowResync = false; // Retrigger connected node's .update when the output value is similar
 	public $_ghost = false;
 	public $_name = null;
 	public $feature = null;
@@ -178,7 +179,7 @@ class Port extends CustomEvent {
 			}
 			// else setter (only for output port)
 
-			if($this->value === $val || $this->iface->node->disablePorts)
+			if($this->iface->node->disablePorts || (!($this->splitted || $this->allowResync) && $this->value === $val))
 				return $val;
 
 			if($this->source === 'input')
