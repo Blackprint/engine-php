@@ -1,3 +1,8 @@
+# 0.7.1
+
+### Features
+- Add feature to allow output resyncronization
+
 # 0.7.0
 Most features is adapted from [engine-js](https://github.com/Blackprint/engine-js).
 
