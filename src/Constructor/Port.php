@@ -246,7 +246,7 @@ class Port extends CustomEvent {
 			$inp->iface->emit('port.value', $temp);
 
 			// Skip sync if the node has route cable
-			if($skipSync) return;
+			if($skipSync) continue;
 
 			// echo "\n4. {$inp->name} = {$inp->iface->title}, {$inp->iface->_requesting}";
 
