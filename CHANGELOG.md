@@ -1,3 +1,12 @@
+# 0.7.3
+
+### Features
+- Add `isGhost` on interface for standalone port
+
+### Bug Fix
+- Fix index error when creating new function
+- Fix skipped cache removal for route mode
+
 # 0.7.1
 
 ### Features
