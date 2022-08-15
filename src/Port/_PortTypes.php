@@ -133,13 +133,20 @@ class Port {
 		$output = &$port->iface->node;
 
 		$structList = &$port->structList;
-		foreach ($structList as &$val) {
-			$ref = &$struct[$val];
-
-			if($ref->field != null)
-				$output[$ref->_name] = &$data[$ref->field];
-			else
-				$output[$ref->_name] = $ref->handle($data);
+		if($data != null){
+			foreach($structList as &$val) {
+				$ref = &$struct[$val];
+	
+				if($ref->field != null)
+					$output[$ref->_name] = &$data[$ref->field];
+				else
+					$output[$ref->_name] = $ref->handle($data);
+			}
+		}
+		else {
+			foreach($structList as &$val) {
+				$output[$struct[$val]->_name] = null;
+			}
 		}
 	}
 }
