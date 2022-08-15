@@ -1,6 +1,7 @@
 <?php
 namespace Blackprint\Constructor;
 use Blackprint\Utils;
+use \Blackprint\PortType;
 
 class PortLink {
 	public $_iface;
@@ -38,7 +39,9 @@ class PortLink {
 		$linkedPort = $this->_iface->_newPort($portName, $type, $def, $this->_which, $haveFeature);
 		$iPort[$portName] = &$linkedPort;
 
-		$this->nodePort[$portName] = $linkedPort->createLinker();
+		if($haveFeature == PortType::Trigger && $this->_which === 'input')
+			$this->nodePort[$portName] = $linkedPort->default;
+		else $this->nodePort[$portName] = $linkedPort->createLinker();
 
 		return $linkedPort; // IFace Port
 	}
