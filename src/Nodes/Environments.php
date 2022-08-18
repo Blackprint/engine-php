@@ -50,7 +50,7 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 	}
 	public function destroy(){
 		if($this->_nameListener == null) return;
-		\Blackprint\Event->off('environment-renamed', $this->_nameListener);
+		\Blackprint\Event->off('environment.renamed', $this->_nameListener);
 	}
 };
 
@@ -62,13 +62,13 @@ class IEnvGet extends BPEnvGetSet {
 			$this->ref->Output["Val"]($v->value);
 		};
 
-		\Blackprint\Event->on('environment-changed environment-added', $this->_listener);
+		\Blackprint\Event->on('environment.changed environment.added', $this->_listener);
 		$this->ref->Output["Val"](Environment::$map[$this->data['name']]);
 	}
 	public function destroy(){
 		parent::destroy();
 		if($this->_listener == null) return;
-		\Blackprint\Event->off('environment-changed environment-added', $this->_listener);
+		\Blackprint\Event->off('environment.changed environment.added', $this->_listener);
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Env/Get', IEnvGet::class);
