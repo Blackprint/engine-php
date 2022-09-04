@@ -79,6 +79,8 @@ class Engine extends Constructor\CustomEvent {
 	public function clearNodes(){
 		$list = &$this->ifaceList;
 		foreach ($list as &$iface) {
+			if($iface == null) continue;
+
 			$iface->node->destroy();
 			$iface->destroy();
 		}
@@ -94,6 +96,9 @@ class Engine extends Constructor\CustomEvent {
 
 		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
 		if(!$appendMode) $this->clearNodes();
+
+		// Do we need this?
+		// $this->emit("json.importing", {appendMode: options.appendMode, raw: json});
 
 		$metadata = &$json['_'];
 		unset($json['_']);
@@ -175,7 +180,7 @@ class Engine extends Constructor\CustomEvent {
 								if($linkPortA === null)
 									throw new \Exception("Can't create output port ({$portName}) for function ({$iface->_funcMain->node->_funcInstance->id})");
 							}
-							else if($iface->_enum === Nodes\Enums::BPVarGet){
+							elseif($iface->_enum === Nodes\Enums::BPVarGet){
 								$target = $this->_getTargetPortType($this, 'input', $ports);
 								$iface->useType($target);
 								$linkPortA = $iface->output[$portName];
@@ -197,9 +202,12 @@ class Engine extends Constructor\CustomEvent {
 									if($linkPortB === null)
 										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->_funcMain->node->_funcInstance->id})");
 								}
-								else if($targetNode->_enum === Nodes\Enums::BPVarSet){
+								elseif($targetNode->_enum === Nodes\Enums::BPVarSet){
 									$targetNode->useType($linkPortA);
 									$linkPortB = $targetNode->input[$target['name']];
+								}
+								elseif($linkPortA->type === \Blackprint\PortType::Route){
+									$linkPortB = &$targetNode->node->routes;
 								}
 								else throw new \Exception("Node port not found for $targetNode->title with name: $target[name]");
 							}

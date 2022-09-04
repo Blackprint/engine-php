@@ -7,6 +7,7 @@ class RoutePort {
 	public $disableOut = false;
 	public $disabled = false;
 	public $_isPaused = false;
+	public $isRoute = true;
 	public $iface = null;
 
 	public function __construct(&$iface){

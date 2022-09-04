@@ -79,7 +79,7 @@ class FnVarInputIface extends BPFnVarInOut {
 			$proxyIface = &$this->_proxyIface;
 
 			// Run when $this node is being connected with other node
-			$iPort->onConnect = function($cable, $port) use(&$iPort, &$proxyIface, &$name) {
+			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name) {
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.{$name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
@@ -101,7 +101,7 @@ class FnVarInputIface extends BPFnVarInOut {
 			};
 
 			// Run when main node is the missing port
-			$this->_waitPortInit = function($port) use(&$iPort) {
+			$this->_waitPortInit = function(&$port) use(&$iPort) {
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 
@@ -200,7 +200,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 			$proxyIface = &$this->_parentFunc->_proxyOutput->iface;
 
 			// Run when this node is being connected with other node
-			$iPort->onConnect = function($cable, $port) use(&$iPort, &$proxyIface, &$name) {
+			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name) {
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.${name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
@@ -220,7 +220,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 			};
 
 			// Run when main node is the missing port
-			$this->_waitPortInit = function($port) use(&$iPort) {
+			$this->_waitPortInit = function(&$port) use(&$iPort) {
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 

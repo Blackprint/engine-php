@@ -61,6 +61,19 @@ class Interfaces extends Constructor\CustomEvent {
 		return new Constructor\Port($portName, $type, $def, $which, $this, $haveFeature);
 	}
 
+	public function _initPortSwitches(&$portSwitches){
+		foreach ($portSwitches as $key => &$value) {
+			$ref = &$this->output[$key];
+
+			if(($value | 1) === 1)
+				\Blackprint\Port::StructOf_split($ref);
+
+			if(($value | 2) === 2){
+				$ref->allowResync = true;
+			}
+		}
+	}
+
 	public function _importInputs(&$ports){
 		// Load saved port data value
 		$inputs = &$this->input;

@@ -57,7 +57,7 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 class IEnvGet extends BPEnvGetSet {
 	public function imported(&$data){
 		parent::imported($data);
-		$this->_listener = function($v) {
+		$this->_listener = function(&$v) {
 			if($v->key !== $this->data['name']) return;
 			$this->ref->Output["Val"]($v->value);
 		};

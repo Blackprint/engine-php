@@ -64,6 +64,8 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	// this->totalGet = 0;
 
 	public function __construct($id, $options=null){
+		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+/', '_', $id);
+		
 		// this.rootInstance = instance;
 		$this->id = $this->title = &$id;
 		$this->type = &BPVarTemp::$typeNotSet;
@@ -115,15 +117,15 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 				$scope = &$_funcInstance->rootInstance->variables;
 			else $scope = &$this->node->instance->variables;
 		}
-		else if($scopeId === VarScope::shared)
+		elseif($scopeId === VarScope::shared)
 			$scope = &$_funcInstance->variables;
 		else // private
 			$scope = &$this->node->instance->variables;
 
 		if(!isset($scope[$name])){
 			if($scopeId === VarScope::public) $_scopeName = 'public';
-			else if($scopeId === VarScope::private) $_scopeName = 'private';
-			else if($scopeId === VarScope::shared) $_scopeName = 'shared';
+			elseif($scopeId === VarScope::private) $_scopeName = 'private';
+			elseif($scopeId === VarScope::shared) $_scopeName = 'shared';
 			else $_scopeName = 'unknown';
 
 			throw new \Exception("'{$name}' variable was not defined on the '{$_scopeName} (scopeId: $scopeId)' instance");

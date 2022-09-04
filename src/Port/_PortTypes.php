@@ -7,6 +7,7 @@ enum PortType {
 	case Trigger;
 	case Union;
 	case StructOf;
+	case Route;
 }
 
 class Port {

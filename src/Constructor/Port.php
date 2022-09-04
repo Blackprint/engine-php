@@ -240,18 +240,20 @@ class Port extends CustomEvent {
 			$inp = &$cable->input;
 			if($inp === null) continue;
 			$inp->_cache = null;
-
+			
 			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
+			$inpIface = &$inp->iface;
+
 			$inp->emit('value', $temp);
-			$inp->iface->emit('port.value', $temp);
+			$inpIface->emit('port.value', $temp);
 
 			// Skip sync if the node has route cable
 			if($skipSync) continue;
 
-			// echo "\n4. {$inp->name} = {$inp->iface->title}, {$inp->iface->_requesting}";
+			// echo "\n4. {$inp->name} = {$inpIface->title}, {$inpIface->_requesting}";
 
-			$node = &$inp->iface->node;
-			if($inp->iface->_requesting === false){
+			$node = &$inpIface->node;
+			if($inpIface->_requesting === false && count($node->routes->in) === 0){
 				$node->update($cable);
 
 				if($node->iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain){
@@ -345,7 +347,7 @@ class Port extends CustomEvent {
 			}
 		}
 
-		else if($this->source === 'output'){
+		elseif($this->source === 'output'){
 			if(($cable->owner->feature === PortType::ArrayOf && !PortFeature::ArrayOf_validate($cable->owner->type, $this->type))
 			   || ($cable->owner->feature === PortType::Union && !PortFeature::Union_validate($cable->owner->type, $this->type))){
 				$this->_cableConnectError('cable.wrong_type', [
