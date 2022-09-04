@@ -49,8 +49,8 @@ class Multiply extends \Blackprint\Node {
 	}
 }
 
-Multiply::$Input['Exec'] = Port::Trigger(function($self){
-	$node = &$self->iface->node;
+Multiply::$Input['Exec'] = Port::Trigger(function(&$port){
+	$node = &$port->iface->node;
 
 	$node->output['Result']($node->multiply());
 	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']());

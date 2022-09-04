@@ -79,14 +79,14 @@ class Cable{
 			$output = &$this->output;
 
 			if($output->cables != null) array_splice($output->cables, 0);
-			else if($output->out === $this) $output->out = null;
-			else if($input->out === $this) $input->out = null;
+			elseif($output->out === $this) $output->out = null;
+			elseif($input->out === $this) $input->out = null;
 
 			$i = $output->in ? array_search($this, $output->in) : -1;
 			if($i !== -1){
 				array_splice($output->in, $i, 1);
 			}
-			else if($input != null) {
+			elseif($input != null) {
 				$i = array_search($this, $input->in);
 				if($i !== -1)
 					array_splice($input->in, $i, 1);

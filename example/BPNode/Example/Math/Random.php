@@ -38,8 +38,8 @@ class Random extends \Blackprint\Node {
 	}
 }
 
-Random::$Input['Re-seed'] = Port::Trigger(function(&$self) {
-	$node = &$self->iface->node;
+Random::$Input['Re-seed'] = Port::Trigger(function(&$port) {
+	$node = &$port->iface->node;
 
 	$node->executed = true;
 	$node->output['Out'](random_int(0, 100));
