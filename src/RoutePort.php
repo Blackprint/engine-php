@@ -83,7 +83,8 @@ class RoutePort {
 			return $targetRoute->iface->_proxyInput->routes->routeIn($cable);
 
 		if($_enum === Nodes\Enums::BPFnOutput){
-			$targetRoute->iface->node->update($cable);
+			$_cable = null;
+			$targetRoute->iface->node->update($_cable);
 			return $targetRoute->iface->_funcMain->node->routes->routeOut($cable);
 		}
 

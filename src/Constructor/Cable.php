@@ -47,6 +47,9 @@ class Cable{
 		$target = &$this->target;
 		$this->connected = true;
 
+		// Skip event emit or node update for route cable connection
+		if($this->isRoute) return;
+
 		$temp = new \Blackprint\EvPortValue($owner, $target, $this);
 		$owner->emit('cable.connect', $temp);
 		$owner->iface->emit('cable.connect', $temp);
