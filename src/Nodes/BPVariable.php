@@ -196,15 +196,13 @@ class IVarGet extends BPVarGetSet {
 			$node->deletePort('output', 'Val');
 
 		$ref = &$this->node->output;
-		if($temp->type === \Blackprint\Types::Function){
-			$node->createPort('output', 'Val', $temp->type);
+		$node->createPort('output', 'Val', $temp->type);
 
+		if($temp->type === \Blackprint\Types::Function){
 			$this->_eventListen = 'call';
 			$this->_onChanged = function() use(&$ref) { $ref['Val'](); };
 		}
 		else{
-			$node->createPort('output', 'Val', $temp->type);
-
 			$this->_eventListen = 'value';
 			$this->_onChanged = function() use(&$ref, &$temp) { $ref['Val']($temp->_value); };
 		}
@@ -248,7 +246,7 @@ class IVarSet extends BPVarGetSet {
 		}
 		else $node->createPort('input', 'Val', $temp->type);
 
-		return $this->input['Val'];
+		return $input['Val'];
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Var/Set', IVarSet::class);

@@ -70,8 +70,6 @@ class RoutePort {
 			return;
 		}
 
-		$this->out->visualizeFlow();
-
 		$targetRoute = &$this->out->input;
 		if($targetRoute === null) return;
 

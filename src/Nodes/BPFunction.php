@@ -30,7 +30,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+/', '_', $id);
 		$this->id = $this->title = &$id;
-		$this->description = $options['description'] ?? '';
+		// $this->description = $options['description'] ?? '';
 
 		$input = &$this->input;
 		$output = &$this->output;
@@ -55,11 +55,11 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 			$instance->_funcInstance = &$temp;
 			$node->_funcInstance = &$temp;
-			$iface->description = &$temp->description;
+			// $iface->description = &$temp->description;
 			$iface->title = &$temp->title;
 			$iface->uniqId = $uniqId++;
 
-			$iface->_prepare_(BPFunctionNode::class, $iface);
+			$iface->_prepare_(BPFunctionNode::class);
 			return $node;
 		};
 	}
@@ -409,7 +409,7 @@ class FnMain extends \Blackprint\Interfaces {
 		$this->_save = function(&$ev, &$eventName, $force=false) use(&$bpFunction, &$newInstance) {
 			if($force || $bpFunction->_syncing) return;
 
-			$ev->bpFunction = &$bpFunction;
+			// $ev->bpFunction = &$bpFunction;
 			$newInstance->_mainInstance->emit($eventName, $ev);
 
 			$bpFunction->_syncing = true;

@@ -131,7 +131,7 @@ class Port {
 
 	static function StructOf_handle(&$port, &$data){
 		$struct = &$port->struct;
-		$output = &$port->iface->node;
+		$output = &$port->iface->node->output;
 
 		$structList = &$port->structList;
 		if($data != null){

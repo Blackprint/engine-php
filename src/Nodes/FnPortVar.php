@@ -29,7 +29,7 @@ class FnVarInput extends \Blackprint\Node {
 		$this->output['Val']($iface->_parentFunc->node->input[$iface->data['name']]());
 	}
 }
-\Blackprint\registerNode('BP\FnVar\Input', FnVarInput::class);
+\Blackprint\registerNode('BP/FnVar/Input', FnVarInput::class);
 
 class FnVarOutput extends \Blackprint\Node {
 	public static $Input = [];
@@ -50,7 +50,7 @@ class FnVarOutput extends \Blackprint\Node {
 		$this->refOutput[$id]($this->ref->Input["Val"]());
 	}
 }
-\Blackprint\registerNode('BP\FnVar\Output', FnVarOutput::class);
+\Blackprint\registerNode('BP/FnVar/Output', FnVarOutput::class);
 
 class BPFnVarInOut extends \Blackprint\Interfaces {
 	public function imported(&$data){
@@ -79,12 +79,10 @@ class FnVarInputIface extends BPFnVarInOut {
 			$proxyIface = &$this->_proxyIface;
 
 			// Run when $this node is being connected with other node
-			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name) {
+			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.{$name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
-
-				$node = &$this->node;
 
 				$cable->disconnect();
 				$node->deletePort('output', 'Val');
@@ -101,7 +99,7 @@ class FnVarInputIface extends BPFnVarInOut {
 			};
 
 			// Run when main node is the missing port
-			$this->_waitPortInit = function(&$port) use(&$iPort) {
+			$this->_waitPortInit = function(&$port) use(&$iPort, &$node) {
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 
@@ -111,7 +109,6 @@ class FnVarInputIface extends BPFnVarInOut {
 					$backup[] = &$cable->input;
 				}
 
-				$node = &$this->node;
 				$node->deletePort('output', 'Val');
 
 				$portType = getFnPortType($port, 'input', $this->_parentFunc, $port->_name);
@@ -154,8 +151,6 @@ class FnVarInputIface extends BPFnVarInOut {
 	
 					$list = &$Val->cables;
 					foreach ($list as &$temp) {
-						if($temp->hasBranch) continue;
-	
 						// Clear connected cable's cache
 						$temp->input->_cache = null;
 					}
@@ -200,12 +195,11 @@ class FnVarOutputIface extends BPFnVarInOut {
 			$proxyIface = &$this->_parentFunc->_proxyOutput->iface;
 
 			// Run when this node is being connected with other node
-			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name) {
+			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.${name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
 
-				$node = &$this->node;
 				$cable->disconnect();
 				$node->deletePort('input', 'Val');
 
@@ -220,7 +214,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 			};
 
 			// Run when main node is the missing port
-			$this->_waitPortInit = function(&$port) use(&$iPort) {
+			$this->_waitPortInit = function(&$port) use(&$iPort, &$node) {
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 
@@ -230,7 +224,6 @@ class FnVarOutputIface extends BPFnVarInOut {
 					$backup[] = &$cable->output;
 				}
 
-				$node = &$this->node;
 				$node->deletePort('input', 'Val');
 
 				$portType = getFnPortType($port, 'output', $this->_parentFunc, $port->_name);
@@ -251,13 +244,11 @@ class FnVarOutputIface extends BPFnVarInOut {
 }
 \Blackprint\registerInterface('BPIC/BP/FnVar/Output', FnVarOutputIface::class);
 
-function &getFnPortType(&$port, $which, &$parentNode, &$ref){
+function getFnPortType(&$port, $which, &$parentNode, &$ref){
 	if($port->feature === \Blackprint\PortType::Trigger){
 		if($which === 'input') // Function Input (has output port inside, and input port on main node)
-			$portType = Types::Function;
-		else $portType = \Blackprint\Port::Trigger($parentNode->output[$ref->name]->_callAll);
+			return Types::Function;
+		else return \Blackprint\Port::Trigger($parentNode->output[$ref->name]->_callAll);
 	}
-	else $portType = $port->feature != null ? $port->feature($port->type) : $port->type;
-
-	return $portType;
+	else return $port->feature != null ? $port->feature($port->type) : $port->type;
 }

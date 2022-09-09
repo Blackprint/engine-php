@@ -50,7 +50,6 @@ class Engine extends Constructor\CustomEvent {
 		foreach ($check as &$val) {
 			$portList = &$iface[$val];
 			foreach ($portList as &$port) {
-				if(substr($port, 0, 1) === '_') continue;
 				$portList[$port]->disconnectAll($this->_remote != null);
 			}
 		}
@@ -69,9 +68,9 @@ class Engine extends Constructor\CustomEvent {
 		unset($this->iface[$iface->id]);
 		unset($this->ref[$iface->id]);
 
-		$parent = &$iface->node->instance->_funcMain;
+		$parent = &$iface->node->_funcInstance;
 		if($parent != null)
-			unset($parent->ref[$iface->id]);
+			unset($parent->rootInstance->ref[$iface->id]);
 
 		$this->emit('node.deleted', $eventData);
 	}
@@ -161,8 +160,8 @@ class Engine extends Constructor\CustomEvent {
 			foreach ($ifaces as &$ifaceJSON) {
 				$iface = &$inserted[$ifaceJSON['i']];
 
-				if(isset($node['route']))
-					$iface->node->routes->routeTo($inserted[$node['route']['i']]);
+				if(isset($ifaceJSON['route']))
+					$iface->node->routes->routeTo($inserted[$ifaceJSON['route']['i']]);
 
 				// If have output connection
 				if(isset($ifaceJSON['output'])){
@@ -298,7 +297,7 @@ class Engine extends Constructor\CustomEvent {
 
 		// Create the linker between the nodes and the iface
 		if($funcNode === null)
-			$iface->_prepare_($func, $iface);
+			$iface->_prepare_($func);
 
 		$iface->namespace = &$namespace;
 		if(isset($options['id'])){
@@ -306,9 +305,9 @@ class Engine extends Constructor\CustomEvent {
 			$this->iface[$iface->id] = &$iface;
 			$this->ref[$iface->id] = &$iface->ref;
 
-			$parent = &$iface->node->instance->_funcMain;
+			$parent = &$iface->node->_funcInstance;
 			if($parent != null)
-				$parent->ref[$iface->id] = &$iface->ref;
+				$parent->rootInstance->ref[$iface->id] = &$iface->ref;
 		}
 
 		if(isset($options['i'])){
@@ -326,13 +325,12 @@ class Engine extends Constructor\CustomEvent {
 
 		if($portSwitches != null){
 			foreach($portSwitches as $key => &$val) {
-				$temp = &$portSwitches[$key];
 				$ref = &$iface->output[$key];
 
-				if(($temp | 1) === 1)
+				if(($val | 1) === 1)
 					Port::StructOf_split($ref);
 
-				if(($temp | 2) === 2)
+				if(($val | 2) === 2)
 					$ref->allowResync = true;
 			}
 		}

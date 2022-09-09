@@ -33,13 +33,13 @@ class Interfaces extends Constructor\CustomEvent {
 		$this->node = &$node;
 	}
 
-	public function _prepare_($clazz, &$iface){
+	public function _prepare_($clazz){
 		$node = &$this->node;
 		$ref = new Constructor\References();
 		$node->ref = &$ref;
 		$this->ref = &$ref;
 
-		$node->routes = new \Blackprint\RoutePort($iface);
+		$node->routes = new \Blackprint\RoutePort($this);
 
 		if(isset($clazz::$Output)){
 			$node->_outputLink = new Constructor\PortLink($node, 'output', $clazz::$Output);
@@ -81,9 +81,6 @@ class Interfaces extends Constructor\CustomEvent {
 			if(isset($inputs[$key])){
 				$port = &$inputs[$key];
 				$port->default = $val;
-
-				if($port->_boxInput != null)
-					$port->_boxInput->value = &$port->default;
 			}
 		}
 	}

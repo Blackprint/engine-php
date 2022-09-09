@@ -35,8 +35,6 @@ class Utils{
 	
 		$type = $val;
 		$def = null;
-		if(is_array($val) && !isset($val['feature']))
-		debug_print_backtrace();
 		$feature = is_array($val) ? $val['feature'] : false;
 	
 		if($feature === \Blackprint\PortType::Trigger){

@@ -17,7 +17,7 @@ class BPEnvGet extends \Blackprint\Node {
 		$iface->_enum = Enums::BPEnvGet;
 	}
 }
-\Blackprint\registerNode('BP\Env\Get', BPEnvGet::class);
+\Blackprint\registerNode('BP/Env/Get', BPEnvGet::class);
 
 class BPEnvSet extends \Blackprint\Node {
 	public static $Input = ["Val" => Types::String];
@@ -36,7 +36,7 @@ class BPEnvSet extends \Blackprint\Node {
 		Environment::set($this->iface->data['name'], $this->input["Val"]());
 	}
 }
-\Blackprint\registerNode('BP\Env\Set', BPEnvSet::class);
+\Blackprint\registerNode('BP/Env/Set', BPEnvSet::class);
 
 class BPEnvGetSet extends \Blackprint\Interfaces {
 	public function imported(&$data){
@@ -45,12 +45,8 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 
 		// Create new environment if not exist
 		if(!isset(Environment::$map[$data['name']])){
-			Environment::import([ $data['name'] => '' ]);
+			Environment::set($data['name'], '');
 		}
-	}
-	public function destroy(){
-		if($this->_nameListener == null) return;
-		\Blackprint\Event->off('environment.renamed', $this->_nameListener);
 	}
 };
 
@@ -66,7 +62,6 @@ class IEnvGet extends BPEnvGetSet {
 		$this->ref->Output["Val"](Environment::$map[$this->data['name']]);
 	}
 	public function destroy(){
-		parent::destroy();
 		if($this->_listener == null) return;
 		\Blackprint\Event->off('environment.changed environment.added', $this->_listener);
 	}

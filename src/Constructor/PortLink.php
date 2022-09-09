@@ -21,7 +21,6 @@ class PortLink {
 
 		// Create linker for all port
 		foreach($portMeta as $portName => &$val){
-			if(substr($portName, 0, 1) === '_') continue;
 			$this->_add($portName, $val);
 		}
 	}

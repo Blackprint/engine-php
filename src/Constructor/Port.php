@@ -48,7 +48,7 @@ class Port extends CustomEvent {
 				$this->iface->node->routes->routeOut();
 			};
 		}
-		elseif($feature === PortType::Trigger)
+		elseif($feature === PortType::StructOf)
 			$this->struct = &$def;
 		else $this->default = &$def;
 
@@ -256,11 +256,11 @@ class Port extends CustomEvent {
 			if($inpIface->_requesting === false && count($node->routes->in) === 0){
 				$node->update($cable);
 
-				if($node->iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain){
+				if($inpIface->_enum !== \Blackprint\Nodes\Enums::BPFnMain){
 					$node->routes->routeOut();
 				}
 				else {
-					$node->iface->_proxyInput->routes->routeOut();
+					$inpIface->_proxyInput->routes->routeOut();
 				}
 			}
 		}
@@ -321,7 +321,7 @@ class Port extends CustomEvent {
 		// Remove cable if ...
 		if(($cable->source === 'output' && $this->source !== 'input') // Output source not connected to input
 			|| ($cable->source === 'input' && $this->source !== 'output')  // Input source not connected to output
-			|| ($cable->source === 'property' && $this->source !== 'property')  // Property source not connected to property
+			// || ($cable->source === 'property' && $this->source !== 'property')  // Property source not connected to property
 		){
 			$this->_cableConnectError('cable.wrong_pair', [
 				"cable" => &$cable,
@@ -466,10 +466,7 @@ class Port extends CustomEvent {
 		if($port->_ghost) $cable->_ghost = true;
 
 		$port->cables[] = &$cable;
-		if($this->connectCable($cable))
-			return true;
-
-		return false;
+		return $this->connectCable($cable);
 	}
 }
 

@@ -2,11 +2,11 @@
 namespace Blackprint;
 
 class Node extends Constructor\CustomEvent {
-	/** @var array Constructor\Port */
+	/** @var array<Constructor\Port> */
 	public $_outputLink = [];
 	public $output = [];
 
-	/** @var array Constructor\Port */
+	/** @var array<Constructor\Port> */
 	public $_inputtLink = [];
 	public $input = [];
 
@@ -62,6 +62,7 @@ class Node extends Constructor\CustomEvent {
 		unset($iPort[$name]);
 
 		$temp->name = &$to;
+		$this[$which][$to] = &$this[$which][$name];
 		unset($this[$which][$name]);
 	}
 
