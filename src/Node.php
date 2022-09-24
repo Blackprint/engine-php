@@ -7,7 +7,7 @@ class Node extends Constructor\CustomEvent {
 	public $output = [];
 
 	/** @var array<Constructor\Port> */
-	public $_inputtLink = [];
+	public $_inputLink = [];
 	public $input = [];
 
 	/** @var Interfaces */

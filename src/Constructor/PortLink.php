@@ -47,7 +47,7 @@ class PortLink {
 
 	public function _delete(&$portName){
 		$iPort = &$this->_iface->{$this->_which};
-		if(!isset($iPort)) return;
+		if($iPort === null) return;
 
 		// Destroy cable first
 		$port = &$iPort[$portName];
