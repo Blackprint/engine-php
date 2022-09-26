@@ -8,7 +8,7 @@ class Internal {
 	public static function _loadNamespace($path){
 		$namespace = &Internal::$namespace;
 
-		if(preg_match('/[<>:"\'|?*\\\\]/', $path, $match))
+		if(preg_match('/[<>:"\'|?*\\\\]/', $path, $match) || str_contains($path, ".."))
 			throw new \Exception("Illegal character detected [$match[0]] when importing nodes!");
 
 		foreach ($namespace as &$value) {

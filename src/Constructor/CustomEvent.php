@@ -6,7 +6,7 @@ class CustomEvent {
 	private $once = [];
 
 	public function on($eventName, $func, $once = false){
-		if(strpos($eventName, ' ') !== false){
+		if(str_contains($eventName, ' ')){
 			$eventName = explode(' ', $eventName);
 
 			foreach ($eventName as &$val)
@@ -31,7 +31,7 @@ class CustomEvent {
 	}
 
 	public function off($eventName, $func = null){
-		if(strpos($eventName, ' ') !== false){
+		if(str_contains($eventName, ' ')){
 			$eventName = explode(' ', $eventName);
 
 			foreach ($eventName as &$val)

@@ -49,6 +49,8 @@ class Port {
 	 * func = callback when the port was being called as a function
 	 */
 	static function Trigger($func){
+		if($func == null) throw new \Error("Callback must not be null");
+
 		return [
 			'feature'=>PortType::Trigger,
 			'func'=>&$func
