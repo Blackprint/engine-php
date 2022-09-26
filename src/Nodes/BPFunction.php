@@ -474,7 +474,10 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$nodeB->_funcInstance->output[$name] = &$portType;
 		}
 
-		$outputPort = $nodeB->createPort('output', $name, $portType);
+		if($port->feature === PortType::Trigger){
+			$outputPort = $nodeB->createPort('output', $name, \Blackprint\Types::Function);
+		}
+		else $outputPort = $nodeB->createPort('output', $name, $portType);
 
 		if($portType === \Blackprint\Types::Function)
 			$inputPort = $nodeA->createPort('input', $name, \Blackprint\Port::Trigger($outputPort->_callAll));
