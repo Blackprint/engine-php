@@ -20,15 +20,16 @@ class Port extends CustomEvent {
 	public $value = null;
 	public $sync = false;
 	public $allowResync = false; // Retrigger connected node's .update when the output value is similar
-	public $_ghost = false;
-	public $_name = null;
 	public $feature = null;
 	public $onConnect = false;
+	public $splitted = false;
+	public $struct = null;
+
+	public $_ghost = false;
+	public $_name = null;
 	public $_callAll = null;
 	public $_cache = null;
 	public $_func = null;
-	public $splitted = false;
-	public $struct = null;
 
 	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = &$portName;
@@ -94,141 +95,6 @@ class Port extends CustomEvent {
 
 		if($this->feature === PortType::Trigger)
 			return $this->default;
-
-		// Getter/Setter (no args == getter, with args == setter)
-		return function&($val = Args::NoArgs) {
-			// Getter value
-			if($val === Args::NoArgs){
-				// This port must use values from connected output
-				if($this->source === 'input'){
-					$cableLen = count($this->cables);
-
-					if($cableLen === 0)
-						return $this->default;
-
-					if($this->_cache !== null) return $this->_cache;
-
-					// Flag current iface is requesting value to other iface
-					$this->iface->_requesting = true;
-
-					// Return single data
-					if($cableLen === 1){
-						$cable = $this->cables[0]; # Don't use pointer
-
-						if($cable->connected === false || $cable->disabled){
-							$this->iface->_requesting = false;
-							if($this->feature === PortType::ArrayOf)
-								return $this->_cache = [];
-
-							return $this->_cache = $this->default;
-						}
-
-						$output = &$cable->output;
-
-						// Request the data first
-						$output->iface->node->request($cable);
-
-						// echo "\n1. {$this->name} -> {$output->name} ({$output->value})";
-
-						$this->iface->_requesting = false;
-
-						if($this->feature === PortType::ArrayOf){
-							$this->_cache = [];
-
-							if($output->value != null)
-								$this->_cache[] = &$output->value;
-
-							return $this->_cache;
-						}
-
-						$this->_cache = $output->value ?? $this->default;
-						return $this->_cache;
-					}
-
-					$isNotArrayPort = $this->feature !== PortType::ArrayOf;
-
-					// Return multiple data as an array
-					$cables = &$this->cables;
-					$data = [];
-					foreach ($cables as &$cable) {
-						if($cable->connected === false || $cable->disabled)
-							continue;
-
-						$output = &$cable->output;
-
-						// Request the data first
-						$output->iface->node->request($cable);
-
-						// echo "\n2. {$this->name} -> {$output->name} ({$output->value})";
-
-						if($isNotArrayPort){
-							$this->iface->_requesting = false;
-							return $this->_cache = $output->value ?? $this->default;
-						}
-
-						$data[] = $output->value ?? $this->default;
-					}
-
-					$this->iface->_requesting = false;
-
-					$this->_cache = &$data;
-					return $data;
-				}
-
-				return $this->value;
-			}
-			// else setter (only for output port)
-
-			if($this->iface->node->disablePorts || (!($this->splitted || $this->allowResync) && $this->value === $val))
-				return $val;
-
-			if($this->source === 'input')
-				throw new \Exception("Can't set data to input port");
-
-			if($val == null)
-				$val = &$this->default;
-			else{
-				// Data type validation (ToDo: optimize)
-				$type = gettype($val);
-
-				// Type check
-				$pass = match($this->type){
-					Types::Number => ($type === 'integer' || $type === 'double' || $type === 'float'),
-					Types::Boolean => $type === 'boolean',
-					Types::String => $type === 'string',
-					Types::Array => $type === 'array',
-					Types::Function => is_callable($val),
-					Types::Object => $type === 'object',
-					Types::Any => true,
-					default => null,
-				};
-
-				if($pass === null) {
-					if($type === 'object' && $this->type === $val::class){} // pass
-					else $pass = false;
-				}
-
-				if($pass === false) {
-					$bpType = \Blackprint\getTypeName($this->type);
-					throw new \Exception("Can't validate type of ID: $bpType == $type");
-				}
-			}
-
-			// echo "\n3. {$this->name} = {$val}";
-
-			$this->value = &$val;
-
-			$temp = new \Blackprint\EvPortSelf($this);
-			$this->emit('value', $temp);
-
-			if($this->feature === PortType::StructOf && $this->splitted){
-				PortFeature::StructOf_handle($this, $val);
-				return;
-			}
-
-			$this->sync();
-			return $val;
-		};
 	}
 
 	// Only for output port

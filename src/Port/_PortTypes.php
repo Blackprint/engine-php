@@ -141,7 +141,7 @@ class Port {
 				$ref = &$struct[$val];
 	
 				if($ref->field != null)
-					$output[$ref->_name] = &$data[$ref->field];
+					$output->setByRef($ref->_name, $data[$ref->field]);
 				else
 					$output[$ref->_name] = $ref->handle($data);
 			}

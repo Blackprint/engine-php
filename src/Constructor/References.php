@@ -2,12 +2,12 @@
 namespace Blackprint\Constructor;
 
 class References {
-	/** @var array */
+	/** @var array<Port> */
 	public $IInput;
-	/** @var array */
+	/** @var PortLink */
 	public $Input;
-	/** @var array */
+	/** @var array<Port> */
 	public $IOutput;
-	/** @var array */
+	/** @var PortLink */
 	public $Output;
 }

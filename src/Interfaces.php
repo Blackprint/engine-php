@@ -42,13 +42,13 @@ class Interfaces extends Constructor\CustomEvent {
 		$node->routes = new \Blackprint\RoutePort($this);
 
 		if(isset($clazz::$Output)){
-			$node->_outputLink = new Constructor\PortLink($node, 'output', $clazz::$Output);
+			$node->output = new Constructor\PortLink($node, 'output', $clazz::$Output);
 			$ref->IOutput = &$this->output;
 			$ref->Output = &$node->output;
 		}
 
 		if(isset($clazz::$Input)){
-			$node->_inputLink = new Constructor\PortLink($node, 'input', $clazz::$Input);
+			$node->input = new Constructor\PortLink($node, 'input', $clazz::$Input);
 			$ref->IInput = &$this->input;
 			$ref->Input = &$node->input;
 		}

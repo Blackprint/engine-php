@@ -26,7 +26,7 @@ class FnVarInput extends \Blackprint\Node {
 		$iface = &$this->iface;
 
 		// This will trigger the port to request from outside and assign to this node's port
-		$this->output['Val']($iface->_parentFunc->node->input[$iface->data['name']]());
+		$this->output->setByRef('Val', $iface->_parentFunc->node->input[$iface->data['name']]);
 	}
 }
 \Blackprint\registerNode('BP/FnVar/Input', FnVarInput::class);
@@ -47,7 +47,7 @@ class FnVarOutput extends \Blackprint\Node {
 	}
 	public function update(&$cable){
 		$id = &$this->iface->data['name'];
-		$this->refOutput[$id]($this->ref->Input["Val"]());
+		$this->refOutput->setByRef($id, $this->ref->Input["Val"]);
 	}
 }
 \Blackprint\registerNode('BP/FnVar/Output', FnVarOutput::class);
@@ -157,7 +157,7 @@ class FnVarInputIface extends BPFnVarInOut {
 					return;
 				}
 	
-				$this->ref->Output['Val']($port->value);
+				$this->ref->Output->setByRef('Val', $port->value);
 			};
 	
 			$port->on('value', $this->_listener);

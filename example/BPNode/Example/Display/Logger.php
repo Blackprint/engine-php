@@ -8,7 +8,7 @@ use \Blackprint\{
 
 class Logger extends \Blackprint\Node {
 	public static $Input = [
-		// 'Any'=> Port::ArrayOf(Types::Any)
+		// 'Any'=> Port::ArrayOf(Types::Any) // Defined on bottom
 	];
 
 	function __construct(&$instance){
@@ -38,7 +38,7 @@ class Logger extends \Blackprint\Node {
 		// Let's show data after new cable was connected or disconnected
 		$iface->on('cable.connect cable.disconnect', function() use(&$refreshLogger) {
 			\App\colorLog("Display/Logger:", "A cable was changed on Logger, now refresing the input element");
-			$refreshLogger($this->input['Any']());
+			$refreshLogger($this->input['Any']);
 		});
 
 		$iface->input['Any']->on('value', function(&$ev) use(&$refreshLogger) {
@@ -48,7 +48,7 @@ class Logger extends \Blackprint\Node {
 
 			// Let's take all data from all connected nodes
 			// Instead showing new single data-> val
-			$refreshLogger($this->input['Any']());
+			$refreshLogger($this->input['Any']);
 		});
 	}
 }

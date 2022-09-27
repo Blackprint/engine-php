@@ -206,7 +206,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 	public function renamePort($which, $fromName, $toName){
 		$main = &$this->{$which};
-		$main[$toName] = &$main[$fromName];
+		$main->setByRef($toName, $main[$fromName]);
 		unset($main[$fromName]);
 
 		$used = &$this->used;
@@ -279,14 +279,14 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 			// Sync all port value
 			foreach ($IOutput as $key => &$value){
 				if($value->type === \Blackprint\Types::Function) continue;
-				$Output[$key]($thisInput[$key]());
+				$Output->setByRef($key, $thisInput[$key]);
 			}
 
 			return;
 		}
 
 		// Update output value on the input node inside the function node
-		$Output[$cable->input->name]($cable->value());
+		$Output[$cable->input->name] = $cable->value;
 	}
 
 	public function destroy(){
@@ -320,7 +320,7 @@ class NodeInput extends \Blackprint\Node {
 		$name = &$cable->output->name;
 
 		// This will trigger the port to request from outside and assign to this node's port
-		$this->output[$name]($this->iface->_funcMain->node->input[$name]());
+		$this->output->setByRef($name, $this->iface->_funcMain->node->input[$name]);
 	}
 }
 \Blackprint\registerNode('BP/Fn/Input', NodeInput::class);
@@ -356,13 +356,13 @@ class NodeOutput extends \Blackprint\Node {
 			// Sync all port value
 			foreach ($IOutput as $key => &$value){
 				if($value->type === \Blackprint\Types::Function) continue;
-				$Output[$key]($thisInput[$key]());
+				$Output->setByRef($key, $thisInput[$key]);
 			}
 
 			return;
 		}
 
-		$iface->node->output[$cable->input->name]($cable->value());
+		$iface->node->output[$cable->input->name] = $cable->value;
 	}
 }
 \Blackprint\registerNode('BP/Fn/Output', NodeOutput::class);
@@ -493,7 +493,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$this->emit("_add.{$name}", $outputPort);
 
 			$inputPort->on('value', function(&$ev) use(&$outputPort) {
-				$outputPort->iface->node->output[$outputPort->name]($ev->cable->output->value);
+				$outputPort->iface->node->output->setByRef($outputPort->name, $ev->cable->output->value);
 			});
 
 			return $outputPort;

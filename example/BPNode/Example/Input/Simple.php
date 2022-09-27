@@ -62,7 +62,7 @@ class InputIFace extends \Blackprint\Interfaces {
 			return;
 
 		\App\colorLog("Input/Simple:", "The input box have new value: $val");
-		$node->output['Value']($val);
+		$node->output['Value'] = $val;
 		$node->syncOut('data', ['value' => $this->data->value]);
 
 		// This will call every connected node

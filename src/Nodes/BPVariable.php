@@ -26,7 +26,7 @@ class VarSet extends \Blackprint\Node {
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function update(&$cable){
-		$this->iface->_bpVarRef->value($this->input['Val']());
+		$this->iface->_bpVarRef->value = &$this->input['Val'];
 	}
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
@@ -204,7 +204,7 @@ class IVarGet extends BPVarGetSet {
 		}
 		else{
 			$this->_eventListen = 'value';
-			$this->_onChanged = function() use(&$ref, &$temp) { $ref['Val']($temp->_value); };
+			$this->_onChanged = function() use(&$ref, &$temp) { $ref->setByRef('Val', $temp->_value); };
 		}
 
 		$temp->on($this->_eventListen, $this->_onChanged);

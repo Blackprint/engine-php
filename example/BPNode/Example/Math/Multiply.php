@@ -37,21 +37,21 @@ class Multiply extends \Blackprint\Node {
 	// When any output value from other node are updated
 	// Let's immediately change current node result
 	function update(&$cable){
-		$this->output['Result']($this->multiply());
+		$this->output['Result'] = $this->multiply();
 	}
 
 	// Your own processing mechanism
 	function multiply(){
 		$input = &$this->input;
 
-		\App\colorLog("Math/Multiply:", "Multiplying {$input['A']()} with {$input['B']()}");
-		return $input['A']() * $input['B']();
+		\App\colorLog("Math/Multiply:", "Multiplying {$input['A']} with {$input['B']}");
+		return $input['A'] * $input['B'];
 	}
 }
 
 Multiply::$Input['Exec'] = Port::Trigger(function(&$port){
 	$node = &$port->iface->node;
 
-	$node->output['Result']($node->multiply());
-	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']());
+	$node->output['Result'] = $node->multiply();
+	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']);
 });

@@ -2,13 +2,11 @@
 namespace Blackprint;
 
 class Node extends Constructor\CustomEvent {
-	/** @var array<Constructor\Port> */
-	public $_outputLink = [];
-	public $output = [];
+	/** @var Constructor\PortLink */
+	public $output = null;
 
-	/** @var array<Constructor\Port> */
-	public $_inputLink = [];
-	public $input = [];
+	/** @var Constructor\PortLink */
+	public $input = null;
 
 	/** @var Interfaces */
 	public $iface = null;
@@ -45,7 +43,7 @@ class Node extends Constructor\CustomEvent {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only create port for 'input' and 'output'");
 
-		return $this->{"_{$which}Link"}->_add($name, $type);
+		return $this->{$which}->_add($name, $type);
 	}
 
 	public function renamePort($which, $name, $to){
@@ -62,7 +60,7 @@ class Node extends Constructor\CustomEvent {
 		unset($iPort[$name]);
 
 		$temp->name = &$to;
-		$this[$which][$to] = &$this[$which][$name];
+		$this[$which]->setByRef($to, $this[$which][$name]);
 		unset($this[$which][$name]);
 	}
 
@@ -70,7 +68,7 @@ class Node extends Constructor\CustomEvent {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only delete port for 'input' and 'output'");
 
-		return $this->{"_{$which}Link"}->_delete($name);
+		return $this->{$which}->_delete($name);
 	}
 
 	public function log($message){

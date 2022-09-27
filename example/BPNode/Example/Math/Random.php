@@ -42,7 +42,7 @@ Random::$Input['Re-seed'] = Port::Trigger(function(&$port) {
 	$node = &$port->iface->node;
 
 	$node->executed = true;
-	$node->output['Out'](random_int(0, 100));
+	$node->output['Out'] = random_int(0, 100);
 
 	// echo "\nRe-seed called\n";
 });

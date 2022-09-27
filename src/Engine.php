@@ -7,6 +7,7 @@ require_once __DIR__."/PortGhost.php";
 
 class Engine extends Constructor\CustomEvent {
 	public $iface = [];
+	/** @var array<\Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut> */
 	public $ifaceList = [];
 	protected $settings = [];
 	public $disablePorts = false;

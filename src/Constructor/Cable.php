@@ -1,6 +1,8 @@
 <?php
 namespace Blackprint\Constructor;
 
+use Exception;
+
 class Cable{
 	/** @var Blackprint\Types */
 	public $type;
@@ -22,6 +24,7 @@ class Cable{
 
 	// For remote-control
 	public $_evDisconnected = false;
+	public $source = null;
 
 	public function __construct(&$owner, &$target){
 		$this->type = &$owner->type;
@@ -72,7 +75,9 @@ class Cable{
 		echo "\nCable: {$this->output->iface->title}.{$this->output->name} -> {$this->input->name}.{$this->input->iface->title}";
 	}
 
-	public function &value(){
+	// ToDo: redesign after https://github.com/php/php-src/pull/6873 been merged
+	public function &__get($key){
+		if($key !== 'value') throw new Exception("'$key' property was not found on this object");
 		return $this->output->value;
 	}
 
