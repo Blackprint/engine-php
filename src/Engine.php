@@ -17,10 +17,16 @@ class Engine extends Constructor\CustomEvent {
 	public $functions = [];
 	public $ref = [];
 
+	/** @var Constructor\OrderedExecution */
+	public $executionOrder;
+
 	/** @var Nodes/FnMain */
 	public $_funcMain = null;
+	public $_importing = false;
 
-	// public function __construct(){ }
+	public function __construct(){
+		$this->executionOrder = new Constructor\OrderedExecution();
+	}
 
 	public function deleteNode($iface){
 		$list = &$this->ifaceList;
@@ -96,6 +102,8 @@ class Engine extends Constructor\CustomEvent {
 
 		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
 		if(!$appendMode) $this->clearNodes();
+
+		$this->_importing = true;
 
 		// Do we need this?
 		// $this->emit("json.importing", {appendMode: options.appendMode, raw: json});
@@ -226,6 +234,10 @@ class Engine extends Constructor\CustomEvent {
 		foreach ($nodes as &$val){
 			$val->init();
 		}
+
+		$this->_importing = true;
+		// this.emit("json.imported", {appendMode: options.appendMode, nodes: inserted, raw: json});
+		$this->executionOrder->next();
 
 		return $inserted;
 	}

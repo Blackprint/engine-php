@@ -11,6 +11,9 @@ class Logger extends \Blackprint\Node {
 		// 'Any'=> Port::ArrayOf(Types::Any) // Defined on bottom
 	];
 
+	/** @var LoggerIFace */
+	public $iface;
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
@@ -18,38 +21,42 @@ class Logger extends \Blackprint\Node {
 		$iface->title = "Logger";
 	}
 
+	function refreshLogger($val) {
+		if($val === null){
+			$val = 'null';
+			$this->iface->log($val);
+		}
+		elseif(is_string($val) || is_numeric($val))
+			$this->iface->log($val);
+		else{
+			$val = json_encode($val);
+			$this->iface->log($val);
+		}
+	}
+
 	function init() {
-		/** @var LoggerIFace */
-		$iface = &$this->iface;
-
-		$refreshLogger = function($val) use(&$iface) {
-			if($val === null){
-				$val = 'null';
-				$iface->log($val);
-			}
-			elseif(is_string($val) || is_numeric($val))
-				$iface->log($val);
-			else{
-				$val = json_encode($val);
-				$iface->log($val);
-			}
-		};
-
 		// Let's show data after new cable was connected or disconnected
-		$iface->on('cable.connect cable.disconnect', function() use(&$refreshLogger) {
+		$this->iface->on('cable.connect cable.disconnect', function() {
 			\App\colorLog("Display/Logger:", "A cable was changed on Logger, now refresing the input element");
-			$refreshLogger($this->input['Any']);
+			$this->update(null);
 		});
 
-		$iface->input['Any']->on('value', function(&$ev) use(&$refreshLogger) {
+		$this->iface->input['Any']->on('value', function(&$ev) {
 			$target = &$ev->target;
 
 			\App\colorLog("Display/Logger:", "I connected to {$target->name} (port {$target->iface->title}), that have new value: $target->value");
-
-			// Let's take all data from all connected nodes
-			// Instead showing new single data-> val
-			$refreshLogger($this->input['Any']);
 		});
+	}
+
+	function update(&$cable){
+		// Let's take all data from all connected nodes
+		// Instead showing new single data-> val
+		$this->refreshLogger($this->input['Any']);
+	}
+
+	// Remote sync in
+	function syncIn($id, &$data){
+		if($id === 'log') $this->iface->log($data);
 	}
 }
 
@@ -63,5 +70,6 @@ class LoggerIFace extends \Blackprint\Interfaces {
 
 		$this->_log = &$val;
 		\App\colorLog("Example/Logger log =>", $val);
+		$this->node->syncOut('log', $val);
 	}
 }

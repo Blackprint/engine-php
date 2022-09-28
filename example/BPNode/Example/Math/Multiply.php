@@ -24,6 +24,7 @@ class Multiply extends \Blackprint\Node {
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Multiply";
+		$iface->_inactive_ = true;
 	}
 
 	function init(){
@@ -37,6 +38,7 @@ class Multiply extends \Blackprint\Node {
 	// When any output value from other node are updated
 	// Let's immediately change current node result
 	function update(&$cable){
+		if($this->iface->_inactive_) return;
 		$this->output['Result'] = $this->multiply();
 	}
 
@@ -54,4 +56,7 @@ Multiply::$Input['Exec'] = Port::Trigger(function(&$port){
 
 	$node->output['Result'] = $node->multiply();
 	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']);
+
+	if($port->iface->_inactive_ !== false)
+		$port->iface->_inactive_ = false;
 });

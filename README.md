@@ -8,12 +8,12 @@
 </p>
 
 ## Documentation
-> Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
-> But please try to use it and help improve this project
+> Currently this engine-php may contain bugs as the author is focusing for engine-js, feel free to report an issue so the maintainer can be noticed with the bug and fix it
 
 **Minimum PHP version `>= 8.1`**
 
 ---
+
 ### Defining Blackprint Node and Interface
 Because PHP does support Class-based programming and to make the node import more effective and easier, this engine will only support Node/Interface that declared with classes.
 
@@ -153,7 +153,6 @@ $iface->node->input['Multiply'](2);
 // Get the value from 'Output' output port
 echo $iface->node->output['Output'](); // 246
 ```
-
 
 ---
 

@@ -12,6 +12,9 @@ class Simple extends \Blackprint\Node {
 		'Value'=> Types::String,
 	];
 
+	/** @var InputIFace */
+	public $iface;
+
 	function __construct(&$instance){
 		parent::__construct($instance);
 
@@ -21,10 +24,21 @@ class Simple extends \Blackprint\Node {
 
 	// Bring value from imported iface to node output
 	function imported(&$data) {
+		if($data == null) return;
+
 		$val = $data['value'];
+		\App\colorLog("Input/Simple:", "Old data: {$this->iface->data->value}");
 		if($val) \App\colorLog("Input/Simple:", "Imported data: {$val}");
 
 		$this->iface->data->value = $val;
+	}
+
+	// Remote sync in
+	function syncIn($id, &$data){
+		if($id === 'data'){
+			$this->iface->data->value = &$data->value;
+			$this->iface->changed($data->value);
+		}
 	}
 }
 
@@ -44,6 +58,9 @@ class InputIFaceData {
 
 		if($key === 'value')
 			$this->iface->changed($val);
+		else return;
+
+		$this->iface->node->routes->routeOut();
 	}
 }
 

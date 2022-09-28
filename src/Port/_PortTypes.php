@@ -27,7 +27,7 @@ class Port {
 		if($type === Types::Any || $target === Types::Any || $type === $target)
 			return true;
 
-		if(is_array($type) && in_array($target, $type))
+		if(is_array($type) && in_array($target, $type, true))
 			return true;
 
 		return false;
@@ -72,14 +72,14 @@ class Port {
 			if(count($types) !== count($target)) return false;
 	
 			foreach ($types as &$type) {
-				if(!in_array($type, $target))
+				if(!in_array($type, $target, true))
 					return false;
 			}
 	
 			return true;
 		}
 	
-		return $target === Types::Any || in_array($target, $types);
+		return $target === Types::Any || in_array($target, $types, true);
 	}
 
 	/* This port can allow multiple different types
@@ -91,6 +91,11 @@ class Port {
 			'type'=>&$type,
 			'value'=>&$struct
 		];
+	}
+
+	/** VirtualType is only for browser with Sketch library */
+	static function VirtualType(){
+		throw new \Error("VirtualType is only for browser with Sketch library");
 	}
 	
 	static function StructOf_split(&$port){

@@ -28,8 +28,7 @@ class Random extends \Blackprint\Node {
 	function request(&$cable) {
 		// Only run once this node never been executed
 		// Return false if no value was changed
-		if($this->executed === true)
-			return false;
+		if($this->executed === true) return false;
 
 		\App\colorLog("Math/Random:", "Value request for port: {$cable->output->name}, from node: {$cable->input->iface->title}");
 

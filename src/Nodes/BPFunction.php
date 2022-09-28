@@ -179,7 +179,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	}
 
 	public function addPrivateVars($id){
-		if(!in_array($id, $this->privateVars)){
+		if(!in_array($id, $this->privateVars, true)){
 			$this->privateVars[] = &$id;
 
 			$temp = new \Blackprint\EvVariableNew(VarScope::private, $id);

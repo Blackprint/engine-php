@@ -33,6 +33,8 @@ class PortLink extends \ArrayObject {
 	public function &offsetGet($key){
 		$port = &$this->ifacePort[$key];
 
+		if($port === null) throw new \Exception("Port '$key' was not found");
+
 		if($port->feature == PortType::Trigger)
 			return $port->default;
 		
@@ -63,7 +65,8 @@ class PortLink extends \ArrayObject {
 				$output = &$cable->output;
 
 				// Request the data first
-				$output->iface->node->request($cable);
+				if($output->value === null)
+					$output->iface->node->request($cable);
 
 				// echo "\n1. {$port->name} -> {$output->name} ({$output->value})";
 
@@ -94,7 +97,8 @@ class PortLink extends \ArrayObject {
 				$output = &$cable->output;
 
 				// Request the data first
-				$output->iface->node->request($cable);
+				if($output->value === null)
+					$output->iface->node->request($cable);
 
 				// echo "\n2. {$port->name} -> {$output->name} ({$output->value})";
 
@@ -125,6 +129,8 @@ class PortLink extends \ArrayObject {
 
 	public function setByRef($key, &$val) {
 		$port = &$this->ifacePort[$key];
+
+		if($port === null) throw new \Exception("Port '$key' was not found");
 
 		// setter (only for output port)
 		if($port->iface->node->disablePorts || (!($port->splitted || $port->allowResync) && $port->value === $val))

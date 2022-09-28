@@ -23,7 +23,7 @@ $instance->importJSON('{"Example/Math/Random":[{"i":0,"x":298,"y":73,"output":{"
 $button = &$instance->iface['myButton'];
 
 echo "\n\n>> I'm clicking the button";
-$button->clicked(123);
+$button->clicked();
 
 $logger = &$instance->iface['myLogger'];
 echo "\n\n>> I got the output value: ".$logger->log();

@@ -30,12 +30,18 @@ class Port extends CustomEvent {
 	public $_callAll = null;
 	public $_cache = null;
 	public $_func = null;
+	public $_hasUpdate = false;
+	public $_hasUpdateCable = null;
+
+	/** @var \Blackprint\Node */
+	public $_node = null;
 
 	public function __construct(&$portName, &$type, &$def, &$which, &$iface, &$feature){
 		$this->name = &$portName;
 		$this->type = &$type;
 		$this->source = &$which;
 		$this->iface = &$iface;
+		$this->_node = &$iface->node;
 
 		if($feature === false){
 			$this->default = &$def;
@@ -99,17 +105,38 @@ class Port extends CustomEvent {
 
 	// Only for output port
 	public function sync(){
+		// Check all connected cables, if any node need to synchronize
 		$cables = &$this->cables;
 		$skipSync = $this->iface->node->routes->out !== null;
+		$instance = &$this->_node->instance;
+
+		$singlePortUpdate = false;
+		if(!$this->_node->_bpUpdating){
+			$singlePortUpdate = true;
+			$this->_node->_bpUpdating = true;
+		}
 
 		foreach ($cables as &$cable) {
 			$inp = &$cable->input;
 			if($inp === null) continue;
 			$inp->_cache = null;
-			
-			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
+
 			$inpIface = &$inp->iface;
 
+			if($this->_node->_bpUpdating){
+				if($inp->feature === \Blackprint\PortType::ArrayOf){
+					$inp->_hasUpdate = true;
+					$cable->_hasUpdate = true;
+				}
+				else $inp->_hasUpdateCable = $cable;
+
+				if($skipSync === false && $inpIface->_requesting === false)
+				$instance->executionOrder->add($inp->_node);
+
+				continue;
+			}
+
+			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
 			$inp->emit('value', $temp);
 			$inpIface->emit('port.value', $temp);
 
@@ -119,16 +146,13 @@ class Port extends CustomEvent {
 			// echo "\n4. {$inp->name} = {$inpIface->title}, {$inpIface->_requesting}";
 
 			$node = &$inpIface->node;
-			if($inpIface->_requesting === false && count($node->routes->in) === 0){
-				$node->update($cable);
+			if($inpIface->_requesting === false && count($node->routes->in) === 0)
+				$node->_bpUpdate($cable);
+		}
 
-				if($inpIface->_enum !== \Blackprint\Nodes\Enums::BPFnMain){
-					$node->routes->routeOut();
-				}
-				else {
-					$inpIface->_proxyInput->routes->routeOut();
-				}
-			}
+		if($singlePortUpdate){
+			$this->_node->_bpUpdating = false;
+			$this->_node->instance->executionOrder->next();
 		}
 	}
 
@@ -175,13 +199,15 @@ class Port extends CustomEvent {
 			return false;
 		}
 
-		if($cable->owner === $this){ // It's referencing to same port
+		$cableOwner = &$cable->owner;
+
+		if($cableOwner === $this){ // It's referencing to same port
 			$cable->disconnect();
 			return false;
 		}
 
-		if(($this->onConnect !== false && ($this->onConnect)($cable, $cable->owner))
-		|| ($cable->owner->onConnect !== false && ($cable->owner->onConnect)($cable, $this)))
+		if(($this->onConnect !== false && ($this->onConnect)($cable, $cableOwner))
+		|| ($cableOwner->onConnect !== false && ($cableOwner->onConnect)($cable, $this)))
 			return false;
 
 		// Remove cable if ...
@@ -192,19 +218,19 @@ class Port extends CustomEvent {
 			$this->_cableConnectError('cable.wrong_pair', [
 				"cable" => &$cable,
 				"port" => &$this,
-				"target" => &$cable->owner
+				"target" => &$cableOwner
 			]);
 			$cable->disconnect();
 			return false;
 		}
 
-		if($cable->owner->source === 'output'){
-			if(($this->feature === PortType::ArrayOf && !PortFeature::ArrayOf_validate($this->type, $cable->owner->type))
-			   || ($this->feature === PortType::Union && !PortFeature::Union_validate($this->type, $cable->owner->type))){
+		if($cableOwner->source === 'output'){
+			if(($this->feature === PortType::ArrayOf && !PortFeature::ArrayOf_validate($this->type, $cableOwner->type))
+			   || ($this->feature === PortType::Union && !PortFeature::Union_validate($this->type, $cableOwner->type))){
 				$this->_cableConnectError('cable.wrong_type', [
 					"cable" => &$cable,
 					"iface" => &$this->iface,
-					"port" => &$cable->owner,
+					"port" => &$cableOwner,
 					"target" => &$this
 				]);
 
@@ -214,13 +240,13 @@ class Port extends CustomEvent {
 		}
 
 		elseif($this->source === 'output'){
-			if(($cable->owner->feature === PortType::ArrayOf && !PortFeature::ArrayOf_validate($cable->owner->type, $this->type))
-			   || ($cable->owner->feature === PortType::Union && !PortFeature::Union_validate($cable->owner->type, $this->type))){
+			if(($cableOwner->feature === PortType::ArrayOf && !PortFeature::ArrayOf_validate($cableOwner->type, $this->type))
+			   || ($cableOwner->feature === PortType::Union && !PortFeature::Union_validate($cableOwner->type, $this->type))){
 				$this->_cableConnectError('cable.wrong_type', [
 					"cable" => &$cable,
 					"iface" => &$this->iface,
 					"port" => &$this,
-					"target" => &$cable->owner
+					"target" => &$cableOwner
 				]);
 
 				$cable->disconnect();
@@ -230,23 +256,23 @@ class Port extends CustomEvent {
 
 		// ToDo: recheck why we need to check if the constructor is a function
 		$isInstance = true;
-		if($cable->owner->type !== $this->type
-		   && $cable->owner->type === Types::Function
+		if($cableOwner->type !== $this->type
+		   && $cableOwner->type === Types::Function
 		   && $this->type === Types::Function){
-			if($cable->owner->source === 'output')
-				$isInstance = $cable->owner->type instanceof $this->type;
-			else $isInstance =  $this->type instanceof $cable->owner->type;
+			if($cableOwner->source === 'output')
+				$isInstance = $cableOwner->type instanceof $this->type;
+			else $isInstance =  $this->type instanceof $cableOwner->type;
 		}
 
 		// Remove cable if type restriction
 		if(!$isInstance || (
-			   $cable->owner->type === Types::Function && $this->type !== Types::Function
-			|| $cable->owner->type !== Types::Function && $this->type === Types::Function
+			   $cableOwner->type === Types::Function && $this->type !== Types::Function
+			|| $cableOwner->type !== Types::Function && $this->type === Types::Function
 		)){
 			$this->_cableConnectError('cable.wrong_type_pair', [
 				"cable" => &$cable,
 				"port" => &$this,
-				"target" => &$cable->owner
+				"target" => &$cableOwner
 			]);
 
 			$cable->disconnect();
@@ -256,26 +282,26 @@ class Port extends CustomEvent {
 		// Restrict connection between function input/output node with variable node
 		// Connection to similar node function IO or variable node also restricted
 		// These port is created on runtime dynamically
-		if($this->iface->_dynamicPort && $cable->owner->iface->_dynamicPort){
+		if($this->iface->_dynamicPort && $cableOwner->iface->_dynamicPort){
 			$this->_cableConnectError('cable.unsupported_dynamic_port', [
 				"cable" => &$cable,
 				"port" => &$this,
-				"target" => &$cable->owner
+				"target" => &$cableOwner
 			]);
 
 			$cable->disconnect();
 			return false;
 		}
 
-		$sourceCables = &$cable->owner->cables;
+		$sourceCables = &$cableOwner->cables;
 
 		// Remove cable if there are similar connection for the ports
 		foreach ($sourceCables as &$_cable) {
-			if(in_array($_cable, $this->cables)){
+			if(in_array($_cable, $this->cables, true)){
 				$this->_cableConnectError('cable.duplicate_removed', [
 					"cable" => &$cable,
 					"port" => &$this,
-					"target" => &$cable->owner
+					"target" => &$cableOwner
 				], false);
 
 				$cable->disconnect();
@@ -289,11 +315,11 @@ class Port extends CustomEvent {
 		if($cable->target->source === 'input'){
 			/** @var Port */
 			$inp = &$cable->target;
-			$out = &$cable->owner;
+			$out = &$cableOwner;
 		}
 		else {
 			/** @var Port */
-			$inp = &$cable->owner;
+			$inp = &$cableOwner;
 			$out = &$cable->target;
 		}
 
@@ -363,6 +389,6 @@ function createCallableRoutePort($port){
 		$cable = &$port->cables[0];
 		if($cable === null) return;
 
-		$cable->input->routeIn($cable);
+		$cable->input->routeIn();
 	};
 }

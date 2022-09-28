@@ -3,7 +3,7 @@ namespace Blackprint;
 
 class Utils{
 	public static $NoOperation;
-	private static $null = null;
+	public static $_null = null;
 
 	public static function &deepProperty(&$obj, $path, &$value = null){
 		if($value !== null){
@@ -16,7 +16,7 @@ class Utils{
 			}
 
 			$obj[$last] = &$value;
-			return self::$null;
+			return self::$_null;
 		}
 
 		foreach ($path as &$key) {

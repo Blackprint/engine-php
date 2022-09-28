@@ -39,7 +39,7 @@ class RoutePort {
 
 	// Connect to input route
 	public function connectCable($cable){
-		if(in_array($cable, $this->in)) return false;
+		if(in_array($cable, $this->in, true)) return false;
 		if($this->iface->node->update === null){
 			$cable->disconnect();
 			throw new \Exception("node.update() was not defined for this node");
@@ -53,10 +53,12 @@ class RoutePort {
 		return true;
 	}
 
-	public function routeIn(&$cable){
+	public function routeIn(){
 		$node = &$this->iface->node;
-		$node->update($cable);
-		$node->routes->routeOut();
+
+		if($this->iface->_enum !== \Blackprint\Nodes\Enums::BPFnInput)
+			$node->_bpUpdate();
+		else $node->routes->routeOut();
 	}
 
 	public function routeOut(){
@@ -74,20 +76,18 @@ class RoutePort {
 		if($targetRoute === null) return;
 
 		$_enum = &$targetRoute->iface->_enum;
-		$cable = &$this->out;
 
 		if($_enum === null)
-			return $targetRoute->routeIn($cable);
+			return $targetRoute->routeIn();
 
 		if($_enum === Nodes\Enums::BPFnMain)
-			return $targetRoute->iface->_proxyInput->routes->routeIn($cable);
+			return $targetRoute->iface->_proxyInput->routes->routeIn();
 
 		if($_enum === Nodes\Enums::BPFnOutput){
-			$_cable = null;
-			$targetRoute->iface->node->update($_cable);
+			$targetRoute->iface->node->update(\Blackprint\Utils::$_null);
 			return $targetRoute->iface->_funcMain->node->routes->routeOut();
 		}
 
-		return $targetRoute->routeIn($cable);
+		return $targetRoute->routeIn();
 	}
 }

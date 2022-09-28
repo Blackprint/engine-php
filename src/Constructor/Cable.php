@@ -25,6 +25,8 @@ class Cable{
 	// For remote-control
 	public $_evDisconnected = false;
 	public $source = null;
+	
+	public $_hasUpdate = false;
 
 	public function __construct(&$owner, &$target){
 		$this->type = &$owner->type;
@@ -66,8 +68,12 @@ class Cable{
 		$tempEv = new \Blackprint\EvPortSelf($this->output);
 		$input = &$this->input;
 		$input->emit('value', $tempEv);
-		$input->iface->emit('value', $tempEv);
-		$input->iface->node->update($this);
+		$input->iface->emit('port.value', $tempEv);
+
+		$node = &$input->iface->node;
+		if($node->instance->_importing)
+			$node->instance->executionOrder->add($node);
+		else $node->_bpUpdate();
 	}
 
 	// For debugging

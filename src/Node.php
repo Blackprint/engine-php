@@ -1,7 +1,7 @@
 <?php
 namespace Blackprint;
 
-class Node extends Constructor\CustomEvent {
+class Node {
 	/** @var Constructor\PortLink */
 	public $output = null;
 
@@ -10,9 +10,12 @@ class Node extends Constructor\CustomEvent {
 
 	/** @var Interfaces */
 	public $iface = null;
-	private $contructed = false;
-	public $disablePorts = false;
 	public $routes = null;
+	public $disablePorts = false;
+	public $partialUpdate = false;
+
+	private $contructed = false;
+	public $_bpUpdating = false;
 
 	/** @var Constructor\References */
 	public $ref;
@@ -75,16 +78,33 @@ class Node extends Constructor\CustomEvent {
 		$this->instance->_log(new NodeLog($this->iface, $message));
 	}
 
+	public function _bpUpdate(){
+		$this->_bpUpdating = true;
+		$this->update(\Blackprint\Utils::$_null);
+		$this->_bpUpdating = false;
+
+		if($this->routes->out == null){
+			$this->instance->executionOrder->next();
+		}
+		else{
+			if($this->iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain)
+				$this->routes->routeOut();
+			else $this->iface->_proxyInput->routes->routeOut();
+		}
+	}
+
 	// ToDo: remote-control PHP
 	public function syncOut($id, $data){}
 
 	// To be overriden by module developer
 	public function imported(&$data){}
 	public function update(&$cable){}
-	public function request(&$cable){}
+	public function request(&$cable){
+		$this->update($cable); // Default behaviour
+	}
 	public function destroy(){}
 	public function init(){}
-	public function syncIn($id, $data){}
+	public function syncIn($id, &$data){}
 }
 
 class NodeLog {
