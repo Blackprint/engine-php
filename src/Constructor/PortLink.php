@@ -34,9 +34,6 @@ class PortLink extends \ArrayObject {
 		$port = &$this->ifacePort[$key];
 
 		if($port === null) throw new \Exception("Port '$key' was not found");
-
-		if($port->feature == PortType::Trigger)
-			return $port->default;
 		
 		// This port must use values from connected output
 		if($port->source === 'input'){
@@ -114,6 +111,7 @@ class PortLink extends \ArrayObject {
 			$port->_cache = &$data;
 			return $data;
 		}
+		// else output ports
 
 		# Callable port (for output ports)
 		if($port->_callAll != null)
@@ -170,7 +168,7 @@ class PortLink extends \ArrayObject {
 
 		// echo "\n3. {$port->name} = {$val}";
 
-		$port->value = &$val;
+		$port->value = $val;
 
 		$temp = new \Blackprint\EvPortSelf($port);
 		$port->emit('value', $temp);
@@ -181,7 +179,6 @@ class PortLink extends \ArrayObject {
 		}
 
 		$port->sync();
-		return;
 	}
 
 	public function offsetExists($key): bool {
