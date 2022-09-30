@@ -102,6 +102,7 @@ class Engine extends Constructor\CustomEvent {
 
 		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
 		if(!$appendMode) $this->clearNodes();
+		$reorderInputPort = [];
 
 		$this->_importing = true;
 
@@ -138,27 +139,34 @@ class Engine extends Constructor\CustomEvent {
 		// before we create cables for them
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
-			foreach ($ifaces as &$iface) {
-				$iface['i'] += $appendLength;
-				$ifaceOpt = [
-					'id' => isset($iface['id']) ? $iface['id'] : null,
-					'i' => $iface['i']
+			foreach ($ifaces as &$conf) {
+				$conf['i'] += $appendLength;
+				$confOpt = [
+					'id' => isset($conf['id']) ? $conf['id'] : null,
+					'i' => $conf['i']
 				];
 
-				if(isset($iface['data']))
-					$ifaceOpt['data'] = &$iface['data'];
-				if(isset($iface['input_d']))
-					$ifaceOpt['input_d'] = &$iface['input_d'];
-				if(isset($iface['output_sw']))
-					$ifaceOpt['output_sw'] = &$iface['output_sw'];
+				if(isset($conf['data']))
+					$confOpt['data'] = &$conf['data'];
+				if(isset($conf['input_d']))
+					$confOpt['input_d'] = &$conf['input_d'];
+				if(isset($conf['output_sw']))
+					$confOpt['output_sw'] = &$conf['output_sw'];
 
 				/** @var Interfaces | Nodes\FnMain */
-				$temp = $this->createNode($namespace, $ifaceOpt, $nodes);
-				$inserted[$iface['i']] = $temp; // Don't add & as it's already reference
+				$iface = $this->createNode($namespace, $confOpt, $nodes);
+				$inserted[$conf['i']] = $iface; // Don't add & as it's already reference
+
+				if(isset($conf['input'])){
+					$reorderInputPort[] = [
+						"iface"=> $iface,
+						"config"=> $conf,
+					];
+				}
 
 				// For custom function node
-				if(method_exists($temp, '_BpFnInit'))
-					$temp->_BpFnInit();
+				if(method_exists($iface, '_BpFnInit'))
+					$iface->_BpFnInit();
 			}
 		}
 
@@ -167,6 +175,7 @@ class Engine extends Constructor\CustomEvent {
 		foreach($json as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$ifaceJSON) {
+				/** @var \Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut */
 				$iface = &$inserted[$ifaceJSON['i']];
 
 				if(isset($ifaceJSON['route']))
@@ -227,6 +236,37 @@ class Engine extends Constructor\CustomEvent {
 						}
 					}
 				}
+			}
+		}
+
+		// Fix input port cable order
+		foreach ($reorderInputPort as &$value) {
+			$iface = &$value['iface'];
+			$cInput = &$value['config']['input'];
+
+			foreach ($cInput as $key => &$conf) {
+				$port = &$iface->input[$key];
+				$cables = &$port->cables;
+				$temp = [];
+
+				for ($a=0, $n=count($conf); $a < $n; $a++) {
+					$ref = &$conf[$a];
+					$name = $ref['name'];
+					$targetIface = $inserted[$ref['i'] + $appendLength];
+
+					foreach ($cables as &$cable) {
+						if($cable->output->name !== $name || $cable->output->iface !== $targetIface) continue;
+
+						$temp[$a] = &$cable;
+						break;
+					}
+				}
+
+				foreach ($temp as &$ref) {
+					if($ref == null) echo(`Some cable failed to be ordered for ({$iface->title}: {$key})`);
+				}
+
+				$port->cables = $temp;
 			}
 		}
 
