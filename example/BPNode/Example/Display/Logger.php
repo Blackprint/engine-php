@@ -37,14 +37,14 @@ class Logger extends \Blackprint\Node {
 	function init() {
 		// Let's show data after new cable was connected or disconnected
 		$this->iface->on('cable.connect cable.disconnect', function() {
-			\App\colorLog("Display/Logger:", "A cable was changed on Logger, now refresing the input element");
+			\App\colorLog("Logger (".($this->iface->id ?? '')."):", "A cable was changed on Logger, now refresing the input element");
 			$this->update(null);
 		});
 
 		$this->iface->input['Any']->on('value', function(&$ev) {
 			$target = &$ev->target;
 
-			\App\colorLog("Display/Logger:", "I connected to {$target->name} (port {$target->iface->title}), that have new value: $target->value");
+			\App\colorLog("Logger (".($this->iface->id ?? '')."):", "I connected to {$target->name} (port {$target->iface->title}), that have new value: $target->value");
 		});
 	}
 
@@ -69,7 +69,7 @@ class LoggerIFace extends \Blackprint\Interfaces {
 		if($val === null) return $this->_log;
 
 		$this->_log = &$val;
-		\App\colorLog("Example/Logger log =>", $val);
+		\App\colorLog("Logger (".($this->id ?? '').") Data:", $val);
 		$this->node->syncOut('log', $val);
 	}
 }
