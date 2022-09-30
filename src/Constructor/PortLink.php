@@ -40,12 +40,11 @@ class PortLink extends \ArrayObject {
 		
 		// This port must use values from connected output
 		if($port->source === 'input'){
-			$cableLen = count($port->cables);
+			if($port->_cache !== null) return $port->_cache;
 
+			$cableLen = count($port->cables);
 			if($cableLen === 0)
 				return $port->default;
-
-			if($port->_cache !== null) return $port->_cache;
 
 			// Flag current iface is requesting value to other iface
 			$port->iface->_requesting = true;
@@ -130,7 +129,8 @@ class PortLink extends \ArrayObject {
 	public function setByRef($key, &$val) {
 		$port = &$this->ifacePort[$key];
 
-		if($port === null) throw new \Exception("Port '$key' was not found");
+		if($port === null)
+			throw new \Exception("Port {$this->_which} ('$key') was not found on node with namespace '{$this->_iface->namespace}'");
 
 		// setter (only for output port)
 		if($port->iface->node->disablePorts || (!($port->splitted || $port->allowResync) && $port->value === $val))
@@ -184,6 +184,23 @@ class PortLink extends \ArrayObject {
 		return;
 	}
 
+	public function offsetExists($key): bool {
+		return isset($this->ifacePort[$key]);
+	}
+
+	public function serialize(): string {
+		$ports = &$this->ifacePort;
+		$temp = [];
+
+		foreach($ports as $key => &$port){
+			if($port->source === 'input')
+				$temp[$key] = $port->_cache ?? $port->default;
+			else $temp[$key] = $port->value ?? $port->default;
+		}
+
+		return serialize($temp);
+	}
+
 	public function &_add(&$portName, $val){
 		$iPort = &$this->ifacePort;
 		$exist = &$iPort[$portName];
@@ -212,6 +229,5 @@ class PortLink extends \ArrayObject {
 		$port->disconnectAll();
 
 		unset($iPort[$portName]);
-		unset($this->ifacePort[$portName]);
 	}
 }

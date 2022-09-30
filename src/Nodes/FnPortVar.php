@@ -48,6 +48,9 @@ class FnVarOutput extends \Blackprint\Node {
 	public function update(&$cable){
 		$id = &$this->iface->data['name'];
 		$this->refOutput->setByRef($id, $this->ref->Input["Val"]);
+
+		// Also update the cache on the proxy node
+		$this->iface->_parentFunc->_proxyOutput->ref->IInput[$id]->_cache = &$this->ref->Input->Val;
 	}
 }
 \Blackprint\registerNode('BP/FnVar/Output', FnVarOutput::class);
@@ -80,6 +83,9 @@ class FnVarInputIface extends BPFnVarInOut {
 
 			// Run when $this node is being connected with other node
 			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
+				// Skip port with feature: ArrayOf
+				if($port->feature === PortType::ArrayOf) return;
+
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.{$name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
@@ -100,6 +106,9 @@ class FnVarInputIface extends BPFnVarInOut {
 
 			// Run when main node is the missing port
 			$this->_waitPortInit = function(&$port) use(&$iPort, &$node) {
+				// Skip port with feature: ArrayOf
+				if($port->feature === PortType::ArrayOf) return;
+
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 
@@ -196,6 +205,9 @@ class FnVarOutputIface extends BPFnVarInOut {
 
 			// Run when this node is being connected with other node
 			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
+				// Skip port with feature: ArrayOf
+				if($port->feature === PortType::ArrayOf) return;
+
 				unset($iPort->onConnect);
 				$proxyIface->off("_add.${name}", $this->_waitPortInit);
 				$this->_waitPortInit = null;
@@ -215,6 +227,9 @@ class FnVarOutputIface extends BPFnVarInOut {
 
 			// Run when main node is the missing port
 			$this->_waitPortInit = function(&$port) use(&$iPort, &$node) {
+				// Skip port with feature: ArrayOf
+				if($port->feature === PortType::ArrayOf) return;
+
 				unset($iPort->onConnect);
 				$this->_waitPortInit = null;
 

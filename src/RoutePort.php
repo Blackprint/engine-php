@@ -80,8 +80,8 @@ class RoutePort {
 		if($_enum === null)
 			return $targetRoute->routeIn();
 
-		if($_enum === Nodes\Enums::BPFnMain)
-			return $targetRoute->iface->_proxyInput->routes->routeIn();
+		// if($_enum === Nodes\Enums::BPFnMain)
+		// 	return $targetRoute->iface->_proxyInput->routes->routeIn();
 
 		if($_enum === Nodes\Enums::BPFnOutput){
 			$targetRoute->iface->node->update(\Blackprint\Utils::$_null);

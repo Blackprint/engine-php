@@ -7,6 +7,7 @@ class OrderedExecution {
 	public $initialSize = 30;
 	public $pause = false;
 	public $stepMode = false;
+	private $_onceComplete = [];
 
 	/** @var array<\Blackprint\Node> */
 	public $list;
@@ -39,8 +40,25 @@ class OrderedExecution {
 		$this->list[$this->length++] = $node;
 	}
 
+	// Because PHP doesn't have async function, in most case you don't need to use this
+	public function onceComplete($func){
+		if($this->length === 0) return $func();
+
+		if(in_array($func, $this->_onceComplete)) return;
+		$this->_onceComplete[] = &$func;
+	}
+
 	public function &_next(){
-		if($this->index >= $this->length) return \Blackprint\Utils::$_null;
+		if($this->index >= $this->length){
+			foreach ($this->_onceComplete as &$func) {
+				$func();
+			}
+
+			if(count($this->_onceComplete) !== 0)
+				$this->_onceComplete = [];
+
+			return \Blackprint\Utils::$_null;
+		}
 
 		$i = $this->index;
 		$temp = $this->list[$this->index++];

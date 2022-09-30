@@ -16,6 +16,9 @@ class Interfaces extends Constructor\CustomEvent {
 	public $_dynamicPort = false;
 	public $_enum = null;
 	public $isGhost = false;
+	public $input = null;
+	public $output = null;
+	public $property = null;
 
 	/** @var Node */
 	public $node;

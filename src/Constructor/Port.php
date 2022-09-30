@@ -11,10 +11,15 @@ enum Args {
 $NOOP = function(){};
 
 class Port extends CustomEvent {
+	/** @var string */
 	public $name;
 	public $type;
+
+	/** @var array<Cable> */
 	public $cables = [];
 	public $source;
+	
+	/** @var \Blackprint\Interfaces */
 	public $iface;
 	public $default;
 	public $value = null;
@@ -131,7 +136,7 @@ class Port extends CustomEvent {
 				else $inp->_hasUpdateCable = $cable;
 
 				if($skipSync === false && $inpIface->_requesting === false)
-				$instance->executionOrder->add($inp->_node);
+					$instance->executionOrder->add($inp->_node);
 
 				continue;
 			}

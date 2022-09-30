@@ -100,7 +100,7 @@ class Node {
 	public function imported(&$data){}
 	public function update(&$cable){}
 	public function request(&$cable){
-		$this->update($cable); // Default behaviour
+		// $this->update($cable); // Default behaviour
 	}
 	public function destroy(){}
 	public function init(){}
