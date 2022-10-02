@@ -22,7 +22,7 @@ class Node {
 
 	// Reserved for future
 	/** @param Engine $instance */
-	function __construct(public &$instance){
+	function __construct(public $instance){
 		$this->contructed = true;
 	}
 
@@ -97,9 +97,9 @@ class Node {
 	public function syncOut($id, $data){}
 
 	// To be overriden by module developer
-	public function imported(&$data){}
-	public function update(&$cable){}
-	public function request(&$cable){
+	public function imported($data){}
+	public function update($cable){}
+	public function request($cable){
 		// $this->update($cable); // Default behaviour
 	}
 	public function destroy(){}

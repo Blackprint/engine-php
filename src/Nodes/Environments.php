@@ -5,7 +5,7 @@ use \Blackprint\Environment;
 
 class BPEnvGet extends \Blackprint\Node {
 	public static $Output = ["Val" => Types::String];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Env/Get');
 
@@ -21,7 +21,7 @@ class BPEnvGet extends \Blackprint\Node {
 
 class BPEnvSet extends \Blackprint\Node {
 	public static $Input = ["Val" => Types::String];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Env/Set');
 		
@@ -32,14 +32,14 @@ class BPEnvSet extends \Blackprint\Node {
 
 		$iface->_enum = Enums::BPEnvSet;
 	}
-	public function update(&$cable){
+	public function update($cable){
 		Environment::set($this->iface->data['name'], $this->input["Val"]);
 	}
 }
 \Blackprint\registerNode('BP/Env/Set', BPEnvSet::class);
 
 class BPEnvGetSet extends \Blackprint\Interfaces {
-	public function imported(&$data){
+	public function imported($data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = $data['name'];
 
@@ -51,7 +51,7 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 };
 
 class IEnvGet extends BPEnvGetSet {
-	public function imported(&$data){
+	public function imported($data){
 		parent::imported($data);
 		$this->_listener = function(&$v) {
 			if($v->key !== $this->data['name']) return;

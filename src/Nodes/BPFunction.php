@@ -45,7 +45,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		$temp = &$this;
 		$uniqId = 0;
 
-		$this->node = function&(&$instance) use(&$input, &$output, &$id, &$temp, &$uniqId) {
+		$this->node = function&($instance) use(&$input, &$output, &$id, &$temp, &$uniqId) {
 			BPFunctionNode::$Input = &$input;
 			BPFunctionNode::$Output = &$output;
 			BPFunctionNode::$namespace = &$id;
@@ -195,7 +195,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		}
 	}
 
-	public function refreshPrivateVars(&$instance){
+	public function refreshPrivateVars($instance){
 		$vars = &$instance->variables;
 
 		$list = &$this->privateVars;
@@ -249,7 +249,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 	public static $namespace = null;
 
 	public static $type = 'function';
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface("BPIC/BP/Fn/Main");
 		$iface->type = 'function';
@@ -263,12 +263,12 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 		if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
 	}
 
-	public function imported(&$data){
+	public function imported($data){
 		$instance = &$this->_funcInstance;
 		$instance->used[] = &$this->iface;
 	}
 
-	public function update(&$cable){
+	public function update($cable){
 		$iface = &$this->iface->_proxyInput->iface;
 		$Output = &$iface->node->output;
 
@@ -299,7 +299,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 
 class NodeInput extends \Blackprint\Node {
 	public static $Output = [];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Input');
@@ -310,13 +310,13 @@ class NodeInput extends \Blackprint\Node {
 		$iface->_funcMain = &$funcMain;
 		$funcMain->_proxyInput = &$this;
 	}
-	public function imported(&$data){
+	public function imported($data){
 		$input = &$this->iface->_funcMain->node->_funcInstance->input;
 
 		foreach ($input as $key => &$value)
 			$this->createPort('output', $key, $value);
 	}
-	public function request(&$cable){
+	public function request($cable){
 		$name = &$cable->output->name;
 
 		// This will trigger the port to request from outside and assign to this node's port
@@ -327,7 +327,7 @@ class NodeInput extends \Blackprint\Node {
 
 class NodeOutput extends \Blackprint\Node {
 	public static $Input = [];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Output');
@@ -339,14 +339,14 @@ class NodeOutput extends \Blackprint\Node {
 		$funcMain->_proxyOutput = &$this;
 	}
 
-	public function imported(&$data){
+	public function imported($data){
 		$output = &$this->iface->_funcMain->node->_funcInstance->output;
 
 		foreach ($output as $key => &$value)
 			$this->createPort('input', $key, $value);
 	}
 
-	public function update(&$cable){
+	public function update($cable){
 		$iface = &$this->iface->_funcMain;
 		$Output = &$iface->node->output;
 

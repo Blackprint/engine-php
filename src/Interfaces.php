@@ -90,5 +90,5 @@ class Interfaces extends Constructor\CustomEvent {
 
 	public function init(){}
 	public function destroy(){}
-	public function imported(&$data){}
+	public function imported($data){}
 }
