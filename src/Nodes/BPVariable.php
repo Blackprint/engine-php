@@ -10,7 +10,7 @@ class VarScope {
 
 class VarSet extends \Blackprint\Node {
 	public static $Input = [];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Set');
 
@@ -25,15 +25,15 @@ class VarSet extends \Blackprint\Node {
 		$iface->_enum = Enums::BPVarSet;
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
-	public function update(&$cable){
-		$this->iface->_bpVarRef->value = &$this->input['Val'];
+	public function update($cable){
+		$this->iface->_bpVarRef->value = $this->input['Val'];
 	}
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
 
 class VarGet extends \Blackprint\Node {
 	public static $Output = [];
-	public function __construct(&$instance){
+	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Get');
 
@@ -59,9 +59,13 @@ class BPVarTemp {
 // used for instance.createVariable
 class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	public $type = null;
+	public $id = null;
+	public $title = null;
 	public $used = [];
 	// this->totalSet = 0;
 	// this->totalGet = 0;
+	public $funcInstance = null;
+	public $_value = null;
 
 	public function __construct($id, $options=null){
 		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+/', '_', $id);
@@ -73,9 +77,15 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 		// The type need to be defined dynamically on first cable connect
 	}
 
-	public $_value = null;
-	public function value($val=null){
-		if($val == null) return $this->_value;
+	function &__get($key){
+		if($key !== 'value') throw new \Exception("Property '$key' was not found");;
+		return $this->_value;
+	}
+
+	function __set($key, $val){
+		if($key !== 'value') throw new \Exception("Property '$key' was not found");
+		if($this->_value === $val) return;
+
 		$this->_value = &$val;
 		$this->emit('value');
 	}
@@ -93,7 +103,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 class BPVarGetSet extends \Blackprint\Interfaces {
 	public $_onChanged = null;
 
-	public function imported(&$data){
+	public function imported($data){
 		if(!isset($data['scope']) || !isset($data['name']))
 			throw new \Exception("'scope' and 'name' options is required for creating variable node");
 

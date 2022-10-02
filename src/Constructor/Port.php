@@ -112,13 +112,14 @@ class Port extends CustomEvent {
 	public function sync(){
 		// Check all connected cables, if any node need to synchronize
 		$cables = &$this->cables;
-		$skipSync = $this->iface->node->routes->out !== null;
-		$instance = &$this->_node->instance;
+		$thisNode = &$this->_node;
+		$skipSync = $thisNode->routes->out !== null;
+		$instance = &$thisNode->instance;
 
 		$singlePortUpdate = false;
-		if(!$this->_node->_bpUpdating){
+		if(!$thisNode->_bpUpdating){
 			$singlePortUpdate = true;
-			$this->_node->_bpUpdating = true;
+			$thisNode->_bpUpdating = true;
 		}
 
 		foreach ($cables as &$cable) {
@@ -128,7 +129,7 @@ class Port extends CustomEvent {
 
 			$inpIface = &$inp->iface;
 
-			if($this->_node->_bpUpdating){
+			if($thisNode->_bpUpdating){
 				if($inp->feature === \Blackprint\PortType::ArrayOf){
 					$inp->_hasUpdate = true;
 					$cable->_hasUpdate = true;
@@ -156,8 +157,8 @@ class Port extends CustomEvent {
 		}
 
 		if($singlePortUpdate){
-			$this->_node->_bpUpdating = false;
-			$this->_node->instance->executionOrder->next();
+			$thisNode->_bpUpdating = false;
+			$thisNode->instance->executionOrder->next();
 		}
 	}
 
@@ -378,7 +379,7 @@ function createCallablePort($port){
 				continue;
 
 			if($target->_name != null)
-				($target->iface->_parentFunc->node->output[$target->_name->name])();
+				($target->iface->_funcMain->node->output[$target->_name->name])();
 			else ($target->iface->input[$target->name]->default)();
 		}
 
