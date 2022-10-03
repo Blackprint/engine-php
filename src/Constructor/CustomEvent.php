@@ -30,6 +30,10 @@ class CustomEvent {
 		$this->on($eventName, $func, true);
 	}
 
+	public function onceAsync($eventName){
+		throw new \Exception("This method is not implemented yet, feel free to create improvement for this engine.");
+	}
+
 	public function off($eventName, $func = null){
 		if(str_contains($eventName, ' ')){
 			$eventName = explode(' ', $eventName);
@@ -62,17 +66,17 @@ class CustomEvent {
 		$once = &$this->once;
 
 		if(isset($events[$eventName])){
-			$evs = &$events[$eventName];
-			foreach ($evs as &$val)
+			$evs1 = &$events[$eventName];
+			foreach ($evs1 as &$val)
 				$val($data);
 		}
 
 		if(isset($once[$eventName])){
-			$evs = &$once[$eventName];
-			foreach ($evs as &$val)
-				$val($data);
-
+			$evs2 = $once[$eventName];
 			unset($once[$eventName]);
+
+			foreach ($evs2 as &$val)
+				$val($data);
 		}
 	}
 }

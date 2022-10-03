@@ -19,7 +19,7 @@ class Multiply extends \Blackprint\Node {
 		'Result'=> Types::Number,
 	];
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // default interface
@@ -37,7 +37,7 @@ class Multiply extends \Blackprint\Node {
 
 	// When any output value from other node are updated
 	// Let's immediately change current node result
-	function update(&$cable){
+	function update($cable){
 		if($this->iface->_inactive_) return;
 		$this->output['Result'] = $this->multiply();
 	}

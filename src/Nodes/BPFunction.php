@@ -70,13 +70,13 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		foreach ($list as &$iface_) {
 			if($iface_->node === $fromNode) continue;
 
-			$nodeInstance = &$iface_->_bpInstance;
+			$nodeInstance = &$iface_->bpInstance;
 			$nodeInstance->pendingRender = true; // Force recalculation for cable position
 
 			if($eventName === 'cable.connect' || $eventName === 'cable.disconnect'){
 				$input = &$obj->cable->input;
 				$output = &$obj->cable->output;
-				$ifaceList = &$fromNode->iface->_bpInstance->ifaceList;
+				$ifaceList = &$fromNode->iface->bpInstance->ifaceList;
 
 				// Skip event that also triggered when deleting a node
 				if($input->iface->_bpDestroy || $output->iface->_bpDestroy) continue;
@@ -138,7 +138,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 				]);
 			}
 			elseif($eventName === 'node.delete'){
-				$index = array_search($obj->iface, $fromNode->iface->_bpInstance->ifaceList);
+				$index = array_search($obj->iface, $fromNode->iface->bpInstance->ifaceList);
 				if($index === false)
 					throw new \Exception("Failed to get node index");
 
@@ -190,7 +190,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		$list = &$this->used;
 		foreach ($list as &$iface) {
-			$vars = &$iface->_bpInstance->variables;
+			$vars = &$iface->bpInstance->variables;
 			$vars[$id] = new BPVariable($id);
 		}
 	}
@@ -294,6 +294,8 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 
 		$i = array_search($this->iface, $used);
 		if($i !== false) array_splice($used, $i, 1);
+
+		$this->iface->bpInstance->destroy();
 	}
 }
 
@@ -372,6 +374,7 @@ class FnMain extends \Blackprint\Interfaces {
 	public $_importOnce = false;
 	public $_save = null;
 	public $_portSw_ = null;
+	public $bpInstance = null;
 	public function _BpFnInit(){
 		if($this->_importOnce)
 			throw new \Exception("Can't import function more than once");
@@ -379,11 +382,11 @@ class FnMain extends \Blackprint\Interfaces {
 		$this->_importOnce = true;
 		$node = &$this->node;
 
-		$this->_bpInstance = new \Blackprint\Engine();
+		$this->bpInstance = new \Blackprint\Engine();
 
 		$bpFunction = &$node->_funcInstance;
 
-		$newInstance = &$this->_bpInstance;
+		$newInstance = &$this->bpInstance;
 		$newInstance->variables = []; // private for one function
 		$newInstance->sharedVariables = &$bpFunction->variables; // shared between function
 		$newInstance->functions = &$node->instance->functions;
@@ -393,7 +396,7 @@ class FnMain extends \Blackprint\Interfaces {
 		$bpFunction->refreshPrivateVars($newInstance);
 
 		$swallowCopy = array_slice($bpFunction->structure, 0);
-		$this->_bpInstance->importJSON($swallowCopy);
+		$this->bpInstance->importJSON($swallowCopy);
 
 		// Init port switches
 		if($this->_portSw_ != null){
@@ -418,7 +421,7 @@ class FnMain extends \Blackprint\Interfaces {
 			$bpFunction->_syncing = false;
 		};
 
-		$this->_bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed', $this->_save);
+		$this->bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed', $this->_save);
 	}
 	public function renamePort($which, $fromName, $toName){
 		$this->node->_funcInstance->renamePort($which, $fromName, $toName);
@@ -493,11 +496,6 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		if($this->type === 'bp-fn-input'){
 			$outputPort->_name = new RefPortName($name); // When renaming port, this also need to be changed
 			$this->emit("_add.{$name}", $outputPort);
-
-			$inputPort->on('value', function(&$ev) use(&$outputPort) {
-				$outputPort->iface->node->output->setByRef($outputPort->name, $ev->cable->output->value);
-			});
-
 			return $outputPort;
 		}
 

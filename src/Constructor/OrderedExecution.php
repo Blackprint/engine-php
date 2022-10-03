@@ -7,7 +7,6 @@ class OrderedExecution {
 	public $initialSize = 30;
 	public $pause = false;
 	public $stepMode = false;
-	private $_onceComplete = [];
 
 	/** @var array<\Blackprint\Node> */
 	public $list;
@@ -17,7 +16,7 @@ class OrderedExecution {
 		$this->list = array_fill(0, $size, null);
 	}
 
-	public function isPending($node){
+	public function isPending(&$node){
 		return in_array($node, $this->list);
 	}
 
@@ -40,25 +39,9 @@ class OrderedExecution {
 		$this->list[$this->length++] = $node;
 	}
 
-	// Because PHP doesn't have async function, in most case you don't need to use this
-	public function onceComplete($func){
-		if($this->length === 0) return $func();
-
-		if(in_array($func, $this->_onceComplete)) return;
-		$this->_onceComplete[] = &$func;
-	}
-
 	public function &_next(){
-		if($this->index >= $this->length){
-			foreach ($this->_onceComplete as &$func) {
-				$func();
-			}
-
-			if(count($this->_onceComplete) !== 0)
-				$this->_onceComplete = [];
-
+		if($this->index >= $this->length)
 			return \Blackprint\Utils::$_null;
-		}
 
 		$i = $this->index;
 		$temp = $this->list[$this->index++];
@@ -75,54 +58,61 @@ class OrderedExecution {
 		if($this->pause) return;
 		if($this->stepMode) $this->pause = true;
 
+		/** @var \Blackprint\Node */
 		$next = $this->_next(); // next => node
 		if($next == null) return;
 
+		$_proxyInput = null;
+		$nextIface = &$next->iface;
+		$next->_bpUpdating = true;
+
+		if($next->partialUpdate && $next->update == null)
+			$next->partialUpdate = false;
+
+		$skipUpdate = count($next->routes->in) !== 0;
+		if($nextIface->_enum === \Blackprint\Nodes\Enums::BPFnMain){
+			$_proxyInput = &$nextIface->_proxyInput;
+			$_proxyInput->_bpUpdating = true;
+		}
+
 		try{
-			$portList = &$next->iface->input;
-			$next->_bpUpdating = true;
-
-			if($next->partialUpdate && $next->update == null)
-				$next->partialUpdate = false;
-
-			foreach($portList as &$inp){
-				$inpIface = &$inp->iface;
-
-				if($inp->feature === \Blackprint\PortType::ArrayOf){
-					if($inp->_hasUpdate !== false){
-						$inp->_hasUpdate = false;
-						$cables = &$inp->cables;
-
-						foreach($cables as &$cable){
-							if(!$cable->_hasUpdate) continue;
-							$cable->_hasUpdate = false;
-
-							$temp = new \Blackprint\EvPortValue($inp, $cable->output, $cable);
-							$inp->emit('value', $temp);
-							$inpIface->emit('port.value', $temp);
-
-							// Make this async if possible
-							if($next->partialUpdate) $next->update($cable);
+			if($next->partialUpdate){
+				$portList = &$nextIface->input;
+				foreach($portList as &$inp){
+					if($inp->feature === \Blackprint\PortType::ArrayOf){
+						if($inp->_hasUpdate !== false){
+							$inp->_hasUpdate = false;
+	
+							if(!$skipUpdate){
+								$cables = &$inp->cables;
+								foreach($cables as &$cable){
+									if(!$cable->_hasUpdate) continue;
+									$cable->_hasUpdate = false;
+	
+									// Make this async if possible
+									$next->update($cable);
+								}
+							}
 						}
 					}
-				}
-				else if($inp->_hasUpdateCable !== null){
-					$cable = $inp->_hasUpdateCable;
-					$inp->_hasUpdateCable = null;
-
-					$temp = new \Blackprint\EvPortValue($inp, $cable->output, $cable);
-					$inp->emit('value', $temp);
-					$inpIface->emit('port.value', $temp);
-
-					// Make this async if possible
-					if($next->partialUpdate) $next->update($cable);
+					else if($inp->_hasUpdateCable !== null){
+						$cable = $inp->_hasUpdateCable;
+						$inp->_hasUpdateCable = null;
+	
+						// Make this async if possible
+						if(!$skipUpdate) $next->update($cable);
+					}
 				}
 			}
+
 			$next->_bpUpdating = false;
+			if($_proxyInput) $_proxyInput->_bpUpdating = false;
 
 			// Make this async if possible
-			if(!$next->partialUpdate) $next->_bpUpdate();
+			if(!$next->partialUpdate && !$skipUpdate) $next->_bpUpdate();
 		} catch(\Exception $e) {
+			if($_proxyInput) $_proxyInput->_bpUpdating = false;
+
 			$this->clear();
 			throw $e;
 		} finally {

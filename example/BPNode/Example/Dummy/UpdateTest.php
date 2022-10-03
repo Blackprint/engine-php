@@ -17,7 +17,7 @@ class UpdateTest extends \Blackprint\Node {
 		"B2"=> Types::String,
 	];
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // Let's use default node interface
@@ -29,7 +29,7 @@ class UpdateTest extends \Blackprint\Node {
 		// });
 	}
 
-	function update(&$cable){
+	function update($cable){
 		// $index = $this->iface->id || array_search($this->iface, $this->instance->ifaceList);
 		// echo("UpdateTest "+index+"> Updating ports");
 

@@ -118,9 +118,9 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$this->data['name'] = &$name;
 		$this->data['scope'] = &$scopeId;
 
-		$_funcInstance = &$this->node->instance->_funcMain;
+		$_funcInstance = $this->node->instance->_funcMain;
 		if($_funcInstance !== null)
-			$_funcInstance = &$_funcInstance->node->_funcInstance;
+			$_funcInstance = $_funcInstance->node->_funcInstance;
 
 		if($scopeId === VarScope::public){
 			if($_funcInstance !== null)

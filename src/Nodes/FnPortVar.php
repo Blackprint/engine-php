@@ -153,11 +153,11 @@ class FnVarInputIface extends BPFnVarInOut {
 		else{
 			$this->_listener = function(&$dat) {
 				$port = &$dat->port;
-	
+
 				if($port->iface->node->routes->out != null){
 					$Val = &$this->ref->IOutput['Val'];
 					$Val->value = &$port->value; // Change value without trigger node.update
-	
+
 					$list = &$Val->cables;
 					foreach ($list as &$temp) {
 						// Clear connected cable's cache
@@ -165,10 +165,10 @@ class FnVarInputIface extends BPFnVarInOut {
 					}
 					return;
 				}
-	
+
 				$this->ref->Output->setByRef('Val', $port->value);
 			};
-	
+
 			$port->on('value', $this->_listener);
 		}
 	}

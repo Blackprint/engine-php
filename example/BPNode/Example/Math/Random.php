@@ -17,7 +17,7 @@ class Random extends \Blackprint\Node {
 
 	public $executed = false;
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface(); // default interface
@@ -25,7 +25,7 @@ class Random extends \Blackprint\Node {
 	}
 
 	// When the connected node is requesting for the output value
-	function request(&$cable) {
+	function request($cable) {
 		// Only run once this node never been executed
 		// Return false if no value was changed
 		if($this->executed === true) return false;

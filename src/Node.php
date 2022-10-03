@@ -1,6 +1,8 @@
 <?php
 namespace Blackprint;
 
+use Blackprint\Nodes\Enums;
+
 class Node {
 	/** @var Constructor\PortLink */
 	public $output = null;
@@ -79,17 +81,30 @@ class Node {
 	}
 
 	public function _bpUpdate(){
-		$this->_bpUpdating = true;
-		$this->update(\Blackprint\Utils::$_null);
-		$this->_bpUpdating = false;
+		$thisIface = $this->iface;
+		$isMainFuncNode = $thisIface->_enum === Enums::BPFnMain;
 
+		if(!($isMainFuncNode && $this->routes->out !== null)){
+			$this->_bpUpdating = true;
+			$this->update(\Blackprint\Utils::$_null);
+			$this->_bpUpdating = false;
+			$this->iface->emit('updated');
+		}
+
+		$ref = &$this->instance->executionOrder;
 		if($this->routes->out == null){
-			$this->instance->executionOrder->next();
+			if($isMainFuncNode && $thisIface->node->routes->out != null){
+				$thisIface->node->routes->routeOut();
+				$ref->next();
+			}
+			else $ref->next();
 		}
 		else{
-			if($this->iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain)
+			if(!$isMainFuncNode)
 				$this->routes->routeOut();
-			else $this->iface->_proxyInput->routes->routeOut();
+			else $thisIface->_proxyInput->routes->routeOut();
+
+			$ref->next();
 		}
 	}
 

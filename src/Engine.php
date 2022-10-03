@@ -214,14 +214,14 @@ class Engine extends Constructor\CustomEvent {
 							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null){
 								if($targetNode->_enum === Nodes\Enums::BPFnOutput){
-									$linkPortB = $targetNode->addPort($linkPortA, $target['name']);
+									$linkPortB = &$targetNode->addPort($linkPortA, $target['name']);
 
 									if($linkPortB === null)
 										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->_funcMain->node->_funcInstance->id})");
 								}
 								elseif($targetNode->_enum === Nodes\Enums::BPVarSet){
 									$targetNode->useType($linkPortA);
-									$linkPortB = $targetNode->input[$target['name']];
+									$linkPortB = &$targetNode->input[$target['name']];
 								}
 								elseif($linkPortA->type === \Blackprint\PortType::Route){
 									$linkPortB = &$targetNode->node->routes;

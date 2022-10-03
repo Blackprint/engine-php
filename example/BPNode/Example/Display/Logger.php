@@ -14,7 +14,7 @@ class Logger extends \Blackprint\Node {
 	/** @var LoggerIFace */
 	public $iface;
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Logger');
@@ -44,11 +44,11 @@ class Logger extends \Blackprint\Node {
 		$this->iface->input['Any']->on('value', function(&$ev) {
 			$target = &$ev->target;
 
-			\App\colorLog("Logger (".($this->iface->id ?? '')."):", "I connected to {$target->name} (port {$target->iface->title}), that have new value: $target->value");
+			\App\colorLog("Logger (".($this->iface->id ?? '')."):", "I connected to port {$target->name} ({$target->iface->namespace}), that have new value: $target->value");
 		});
 	}
 
-	function update(&$cable){
+	function update($cable){
 		// Let's take all data from all connected nodes
 		// Instead showing new single data-> val
 		$this->refreshLogger($this->input['Any']);

@@ -5,6 +5,7 @@ class Utils{
 	public static $NoOperation;
 	public static $_null = null;
 
+	// ToDo: recheck if reference &$obj will change the original data
 	public static function &deepProperty(&$obj, $path, &$value = null){
 		if($value !== null){
 			$last = array_pop($path);

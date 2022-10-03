@@ -15,7 +15,7 @@ class Simple extends \Blackprint\Node {
 	/** @var InputIFace */
 	public $iface;
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Input');
@@ -23,7 +23,7 @@ class Simple extends \Blackprint\Node {
 	}
 
 	// Bring value from imported iface to node output
-	function imported(&$data) {
+	function imported($data) {
 		if($data == null) return;
 
 		$val = $data['value'];

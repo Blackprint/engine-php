@@ -11,7 +11,7 @@ class Simple extends \Blackprint\Node {
 		'Clicked'=> Types::Function
 	];
 
-	function __construct(&$instance){
+	function __construct($instance){
 		parent::__construct($instance);
 
 		$iface = $this->setInterface('BPIC/Example/Button');

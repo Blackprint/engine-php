@@ -3,6 +3,7 @@ namespace Blackprint\Constructor;
 use \Blackprint\Types;
 use \Blackprint\PortType;
 use \Blackprint\Port as PortFeature;
+use \Blackprint\Nodes\Enums;
 
 enum Args {
 	case NoArgs;
@@ -57,7 +58,9 @@ class Port extends CustomEvent {
 		if($feature === PortType::Trigger){
 			$this->default = function() use(&$def) {
 				$def($this);
-				$this->iface->node->routes->routeOut();
+
+				if($this->iface->_enum !== Enums::BPFnMain)
+					$this->iface->node->routes->routeOut();
 			};
 		}
 		elseif($feature === PortType::StructOf)
@@ -122,32 +125,35 @@ class Port extends CustomEvent {
 			$thisNode->_bpUpdating = true;
 		}
 
+		if($thisNode->routes->out !== null
+		   && $thisNode->iface->_enum === Enums::BPFnMain
+		   && $thisNode->iface->bpInstance->executionOrder->length !== 0){
+			$skipSync = true;
+		}
+
 		foreach ($cables as &$cable) {
 			$inp = &$cable->input;
 			if($inp === null) continue;
 			$inp->_cache = null;
 
 			$inpIface = &$inp->iface;
+			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
+			$inp->emit('value', $temp);
+			$inpIface->emit('port.value', $temp);
 
-			if($thisNode->_bpUpdating){
+			if($skipSync === false && $thisNode->_bpUpdating){
 				if($inp->feature === \Blackprint\PortType::ArrayOf){
 					$inp->_hasUpdate = true;
 					$cable->_hasUpdate = true;
 				}
 				else $inp->_hasUpdateCable = $cable;
 
-				if($skipSync === false && $inpIface->_requesting === false)
+				if($inpIface->_requesting === false)
 					$instance->executionOrder->add($inp->_node);
-
-				continue;
 			}
 
-			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
-			$inp->emit('value', $temp);
-			$inpIface->emit('port.value', $temp);
-
 			// Skip sync if the node has route cable
-			if($skipSync) continue;
+			if($skipSync || $thisNode->_bpUpdating) continue;
 
 			// echo "\n4. {$inp->name} = {$inpIface->title}, {$inpIface->_requesting}";
 
