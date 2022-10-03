@@ -24,7 +24,7 @@ class Port extends CustomEvent {
 	public $iface;
 	public $default;
 	public $value = null;
-	public $sync = false;
+	public $_sync = false;
 	public $allowResync = false; // Retrigger connected node's .update when the output value is similar
 	public $feature = null;
 	public $onConnect = false;
@@ -100,7 +100,7 @@ class Port extends CustomEvent {
 	public function createLinker(){
 		// Callable port
 		if($this->source === 'output' && ($this->type === Types::Function || $this->type === Types::Route)){
-			$this->sync = false;
+			$this->_sync = false;
 
 			if($this->type === Types::Function)
 				return $this->_callAll = createCallablePort($this);
@@ -159,7 +159,7 @@ class Port extends CustomEvent {
 
 			$node = &$inpIface->node;
 			if($inpIface->_requesting === false && count($node->routes->in) === 0)
-				$node->_bpUpdate($cable);
+				$node->_bpUpdate();
 		}
 
 		if($singlePortUpdate){

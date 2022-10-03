@@ -177,6 +177,8 @@ class PortLink extends \ArrayObject {
 			return;
 		}
 
+		if($port->_sync == false) return;
+
 		$port->sync();
 	}
 
