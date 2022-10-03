@@ -30,7 +30,7 @@ class CustomEvent {
 		$this->on($eventName, $func, true);
 	}
 
-	public function onceAsync($eventName){
+	public function waitOnce($eventName){
 		throw new \Exception("This method is not implemented yet, feel free to create improvement for this engine.");
 	}
 
