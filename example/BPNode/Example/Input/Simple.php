@@ -58,9 +58,6 @@ class InputIFaceData {
 
 		if($key === 'value')
 			$this->iface->changed($val);
-		else return;
-
-		$this->iface->node->routes->routeOut();
 	}
 }
 

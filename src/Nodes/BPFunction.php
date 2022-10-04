@@ -259,9 +259,9 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 	/** @var FnMain */
 	public $iface = null;
 
-	public function init(){
-		if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
-	}
+	// public function init(){
+	// 	if(!$this->iface->_importOnce) $this->iface->_BpFnInit();
+	// }
 
 	public function imported($data){
 		$instance = &$this->_funcInstance;

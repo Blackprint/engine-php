@@ -275,7 +275,7 @@ class Engine extends Constructor\CustomEvent {
 			$val->init();
 		}
 
-		$this->_importing = true;
+		$this->_importing = false;
 		// this.emit("json.imported", {appendMode: options.appendMode, nodes: inserted, raw: json});
 		$this->executionOrder->next();
 
