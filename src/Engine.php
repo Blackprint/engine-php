@@ -295,15 +295,6 @@ class Engine extends Constructor\CustomEvent {
 		return $targetIface->{$whichPort}[$target['name']];
 	}
 
-	public function &getNode($id){
-		$ifaces = &$this->ifaceList;
-
-		foreach ($ifaces as &$val) {
-			if($val->id === $id || $val->i === $id)
-				return $val->node;
-		}
-	}
-
 	public function &getNodes($namespace){
 		$ifaces = &$this->ifaceList;
 		$got = [];
@@ -316,7 +307,6 @@ class Engine extends Constructor\CustomEvent {
 		return $got;
 	}
 
-	// ToDo: sync with JS, when creating function node this still broken
 	public function &createNode($namespace, $options=null, &$nodes=null){
 		$func = Utils::deepProperty(Internal::$nodes, explode('/', $namespace));
 
