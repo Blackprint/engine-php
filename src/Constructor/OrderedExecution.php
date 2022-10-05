@@ -7,6 +7,7 @@ class OrderedExecution {
 	public $initialSize = 30;
 	public $pause = false;
 	public $stepMode = false;
+	private $_processing = false;
 
 	/** @var array<\Blackprint\Node> */
 	public $list;
@@ -55,12 +56,14 @@ class OrderedExecution {
 
 	// Can be async function if the programming language support it
 	public function next(){
+		if($this->_processing) return;
 		if($this->pause) return;
 		if($this->stepMode) $this->pause = true;
 
 		/** @var \Blackprint\Node */
 		$next = $this->_next(); // next => node
 		if($next == null) return;
+		$this->_processing = true;
 
 		$_proxyInput = null;
 		$nextIface = &$next->iface;
@@ -82,13 +85,13 @@ class OrderedExecution {
 					if($inp->feature === \Blackprint\PortType::ArrayOf){
 						if($inp->_hasUpdate !== false){
 							$inp->_hasUpdate = false;
-	
+
 							if(!$skipUpdate){
 								$cables = &$inp->cables;
 								foreach($cables as &$cable){
 									if(!$cable->_hasUpdate) continue;
 									$cable->_hasUpdate = false;
-	
+
 									// Make this async if possible
 									$next->update($cable);
 								}
@@ -98,7 +101,7 @@ class OrderedExecution {
 					else if($inp->_hasUpdateCable !== null){
 						$cable = $inp->_hasUpdateCable;
 						$inp->_hasUpdateCable = null;
-	
+
 						// Make this async if possible
 						if(!$skipUpdate) $next->update($cable);
 					}
@@ -118,5 +121,8 @@ class OrderedExecution {
 		} finally {
 			if($this->stepMode) $this->pause = false;
 		}
+
+		$this->_processing = false;
+		$this->next();
 	}
 }

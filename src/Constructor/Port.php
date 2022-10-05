@@ -24,7 +24,7 @@ class Port extends CustomEvent {
 	public $iface;
 	public $default;
 	public $value = null;
-	public $_sync = false;
+	public $_sync = true;
 	public $allowResync = false; // Retrigger connected node's .update when the output value is similar
 	public $feature = null;
 	public $onConnect = false;
