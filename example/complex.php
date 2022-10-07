@@ -22,17 +22,17 @@ $instance->importJSON('{"_":{"moduleJS":[],"functions":{"Test":{"id":"Test","tit
 
 // Let's to run something
 // Because PHP is synchronous, we don't need to use await like in JavaScript
-$button = &$instance->iface['myButton'];
+$button = $instance->iface['myButton'];
 echo "\n>> I'm clicking the button\n";
 $button->clicked();
 
-$logger = &$instance->iface['myLogger'];
+$logger = $instance->iface['myLogger'];
 echo "\n>> I got the output value: ".$logger->log()."\n";
 
 echo "\n>> I'm writing something to the input box\n";
-$input = &$instance->iface['myInput'];
+$input = $instance->iface['myInput'];
 $input->data->value = 'hello wrold';
 
 // You can also use getNodes if you haven't set the ID
-$logger = &$instance->getNodes('Example/Display/Logger')[0]->iface;
+$logger = $instance->getNodes('Example/Display/Logger')[0]->iface;
 echo "\n>> I got the output value: ".$logger->log()."\n";

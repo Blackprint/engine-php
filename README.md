@@ -8,14 +8,17 @@
 </p>
 
 ## Documentation
-> Currently this engine-php may contain bugs as the author is focusing for engine-js, feel free to report an issue so the maintainer can be noticed with the bug and fix it
+> Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
+> But please try to use it and help improve this project
+
+This engine is designed to be similar with `engine-js`, some API and property will be similar.
 
 **Minimum PHP version `>= 8.1`**
 
 ---
 
 ### Defining Blackprint Node and Interface
-Because PHP does support Class-based programming and to make the node import more effective and easier, this engine will only support Node/Interface that declared with classes.
+Because PHP does support class-based programming and to make the node import more effective and easier, this engine will only support Node/Interface that declared with classes.
 
 But before that, we need to create a folder to store our Node/Interface logic. For the example `/BPNode`.
 
@@ -41,7 +44,23 @@ namespace \BPNode\Example;
 // The class name must match with the file name
 // This will be registered as Node definition
 class Hello extends \Blackprint\Node {
-    function __construct(&$instance){
+    // Please remember to capitalize the port name
+    // Set the output port structure for your node (Optional)
+    static $output = [
+        'Changed'=> Types::Function,
+        // Callable: $this->output['Changed']()
+
+        'Output'=> Types::Number,
+        // $this->output['Value'] = 246
+    ];
+
+    // Set the input port structure for your node (Optional)
+    static $input = [
+        'Multiply'=> Types::Number,
+        // $val = $this->output['Value']
+    ]
+
+    function __construct($instance){
         // Call the parent constructor first, passing the $instance (Blackprint\Engine)
         parent::__construct($instance);
 
@@ -49,36 +68,20 @@ class Hello extends \Blackprint\Node {
         // to use default empty interface "setInterface()"
         $iface = $this->setInterface('BPIC/Example/Hello');
         $iface->title = "Hello"; // Set the title for debugging
-
-        // Please remember to capitalize the port name
-        // Set the output port structure for your node (Optional)
-        $this->output = [
-            'Changed'=> Types::Function,
-            // Callable: $this->output['Changed']()
-
-            'Output'=> Types::Number,
-            // $this->output['Value'] = 246
-        ];
-
-        // Set the input port structure for your node (Optional)
-        $this->input = [
-            'Multiply'=> Types::Number,
-            // $val = $this->output['Value']
-        ]
     }
 }
 ```
 
-Because Node is supposed to contain structure only it should be designed to be simple, the another complexity like calling system API or providing API for developer to interact with your node should be placed on Interface class.
+Let's also define our custom interface, this is optional and needed only if you want to provide access for other developer. Just like an API (Application Programming Interface).
 
 ```php
 // same file: ./BPNode/Example/Hello.php
 namespace \BPNode\Example;
 
 // Your Interface namespace must use "BPIC" as the prefix
-\Blackprint\registerInterface('BPIC\Example\Hello', HelloIFace::class);
+\Blackprint\registerInterface('BPIC/Example/Hello', HelloIFace::class);
 class HelloIFace extends \Blackprint\Interfaces {
-    function __construct(&$node){
+    function __construct($node){
         // Call the parent constructor first, passing the $node (Blackprint\Node)
         parent::__construct($node);
         // $this->node => Blackprint\Node
@@ -91,10 +94,10 @@ class HelloIFace extends \Blackprint\Interfaces {
 
     function recalculate(){
         // Get value from input port
-        $multiplyBy = $this->node->input['Multiply']();
+        $multiplyBy = $this->node->input['Multiply'];
 
         // Assign new value to output port
-        $this->node->output['Output']($this->data->value * $multiplyBy);
+        $this->node->output['Output'] = $this->data->value * $multiplyBy;
     }
 }
 
@@ -140,7 +143,7 @@ $instance = new Blackprint\Engine();
 $instance->importJSON(`{...}`);
 
 // You can also create the node dynamically
-$iface = $instance->createNode('Example\Hello', /* [..options..] */);
+$iface = $instance->createNode('Example/Hello', /* [..options..] */);
 
 // ----
 
@@ -148,16 +151,16 @@ $iface = $instance->createNode('Example\Hello', /* [..options..] */);
 $iface->data->value = 123;
 
 // Assign the 'Multiply' input port = 2
-$iface->node->input['Multiply'](2);
+$iface->node->input['Multiply'] = 2;
 
 // Get the value from 'Output' output port
-echo $iface->node->output['Output'](); // 246
+echo $iface->node->output['Output']; // 246
 ```
 
 ---
 
 ### Example
-![VEfiZCFQAi](https://user-images.githubusercontent.com/11073373/141419539-dbee7bae-946c-4eb4-969b-118b77e07d18.png)
+![wKKLQb1Y0D](https://user-images.githubusercontent.com/11073373/194293978-329fd7df-5f13-4243-9005-bf13c4a4734f.jpg)
 
 This repository provide an example with the JSON too, and you can try it with PHP CLI:<br>
 
