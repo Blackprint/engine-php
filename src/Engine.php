@@ -179,7 +179,7 @@ class Engine extends Constructor\CustomEvent {
 				$iface = &$inserted[$ifaceJSON['i']];
 
 				if(isset($ifaceJSON['route']))
-					$iface->node->routes->routeTo($inserted[$ifaceJSON['route']['i']]);
+					$iface->node->routes->routeTo($inserted[$ifaceJSON['route']['i'] + $appendLength]);
 
 				// If have output connection
 				if(isset($ifaceJSON['output'])){
@@ -187,11 +187,14 @@ class Engine extends Constructor\CustomEvent {
 
 					// Every output port that have connection
 					foreach($out as $portName => &$ports){
+						/** @var Constructor\Port */
 						$linkPortA = &$iface->output[$portName];
 
 						if($linkPortA === null){
 							if($iface->_enum === Nodes\Enums::BPFnInput){
 								$target = $this->_getTargetPortType($iface->node->instance, 'input', $ports);
+
+								/** @var Constructor\Port */
 								$linkPortA = $iface->addPort($target, $portName);
 
 								if($linkPortA === null)
@@ -200,6 +203,8 @@ class Engine extends Constructor\CustomEvent {
 							elseif($iface->_enum === Nodes\Enums::BPVarGet){
 								$target = $this->_getTargetPortType($this, 'input', $ports);
 								$iface->useType($target);
+
+								/** @var Constructor\Port */
 								$linkPortA = $iface->output[$portName];
 							}
 							else throw new \Exception("Node port not found for iface (index: $ifaceJSON[i], title: $iface->title), with port name: $portName");
@@ -208,7 +213,18 @@ class Engine extends Constructor\CustomEvent {
 						// Current output's available targets
 						foreach ($ports as &$target) {
 							$target['i'] += $appendLength;
-							$targetNode = &$inserted[$target['i']];
+							$targetNode = &$inserted[$target['i']]; // iface
+
+							if($linkPortA->isRoute){
+								$nul = null;
+								$cable = new Constructor\Cable($linkPortA, $nul);
+								$cable->isRoute = true;
+								$cable->output = $linkPortA;
+								$linkPortA->cables[] = $cable;
+
+								$targetNode->node->routes->connectCable($cable);
+								continue;
+							}
 
 							// output can only meet input port
 							$linkPortB = &$targetNode->input[$target['name']];

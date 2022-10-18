@@ -102,7 +102,7 @@ class PortLink extends \ArrayObject {
 					return $port->_cache = $output->value ?? $port->default;
 				}
 
-				$data[] = $output->value ?? $port->default;
+				$data[] = $output->value;
 			}
 
 			$port->iface->_requesting = false;
