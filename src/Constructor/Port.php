@@ -30,6 +30,7 @@ class Port extends CustomEvent {
 	public $onConnect = false;
 	public $splitted = false;
 	public $struct = null;
+	public $isRoute = false;
 
 	public $_ghost = false;
 	public $_name = null;
@@ -142,11 +143,13 @@ class Port extends CustomEvent {
 			$inpIface->emit('port.value', $temp);
 
 			if($skipSync === false && $thisNode->_bpUpdating){
-				if($inp->feature === \Blackprint\PortType::ArrayOf){
-					$inp->_hasUpdate = true;
-					$cable->_hasUpdate = true;
+				if($inpIface->node->partialUpdate){
+					if($inp->feature === \Blackprint\PortType::ArrayOf){
+						$inp->_hasUpdate = true;
+						$cable->_hasUpdate = true;
+					}
+					else $inp->_hasUpdateCable = $cable;
 				}
-				else $inp->_hasUpdateCable = $cable;
 
 				if($inpIface->_requesting === false)
 					$instance->executionOrder->add($inp->_node);

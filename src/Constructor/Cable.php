@@ -114,8 +114,10 @@ class Cable{
 		$target = &$this->target;
 		$alreadyEmitToInstance = false;
 
-		if($this->input !== null)
+		if($this->input !== null){
 			$this->input->_cache = null;
+			$this->input->_hasUpdateCable = null;
+		}
 
 		// Remove from cable owner
 		if($owner && (!$which || $owner === $which)){
