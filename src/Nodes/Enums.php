@@ -11,4 +11,6 @@ enum Enums {
 	case BPFnInput;
 	case BPFnOutput;
 	case BPFnMain;
+	case BPEventListen;
+	case BPEventEmit;
 }

@@ -50,15 +50,16 @@ class CustomEvent {
 			return;
 		}
 
-		if(!isset($this->events[$eventName])) return;
-
-		$i = array_search($this->events[$eventName], $func);
-		if($i !== false)
-			array_splice($this->events[$eventName], $i, 1);
-
-		$i = array_search($this->once[$eventName], $func);
-		if($i !== false)
-			array_splice($this->once[$eventName], $i, 1);
+		if(isset($this->events[$eventName])){
+			$i = array_search($func, $this->events[$eventName]);
+			if($i !== false)
+				array_splice($this->events[$eventName], $i, 1);
+		}
+		if(isset($this->once[$eventName])){
+			$i = array_search($func, $this->once[$eventName]);
+			if($i !== false)
+				array_splice($this->once[$eventName], $i, 1);
+		}
 	}
 
 	public function emit($eventName, &$data=null){

@@ -4,6 +4,7 @@ namespace Blackprint;
 class Environment {
 	public static $_noEvent = false;
 	public static $map = [];
+	public static $_rules = [];
 
 	// arr = ["KEY": "value"]
 	public static function import($arr){
@@ -17,8 +18,8 @@ class Environment {
 	}
 
 	public static function set($key, string $val){
-		if(preg_match("/[^A-Z_][^A-Z0-9_]/", $key) !== false)
-			throw new \Exception("Environment must be uppercase and not contain any symbol except underscore, and not started by a number. But got: $key");
+		if(preg_match("/[^A-Z_][^A-Z0-9_]/", $key) !== 0)
+			throw new \Exception("Environment must be uppercase and not contain any symbol except underscore, and not started by a number. But got: '$key'");
 
 		$map = &Environment::$map;
 		$map[$key] = &$val;
@@ -35,5 +36,21 @@ class Environment {
 
 		$temp = new EvEnv($key);
 		Event->emit('environment.deleted', $temp);
+	}
+
+	/**
+	 * options = {allowGet: {}, allowSet: {}}
+	 */
+	public static function rule($name, $options){
+		if(Environment::$map[$name] == null)
+			throw new \Exception("'$name' was not found on Blackprint\Environment, maybe it haven't been added or imported");
+
+		if(Environment::$_rules[$name] != null)
+			throw new \Exception("'rule' only allow first registration");
+
+		if($options === null)
+			throw new \Exception("Second parameter is required");
+
+		Environment::$_rules[$name] = $options;
 	}
 }

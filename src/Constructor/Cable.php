@@ -1,6 +1,7 @@
 <?php
 namespace Blackprint\Constructor;
 
+use Blackprint\EvPortValue;
 use Exception;
 
 class Cable{
@@ -27,6 +28,9 @@ class Cable{
 	public $source = null;
 	
 	public $_hasUpdate = false;
+	public $_ghost = false;
+	public $_disconnecting = false;
+	public $_calling = false;
 
 	public function __construct(&$owner, &$target){
 		$this->type = &$owner->type;
@@ -47,6 +51,16 @@ class Cable{
 		$this->output = &$out;
 	}
 
+	public function connecting(){
+		if($this->disabled || $this->input->type === \Blackprint\Types::Slot || $this->output->type === \Blackprint\Types::Slot){
+			// inp.iface.node.instance.emit('cable.connecting', {
+			// 	port: input, target: output
+			// });
+			return;
+		}
+
+		$this->_connected();
+	}
 	public function _connected(){
 		$owner = &$this->owner;
 		$target = &$this->target;
@@ -65,15 +79,16 @@ class Cable{
 
 		if($this->output->value === null) return;
 
-		$tempEv = new \Blackprint\EvPortSelf($this->output);
 		$input = &$this->input;
+		$tempEv = new \Blackprint\EvPortValue($input, $this->output, $this);
 		$input->emit('value', $tempEv);
 		$input->iface->emit('port.value', $tempEv);
 
 		$node = &$input->iface->node;
 		if($node->instance->_importing)
-			$node->instance->executionOrder->add($node);
-		else $node->_bpUpdate();
+			$node->instance->executionOrder->add($node, $this);
+		elseif(count($node->routes->in) === 0)
+			$node->_bpUpdate();
 	}
 
 	// For debugging
@@ -84,6 +99,8 @@ class Cable{
 	// ToDo: redesign after https://github.com/php/php-src/pull/6873 been merged
 	public function &__get($key){
 		if($key !== 'value') throw new Exception("'$key' property was not found on this object");
+
+		if($this->_disconnecting) return $this->input->default;
 		return $this->output->value;
 	}
 
@@ -113,10 +130,28 @@ class Cable{
 		$owner = &$this->owner;
 		$target = &$this->target;
 		$alreadyEmitToInstance = false;
+		$this->_disconnecting = true;
 
-		if($this->input !== null){
-			$this->input->_cache = null;
-			$this->input->_hasUpdateCable = null;
+		$inputPort = &$this->input;
+		if($inputPort !== null){
+			$oldVal = &$this->output->value;
+			$inputPort->_cache = null;
+
+			$defaultVal = $inputPort->default;
+			if($defaultVal != null && $defaultVal !== $oldVal){
+				$iface = &$inputPort->iface;
+				$node = &$iface->node;
+				$routes = &$node->routes; // PortGhost's node may not have routes
+
+				if($iface->_bpDestroy !== true && $routes !== null && count($routes->in) === 0){
+					$temp = new EvPortValue($inputPort, $this->output, $this);
+					$inputPort->emit('value', $temp);
+					$iface->emit('port.value', $temp);
+					$node->instance->executionOrder->add($node);
+				}
+			}
+
+			$inputPort->_hasUpdateCable = null;
 		}
 
 		// Remove from cable owner
@@ -155,6 +190,7 @@ class Cable{
 				$target->iface->node->instance->emit('cable.disconnect', $temp);
 		}
 
-		// if(hasOwner || hasTarget) this.connected = false;
+		if($owner || $target) $this->connected = false;
+		$this->_disconnecting = false;
 	}
 }

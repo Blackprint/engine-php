@@ -7,7 +7,6 @@ enum PortType {
 	case Trigger;
 	case Union;
 	case StructOf;
-	case Route;
 }
 
 class Port {
@@ -53,12 +52,18 @@ class Port {
 
 		return [
 			'feature'=>PortType::Trigger,
+			'type'=>Types::Function,
 			'func'=>&$func
 		];
 	}
 
 	/* This port can allow multiple different types
 	 * like an 'any' port, but can only contain one value
+	 * 
+	 * Note:
+	 * Output port mustn't use union, it must only output one type
+	 * and one port can't output multiple possible type
+	 * In this case, Types.Any will be used you may want to cast the type with a node
 	 */
 	static function Union($types){
 		return [
@@ -68,17 +73,6 @@ class Port {
 	}
 
 	static function Union_validate(&$types, &$target){
-		if(is_array($types) && is_array($target)){
-			if(count($types) !== count($target)) return false;
-	
-			foreach ($types as &$type) {
-				if(!in_array($type, $target, true))
-					return false;
-			}
-	
-			return true;
-		}
-	
 		return $target === Types::Any || in_array($target, $types, true);
 	}
 
@@ -95,7 +89,7 @@ class Port {
 
 	/** VirtualType is only for browser with Sketch library */
 	static function VirtualType(){
-		throw new \Error("VirtualType is only for browser with Sketch library");
+		throw new \Exception("VirtualType is only for browser with Sketch library");
 	}
 	
 	static function StructOf_split(&$port){

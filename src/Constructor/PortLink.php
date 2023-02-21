@@ -13,6 +13,7 @@ class PortLink extends \ArrayObject {
 	/** @var array<Port> */
 	private $ifacePort;
 
+	/** @param object $portMeta */
 	public function __construct(&$node, $which, $portMeta){
 		$iface = &$node->iface;
 		$this->_iface = &$iface;
@@ -42,30 +43,42 @@ class PortLink extends \ArrayObject {
 			if($cableLen === 0)
 				return $port->default;
 
+			$portIface = &$port->iface;
+
 			// Flag current iface is requesting value to other iface
-			$port->iface->_requesting = true;
+			$portIface->_requesting = true;
 
 			// Return single data
 			if($cableLen === 1){
 				$cable = $port->cables[0]; # Don't use pointer
 
 				if($cable->connected === false || $cable->disabled){
-					$port->iface->_requesting = false;
+					$portIface->_requesting = false;
 					if($port->feature === PortType::ArrayOf)
-						return $port->_cache = [];
+						$port->_cache = [];
+					else $port->_cache = $port->default;
 
-					return $port->_cache = $port->default;
+					return $port->_cache;
 				}
 
 				$output = &$cable->output;
 
 				// Request the data first
-				if($output->value === null)
+				if($output->value === null){
+					$node = &$output->iface->node;
+					$executionOrder = &$node->instance->executionOrder;
+
+					if($executionOrder->stepMode && $node->request != null){
+						$executionOrder->_addStepPending($cable, 3);
+						return;
+					}
+
 					$output->iface->node->request($cable);
+				}
 
 				// echo "\n1. {$port->name} -> {$output->name} ({$output->value})";
 
-				$port->iface->_requesting = false;
+				$portIface->_requesting = false;
 
 				if($port->feature === PortType::ArrayOf){
 					$port->_cache = [];
@@ -98,23 +111,28 @@ class PortLink extends \ArrayObject {
 				// echo "\n2. {$port->name} -> {$output->name} ({$output->value})";
 
 				if($isNotArrayPort){
-					$port->iface->_requesting = false;
-					return $port->_cache = $output->value ?? $port->default;
+					$portIface->_requesting = false;
+					$port->_cache = $output->value ?? $port->default;
+					return $port->_cache;
 				}
 
 				$data[] = $output->value;
 			}
 
-			$port->iface->_requesting = false;
+			$portIface->_requesting = false;
 
 			$port->_cache = &$data;
 			return $data;
 		}
 		// else output ports
 
-		# Callable port (for output ports)
-		if($port->_callAll != null)
-			return $port->_callAll;
+		// This may get called if the port is lazily assigned with Slot port feature
+		if($port->type === Types::Function){
+			if($port->__call === null)
+				$port->__call = fn() => $port->_callAll();
+
+			return $port->__call;
+		}
 
 		return $port->value;
 	}
@@ -151,6 +169,7 @@ class PortLink extends \ArrayObject {
 				Types::Function => is_callable($val),
 				Types::Object => $type === 'object',
 				Types::Any => true,
+				Types::Slot => throw new \Exception("Port type need to be assigned before giving any value"),
 				default => null,
 			};
 
@@ -200,6 +219,23 @@ class PortLink extends \ArrayObject {
 	}
 
 	public function &_add(&$portName, $val){
+		if(preg_match('/([~!@#$%^&*()_\-+=[]{};\'\\:"|,.\/<>?]|\s)/', $portName))
+			throw new \Exception("Port name can't include symbol character except underscore");
+
+		if($portName === '')
+			throw new \Exception("Port name can't be empty");
+
+		if($this->_which === 'output' && (is_array($val) && isset($val['feature']))){
+			if($val['feature'] === PortType::Union)
+				$val = Types::Any;
+			elseif($val['feature'] === PortType::Trigger)
+				$val = Types::Function;
+			elseif($val['feature'] === PortType::ArrayOf)
+				$val = Types::Array;
+			elseif($val['feature'] === PortType::Default)
+				$val = &$val['type'];
+		}
+
 		$iPort = &$this->ifacePort;
 		$exist = &$iPort[$portName];
 
@@ -211,6 +247,7 @@ class PortLink extends \ArrayObject {
 
 		$linkedPort = $this->_iface->_newPort($portName, $type, $def, $this->_which, $haveFeature);
 		$iPort[$portName] = &$linkedPort;
+		$linkedPort->_config = &$val;
 
 		if(!($haveFeature == PortType::Trigger && $this->_which === 'input'))
 			$linkedPort->createLinker();

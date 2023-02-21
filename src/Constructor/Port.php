@@ -29,16 +29,21 @@ class Port extends CustomEvent {
 	public $feature = null;
 	public $onConnect = false;
 	public $splitted = false;
+	public $_isSlot = false;
 	public $struct = null;
 	public $isRoute = false;
 
 	public $_ghost = false;
 	public $_name = null;
-	public $_callAll = null;
+	public $__call = null;
+	public $_callDef = null;
 	public $_cache = null;
+	public $_config = null;
 	public $_func = null;
 	public $_hasUpdate = false;
 	public $_hasUpdateCable = null;
+	public $_cable = null;
+	public $_calling = false;
 
 	/** @var \Blackprint\Node */
 	public $_node = null;
@@ -50,19 +55,19 @@ class Port extends CustomEvent {
 		$this->iface = &$iface;
 		$this->_node = &$iface->node;
 
+		$this->_isSlot = $type === Types::Slot;
+
 		if($feature === false){
 			$this->default = &$def;
 			return;
 		}
 
-		// this.value;
+		// $this->value;
 		if($feature === PortType::Trigger){
-			$this->default = function() use(&$def) {
-				$def($this);
+			// if($def === $this->_callAll) throw new \Exception("Logic error");
 
-				if($this->iface->_enum !== Enums::BPFnMain)
-					$this->iface->node->routes->routeOut();
-			};
+			$this->_callDef = &$def;
+			$this->default = fn()=> $this->_call();
 		}
 		elseif($feature === PortType::StructOf)
 			$this->struct = &$def;
@@ -98,18 +103,87 @@ class Port extends CustomEvent {
 		}
 	}
 
+	public function _call(&$cable=null){
+		$iface = $this->iface;
+
+		if($cable == null){
+			if($this->_cable == null)
+				$this->_cable = new Cable($this, $this);
+
+			$cable = &$this->_cable;
+		}
+
+		if($this->_calling){
+			$input = &$cable->input;
+			$output = &$cable->output;
+			throw new \Exception("Circular call stack detected:\nFrom: {$output->iface->title}->{$output->name}\nTo: {$input->iface->title}->{$input->name})");
+		}
+
+		$this->_calling = $cable->_calling = true;
+		($this->_callDef)($this);
+		$this->_calling = $cable->_calling = false;
+
+		if($iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain)
+			$iface->node->routes->routeOut();
+	}
+
+	public function _callAll(){
+		if($this->type === Types::Route){
+			$cables = &$this->cables;
+			$cable = &$cables[0];
+
+			if($cable === null) return;
+			if($cable->hasBranch) $cable = &$cables[1];
+
+			// if(Blackprint->settings->visualizeFlow)
+			// 	$cable->visualizeFlow();
+
+			if($cable->input == null) return;
+			$cable->input->routeIn($cable);
+		}
+		else {
+			$node = $this->iface->node;
+			if($node->disablePorts) return;
+			$executionOrder = &$node->instance->executionOrder;
+
+			foreach ($this->cables as &$cable) {
+				$target = &$cable->input;
+				if($target === null) continue;
+
+				// if(Blackprint->settings->visualizeFlow && !executionOrder->stepMode)
+				// 	$cable->visualizeFlow();
+
+				if($target->_name != null)
+					$target->iface->_funcMain->node->iface->output[$target->_name->name]->_callAll();
+				else {
+					if($executionOrder->stepMode){
+						$executionOrder->_addStepPending($cable, 2);
+						continue;
+					}
+
+					$target->iface->input[$target->name]->_call($cable);
+				}
+			}
+
+			$this->emit('call');
+		}
+	}
+
 	public function createLinker(){
 		// Callable port
 		if($this->source === 'output' && ($this->type === Types::Function || $this->type === Types::Route)){
+			// Disable sync
 			$this->_sync = false;
 
-			if($this->type === Types::Function)
-				return $this->_callAll = createCallablePort($this);
-			else return $this->_callAll = createCallableRoutePort($this);
+			if($this->type !== Types::Function){
+				$this->isRoute = true;
+				$this->iface->node->routes->disableOut = true;
+			}
+
+			return fn() => $this->_callAll();
 		}
 
-		if($this->feature === PortType::Trigger)
-			return $this->default;
+		// "var prepare = " is in PortLink.php (offsetGet)
 	}
 
 	// Only for output port
@@ -137,13 +211,18 @@ class Port extends CustomEvent {
 			if($inp === null) continue;
 			$inp->_cache = null;
 
+			if($inp->_cache != null && $instance->executionOrder->stepMode)
+				$inp->_oldCache = &$inp->_cache;
+
 			$inpIface = &$inp->iface;
+			$inpNode = &$inpIface->node;
 			$temp = new \Blackprint\EvPortValue($inp, $this, $cable);
 			$inp->emit('value', $temp);
 			$inpIface->emit('port.value', $temp);
 
+			$nextUpdate = $inpIface->_requesting === false && count($inpNode->routes->in) === 0;
 			if($skipSync === false && $thisNode->_bpUpdating){
-				if($inpIface->node->partialUpdate){
+				if($inpNode->partialUpdate){
 					if($inp->feature === \Blackprint\PortType::ArrayOf){
 						$inp->_hasUpdate = true;
 						$cable->_hasUpdate = true;
@@ -151,8 +230,8 @@ class Port extends CustomEvent {
 					else $inp->_hasUpdateCable = $cable;
 				}
 
-				if($inpIface->_requesting === false)
-					$instance->executionOrder->add($inp->_node);
+				if($nextUpdate)
+					$instance->executionOrder->add($inp->_node, $cable);
 			}
 
 			// Skip sync if the node has route cable
@@ -160,9 +239,8 @@ class Port extends CustomEvent {
 
 			// echo "\n4. {$inp->name} = {$inpIface->title}, {$inpIface->_requesting}";
 
-			$node = &$inpIface->node;
-			if($inpIface->_requesting === false && count($node->routes->in) === 0)
-				$node->_bpUpdate();
+			if($nextUpdate)
+				$inpNode->_bpUpdate();
 		}
 
 		if($singlePortUpdate){
@@ -199,7 +277,71 @@ class Port extends CustomEvent {
 			throw new \Exception($msg."\n\n");
 
 		$temp = (object) $obj;
-		$instance->emit($name, $temp);
+		$instance->_emit($name, $temp);
+	}
+
+	public function assignType($type){
+		if($type == null) throw new \Exception("Can't set type with undefined");
+
+		if($this->type !== Types::Slot){
+			var_dump($this->type);
+			throw new \Exception("Can only assign type to port with 'Slot' type, this port already has type");
+		}
+
+		// Skip if the assigned type is also Slot type
+		if($type === Types::Slot) return;
+
+		// // Check current output value type
+		// if($this->value != null && !($this->value instanceof $type))
+		// 	throw new \Exception("The output value of this port is not instance of type that will be assigned: {$this->value->constructor->name} is not instance of {$type->name}");
+
+		// // Check connected cable's type
+		// foreach ($this->cables as &$cable) {
+		// 	$inputPort = &$cable->input;
+		// 	if($inputPort == null) continue;
+
+		// 	$portType = &$inputPort->type;
+		// 	if($portType !== Types::Any 
+		// 	   && !(is_subclass_of($portType, (is_array($type) && $type['type'] != null ? $type['type'] : $type)::class)))
+		// 		throw new \Exception("The target port's connection of this port is not instance of type that will be assigned: {$this->value->constructor->name} is not instance of {$type->name}");
+		// }
+
+		if(is_array($type) && isset($type['feature'])){
+			if($this->source === 'output'){
+				if($type['feature'] === PortType::Union)
+					$type = Types::Any;
+				elseif($type['feature'] === PortType::Trigger)
+					$type = Types::Function;
+				elseif($type['feature'] === PortType::ArrayOf)
+					$type = Types::Array;
+				elseif($type['feature'] === PortType::Default)
+					$type = &$type['type'];
+			}
+			else {
+				if($type['type'] == null) throw new \Exception("Missing type for port feature");
+
+				$this->feature = &$type['feature'];
+				$this->type = &$type['type'];
+	
+				if($type['feature'] === PortType::StructOf){
+					$this->struct = &$type->default;
+					// $this->classAdd .= "BP-StructOf ";
+				}
+			}
+
+			// if($type->virtualType != null)
+			// 	$this->virtualType = &$type->virtualType;
+		}
+		else $this->type = &$type;
+
+		// Trigger `connect` event for every connected cable
+		foreach ($this->cables as &$cable) {
+			if($cable->disabled || $cable->target == null) continue;
+			$cable->_connected();
+		}
+
+		$this->_config = &$type;
+		$this->emit('type.assigned');
 	}
 
 	public function connectCable(Cable &$cable){
@@ -362,8 +504,7 @@ class Port extends CustomEvent {
 
 		// Connect this cable into port's cable list
 		$this->cables[] = &$cable;
-		// $cable->connecting();
-		$cable->_connected();
+		$cable->connecting();
 
 		return true;
 	}
@@ -375,35 +516,4 @@ class Port extends CustomEvent {
 		$port->cables[] = &$cable;
 		return $this->connectCable($cable);
 	}
-}
-
-function createCallablePort($port){
-	return function() use(&$port) {
-		if($port->iface->node->disablePorts) return;
-
-		$cables = &$port->cables;
-		foreach ($cables as &$cable) {
-			$target = &$cable->input;
-			if($target === null)
-				continue;
-
-			if($target->_name != null)
-				($target->iface->_funcMain->node->output[$target->_name->name])();
-			else ($target->iface->input[$target->name]->default)();
-		}
-
-		$port->emit('call');
-	};
-}
-
-function createCallableRoutePort($port){
-	$port->isRoute = true;
-	$port->iface->node->routes->disableOut = true;
-
-	return function() use(&$port) {
-		$cable = &$port->cables[0];
-		if($cable === null) return;
-
-		$cable->input->routeIn();
-	};
 }

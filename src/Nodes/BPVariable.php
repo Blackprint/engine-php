@@ -23,11 +23,11 @@ class VarSet extends \Blackprint\Node {
 		$iface->title = 'VarSet';
 		$iface->type = 'bp-var-set';
 		$iface->_enum = Enums::BPVarSet;
-		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
 	public function update($cable){
 		$this->iface->_bpVarRef->value = $this->input['Val'];
 	}
+	public function destroy(){ $this->iface->destroyListener(); }
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
 
@@ -46,8 +46,8 @@ class VarGet extends \Blackprint\Node {
 		$iface->title = 'VarGet';
 		$iface->type = 'bp-var-get';
 		$iface->_enum = Enums::BPVarGet;
-		$iface->_dynamicPort = true; // Port is initialized dynamically
 	}
+	public function destroy(){ $this->iface->destroyListener(); }
 };
 \Blackprint\registerNode('BP/Var/Get', VarGet::class);
 
@@ -66,14 +66,17 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	// this->totalGet = 0;
 	public $funcInstance = null;
 	public $_value = null;
+	public $_scope = null;
 
 	public function __construct($id, $options=null){
-		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+/', '_', $id);
-		
-		// this.rootInstance = instance;
-		$this->id = $this->title = &$id;
-		$this->type = &BPVarTemp::$typeNotSet;
-		
+		$id = preg_replace('/^\/|\/$/m', '', $id);
+		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $id);
+
+		// $this->rootInstance = instance;
+		$this->id = &$id;
+		$this->title = $options['title'] ?? $id;
+		$this->type = \Blackprint\Types::Slot;
+
 		// The type need to be defined dynamically on first cable connect
 	}
 
@@ -102,6 +105,10 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 
 class BPVarGetSet extends \Blackprint\Interfaces {
 	public $_onChanged = null;
+	public $_destroyWaitType;
+	public $_waitTypeChange;
+	public $_bpVarRef;
+	public $_dynamicPort = true; // Port is initialized dynamically
 
 	public function imported($data){
 		if(!isset($data['scope']) || !isset($data['name']))
@@ -111,7 +118,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$temp = &$this->_bpVarRef;
 		$temp->used[] = &$this;
 	}
-	public function &changeVar($name, $scopeId){
+	public function changeVar($name, $scopeId){
 		if($this->data['name'] !== '')
 			throw new \Exception("Can't change variable node that already be initialized");
 			
@@ -132,16 +139,18 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		else // private
 			$scope = &$this->node->instance->variables;
 
-		if(!isset($scope[$name])){
+		$construct = \Blackprint\Utils::getDeepProperty($scope, explode('/', $name));
+
+		if($construct === null){
 			if($scopeId === VarScope::public) $_scopeName = 'public';
 			elseif($scopeId === VarScope::private) $_scopeName = 'private';
 			elseif($scopeId === VarScope::shared) $_scopeName = 'shared';
-			else $_scopeName = 'unknown';
+			else throw new \Exception("Unrecognized scopeId: $scopeId");
 
 			throw new \Exception("'{$name}' variable was not defined on the '{$_scopeName} (scopeId: $scopeId)' instance");
 		}
 
-		return $scope;
+		return $construct;
 	}
 
 	public function _reinitPort(){
@@ -150,23 +159,43 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	
 	public function useType(\Blackprint\Constructor\Port $port){
 		$temp = &$this->_bpVarRef;
-		if($temp->type !== BPVarTemp::$typeNotSet){
-			if($port === null) $temp->type = BPVarTemp::$typeNotSet;
+		if($temp->type !== \Blackprint\Types::Slot){
+			if($port === null) $temp->type = \Blackprint\Types::Slot;
 			return;
 		}
 
 		if($port === null) throw new \Exception("Can't set type with null");
-		$temp->type = &$port->type;
+		$temp->type = $port->_config ?? $port->type;
 
-		$targetPort = $this->_reinitPort();
-		$targetPort->connectPort($port);
+		if($port->type === \Blackprint\Types::Slot)
+			$this->waitTypeChange($temp, $port);
+		else $temp->emit('type.assigned');
 
 		// Also create port for other node that using $this variable
 		$used = &$temp->used;
 		foreach ($used as &$item)
 			$item->_reinitPort();
 	}
-	public function destroy(){
+	public function waitTypeChange(&$bpVar, &$port=null){
+		$this->_waitTypeChange = function() use(&$bpVar, &$port) {
+			if($port !== null) {
+				$bpVar->type = $port->_config ?? $port->type;
+				$bpVar->emit('type.assigned');
+			}
+			else {
+				$target = $this->input->Val ?? $this->output->Val;
+				$target->assignType($bpVar->type);
+			}
+		};
+
+		$this->_destroyWaitType = fn() => $bpVar->off('type.assigned', $this->_waitTypeChange);
+		($port ?? $bpVar)->once('type.assigned', $this->_waitTypeChange);
+	}
+	public function destroyIface(){
+		$temp = &$this->_destroyWaitType;
+		if($temp !== null)
+			($this->_destroyWaitType)();
+
 		$temp = &$this->_bpVarRef;
 		if($temp === null) return;
 
@@ -182,19 +211,18 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 }
 
 class IVarGet extends BPVarGetSet {
-	public function &changeVar($name, $scopeId){
+	public function changeVar($name, $scopeId){
 		if($this->data['name'] !== '')
 			throw new \Exception("Can't change variable node that already be initialized");
 
 		if($this->_onChanged != null)
 			$this->_bpVarRef?->off('value', $this->_onChanged);
 
-		$scope = parent::changeVar($name, $scopeId);
-		$this->title = "Get $name";
+		$varRef = parent::changeVar($name, $scopeId);
+		$this->title = str_replace('/', ' / ', $name);
 
-		$temp = &$scope[$this->data['name']];
-		$this->_bpVarRef = &$temp;
-		if($temp->type === BPVarTemp::$typeNotSet) return $scope;
+		$this->_bpVarRef = &$varRef;
+		if($varRef->type === \Blackprint\Types::Slot) return;
 
 		$this->_reinitPort();
 	}
@@ -202,10 +230,14 @@ class IVarGet extends BPVarGetSet {
 	public function _reinitPort(){
 		$temp = &$this->_bpVarRef;
 		$node = &$this->node;
+
+		if($temp->type === \Blackprint\Types::Slot)
+			$this->waitTypeChange($temp);
+
 		if(isset($this->output['Val']))
 			$node->deletePort('output', 'Val');
 
-		$ref = &$this->node->output;
+		$ref = &$node->output;
 		$node->createPort('output', 'Val', $temp->type);
 
 		if($temp->type === \Blackprint\Types::Function){
@@ -217,26 +249,28 @@ class IVarGet extends BPVarGetSet {
 			$this->_onChanged = function() use(&$ref, &$temp) { $ref->setByRef('Val', $temp->_value); };
 		}
 
+		if($temp->type !== \Blackprint\Types::Function)
+			$node->output->Val = &$temp->_value;
+
 		$temp->on($this->_eventListen, $this->_onChanged);
 		return $this->output['Val'];
 	}
-	public function destroy(){
+	public function destroyIface(){
 		if($this->_eventListen != null)
 			$this->_bpVarRef->off($this->_eventListen, $this->_onChanged);
 
-		parent::destroy();
+		parent::destroyIface();
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Var/Get', IVarGet::class);
 
 class IVarSet extends BPVarGetSet {
-	public function &changeVar($name, $scopeId){
-		$scope = parent::changeVar($name, $scopeId);
-		$this->title = "Set $name";
+	public function changeVar($name, $scopeId){
+		$varRef = parent::changeVar($name, $scopeId);
+		$this->title = str_replace('/', ' / ', $name);
 
-		$temp = &$scope[$this->data['name']];
-		$this->_bpVarRef = &$temp;
-		if($temp->type === BPVarTemp::$typeNotSet) return $scope;
+		$this->_bpVarRef = &$varRef;
+		if($varRef->type === \Blackprint\Types::Slot) return;
 
 		$this->_reinitPort();
 	}
@@ -245,6 +279,9 @@ class IVarSet extends BPVarGetSet {
 		$input = &$this->input;
 		$node = &$this->node;
 		$temp = &$this->_bpVarRef;
+
+		if($temp->type === \Blackprint\Types::Slot)
+			$this->waitTypeChange($temp);
 
 		if(isset($input['Val']))
 			$node->deletePort('input', 'Val');

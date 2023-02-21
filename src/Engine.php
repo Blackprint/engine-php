@@ -1,31 +1,42 @@
 <?php
 namespace Blackprint;
+
+use Blackprint\Nodes\VarScope;
+
 require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
 require_once __DIR__."/Port/_PortTypes.php";
 require_once __DIR__."/PortGhost.php";
 
 class Engine extends Constructor\CustomEvent {
-	public $iface = [];
 	/** @var array<\Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut> */
 	public $ifaceList = [];
 	protected $settings = [];
 	public $disablePorts = false;
 	public $throwOnError = true;
 
-	public $variables = [];
-	public $functions = [];
-	public $ref = [];
+	public $variables = []; // { category => BPVariable{ name, value, type }, category => { category } }
+	public $functions = []; // { category => BPFunction{ name, variables, input, output, used: [], node, description }, category => { category } }
+
+	public $iface = []; // { id => IFace }
+	public $ref = []; // { id => Port references }
 
 	/** @var Constructor\OrderedExecution */
 	public $executionOrder;
+	public $events;
 
 	/** @var Nodes/FnMain */
 	public $_funcMain = null;
+	public $_mainInstance = null;
 	public $_importing = false;
+	public $_remote = false;
+	public $_locked_ = false;
+	public $_eventsInsNew = false;
+	public $_destroyed_ = false;
 
 	public function __construct(){
-		$this->executionOrder = new Constructor\OrderedExecution();
+		$this->executionOrder = new Constructor\OrderedExecution($this);
+		$this->events = new Constructor\InstanceEvents($this);
 	}
 
 	public function deleteNode($iface){
@@ -42,13 +53,13 @@ class Engine extends Constructor\CustomEvent {
 			// 	"type" => 'node_delete_not_found',
 			// 	"data" => new EvIface($iface)
 			// ];
-			// return $this->emit('error', $temp);
+			// return $this->_emit('error', $temp);
 		}
 
 		// $iface->_bpDestroy = true;
 
 		$eventData = new EvIface($iface);
-		$this->emit('node.delete', $eventData);
+		$this->_emit('node.delete', $eventData);
 
 		$iface->node->destroy();
 		$iface->destroy();
@@ -62,7 +73,7 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		$routes = &$iface->node->routes;
-		if($routes->in->length !== 0){
+		if(count($routes->in) !== 0){
 			$inp = &$routes->in;
 			foreach ($inp as &$cable) {
 				$cable->disconnect();
@@ -79,7 +90,7 @@ class Engine extends Constructor\CustomEvent {
 		if($parent != null)
 			unset($parent->rootInstance->ref[$iface->id]);
 
-		$this->emit('node.deleted', $eventData);
+		$this->_emit('node.deleted', $eventData);
 	}
 
 	public function clearNodes(){
@@ -100,44 +111,63 @@ class Engine extends Constructor\CustomEvent {
 		if(is_string($json))
 			$json = json_decode($json, true);
 
+		// Throw if no instance data in the JSON
+		if(!isset($json['instance']))
+			throw new \Exception("Instance was not found in the JSON data");
+
+		if(!isset($options['appendMode'])) $options['appendMode'] = false;
+		if(!isset($options['clean'])) $options['clean'] = true;
+		if(!isset($options['noEnv'])) $options['noEnv'] = false;
+
 		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
 		if(!$appendMode) $this->clearNodes();
 		$reorderInputPort = [];
 
 		$this->_importing = true;
 
+		if($options['clean'] !== false && !$options['appendMode']){
+			$this->clearNodes();
+			$this->functions = [];
+			$this->variables = [];
+			$this->events->list = [];
+		}
+		elseif(!$options['appendMode']) $this->clearNodes();
+
 		// Do we need this?
 		// $this->emit("json.importing", {appendMode: options.appendMode, raw: json});
-
-		$metadata = &$json['_'];
-		unset($json['_']);
 		
-		if($metadata !== null){
-			if(isset($metadata['env']))
-				\Blackprint\Environment::import($metadata['env']);
+		if(isset($json['environments']) && !$options['noEnv'])
+			\Blackprint\Environment::import($json['environments']);
 
-			if(isset($metadata['functions'])){
-				$functions = &$metadata['functions'];
+		if(isset($json['functions'])){
+			$functions = &$json['functions'];
 	
-				foreach ($functions as $key => &$value)
-					$this->createFunction($key, $value);
-			}
+			foreach ($functions as $key => &$value)
+				$this->createFunction($key, $value);
+		}
 	
-			if(isset($metadata['variables'])){
-				$variables = &$metadata['variables'];
+		if(isset($json['variables'])){
+			$variables = &$json['variables'];
 	
-				foreach ($variables as $key => &$value)
-					$this->createVariable($key, $value);
-			}
+			foreach ($variables as $key => &$value)
+				$this->createVariable($key, $value);
+		}
+
+		if(isset($json['events'])){
+			$events = &$json['events'];
+
+			foreach ($events as $path => &$value)
+				$this->events->createEvent($path, $value);
 		}
 
 		$inserted = &$this->ifaceList;
 		$nodes = [];
 		$appendLength = $appendMode ? count($inserted) : 0;
+		$instance = &$json['instance'];
 
 		// Prepare all ifaces based on the namespace
 		// before we create cables for them
-		foreach($json as $namespace => &$ifaces){
+		foreach($instance as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$conf) {
 				$conf['i'] += $appendLength;
@@ -172,7 +202,7 @@ class Engine extends Constructor\CustomEvent {
 
 		// Create cable only from output and property
 		// > Important to be separated from above, so the cable can reference to loaded ifaces
-		foreach($json as $namespace => &$ifaces){
+		foreach($instance as $namespace => &$ifaces){
 			// Every ifaces that using this namespace name
 			foreach ($ifaces as &$ifaceJSON) {
 				/** @var \Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut */
@@ -239,7 +269,7 @@ class Engine extends Constructor\CustomEvent {
 									$targetNode->useType($linkPortA);
 									$linkPortB = &$targetNode->input[$target['name']];
 								}
-								elseif($linkPortA->type === \Blackprint\PortType::Route){
+								elseif($linkPortA->type === \Blackprint\Types::Route){
 									$linkPortB = &$targetNode->node->routes;
 								}
 								else throw new \Exception("Node port not found for $targetNode->title with name: $target[name]");
@@ -279,7 +309,7 @@ class Engine extends Constructor\CustomEvent {
 				}
 
 				foreach ($temp as &$ref) {
-					if($ref == null) echo(`Some cable failed to be ordered for ({$iface->title}: {$key})`);
+					if($ref == null) echo("Some cable failed to be ordered for ({$iface->title}: {$key})");
 				}
 
 				$port->cables = $temp;
@@ -292,7 +322,7 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		$this->_importing = false;
-		// this.emit("json.imported", {appendMode: options.appendMode, nodes: inserted, raw: json});
+		// $this->emit("json.imported", {appendMode: options.appendMode, nodes: inserted, raw: json});
 		$this->executionOrder->next();
 
 		return $inserted;
@@ -302,6 +332,7 @@ class Engine extends Constructor\CustomEvent {
 		if($val === null)
 			return $this->settings[$which];
 
+		$which = str_replace('.', '_', $which);
 		$this->settings[$which] = &$val;
 	}
 
@@ -324,20 +355,20 @@ class Engine extends Constructor\CustomEvent {
 	}
 
 	public function &createNode($namespace, $options=null, &$nodes=null){
-		$func = Utils::deepProperty(Internal::$nodes, explode('/', $namespace));
+		$func = Utils::getDeepProperty(Internal::$nodes, explode('/', $namespace));
 
 		// Try to load from registered namespace folder if exist
 		$funcNode = null;
 		if($func === null){
 			if(str_starts_with($namespace, "BPI/F/")){
-				$func = Utils::deepProperty($this->functions, explode('/', substr($namespace, 6)));
+				$func = Utils::getDeepProperty($this->functions, explode('/', substr($namespace, 6)));
 
 				if($func !== null)
 					$funcNode = ($func->node)($this);
 			}
 			else {
 				Internal::_loadNamespace($namespace);
-				$func = Utils::deepProperty(Internal::$nodes, explode('/', $namespace));
+				$func = Utils::getDeepProperty(Internal::$nodes, explode('/', $namespace));
 			}
 
 			if($func === null)
@@ -369,18 +400,20 @@ class Engine extends Constructor\CustomEvent {
 				$parent->rootInstance->ref[$iface->id] = &$iface->ref;
 		}
 
+		$savedData = &$options['data'];
+		$portSwitches = &$options['output_sw'];
+
 		if(isset($options['i'])){
 			$iface->i = &$options['i'];
 			$this->ifaceList[$iface->i] = &$iface;
 		}
 		else $this->ifaceList[] = &$iface;
 
+		$node->initPorts($savedData);
+
 		$defaultInputData = &$options['input_d'];
 		if($defaultInputData != null)
 			$iface->_importInputs($defaultInputData);
-
-		$savedData = &$options['data'];
-		$portSwitches = &$options['output_sw'];
 
 		if($portSwitches != null){
 			foreach($portSwitches as $key => &$val) {
@@ -401,40 +434,60 @@ class Engine extends Constructor\CustomEvent {
 
 		if($nodes !== null)
 			$nodes[] = &$node;
-
-		$iface->init();
-
-		if($nodes === null)
+		else {
 			$node->init();
+			$iface->init();
+		}
 
 		return $iface;
 	}
 
 	public function &createVariable($id, $options){
-		if(isset($this->variables[$id])){
+		if($this->_locked_) throw new \Exception("This instance was locked");
+		if(preg_match('/\s/', $id) !== 0)
+			throw new \Exception("Id can't have space character: '$id'");
+
+		$ids = explode('/', $id);
+		$lastId = $ids[count($ids) - 1];
+		$parentObj = Utils::getDeepProperty($this->variables, $ids, 1);
+
+		if($parentObj !== null && isset($parentObj[$lastId])){
 			$this->variables[$id]->destroy();
 			unset($this->variables[$id]);
 		}
 
-		// deepProperty
-
 		// BPVariable = ./nodes/Var.js
 		$temp = new Nodes\BPVariable($id, $options);
-		$this->variables[$id] = &$temp;
-		$this->emit('variable.new', $temp);
+		Utils::setDeepProperty($this->variables, $ids, $temp);
+
+		$temp->_scope = VarScope::public;
+		$this->_emit('variable.new', $temp);
 
 		return $temp;
 	}
 
 	public function &createFunction($id, $options){
+		if($this->_locked_) throw new \Exception("This instance was locked");
+		if(preg_match('/\s/', $id) !== 0)
+			throw new \Exception("Id can't have space character: '$id'");
+
 		if(isset($this->functions[$id])){
 			$this->functions[$id]->destroy();
 			unset($this->functions[$id]);
 		}
 
+		$ids = explode('/', $id);
+		$lastId = $ids[count($ids) - 1];
+		$parentObj = Utils::getDeepProperty($this->functions, $ids, 1);
+
+		if($parentObj != null && isset($parentObj[$lastId])){
+			$parentObj[$lastId]->destroy();
+			unset($parentObj[$lastId]);
+		}
+
 		// BPFunction = ./nodes/Fn.js
 		$temp = new Nodes\BPFunction($id, $options, $this);
-		$this->functions[$id] = &$temp;
+		Utils::setDeepProperty($this->functions, $ids, $temp);
 
 		if(isset($options['vars'])){
 			$vars = &$options['vars'];
@@ -450,7 +503,7 @@ class Engine extends Constructor\CustomEvent {
 			}
 		}
 
-		$this->emit('function.new', $temp);
+		$this->_emit('function.new', $temp);
 		return $temp;
 	}
 
@@ -458,12 +511,26 @@ class Engine extends Constructor\CustomEvent {
 		$data->instance = $this;
 
 		if($this->_mainInstance != null)
-			$this->_mainInstance->emit('log', $data);
-		else $this->emit('log', $data);
+			$this->_mainInstance->_emit('log', $data);
+		else $this->_emit('log', $data);
 	}
 
 	public function destroy(){
+		$this->_locked_ = false;
+		$this->_destroyed_ = true;
 		$this->clearNodes();
+		$this->emit('destroy');
+	}
+
+	public function _emit($evName, &$data=[]){
+		$this->emit($evName, $data);
+		if($this->_funcMain == null) return;
+
+		$rootInstance = &$this->_funcMain->node->_funcInstance->rootInstance;
+		if($rootInstance->_remote == null) return;
+
+		$data['bpFunction'] = &$rootInstance->_funcInstance;
+		$rootInstance->emit($evName, $data);
 	}
 }
 

@@ -19,6 +19,7 @@ class Interfaces extends Constructor\CustomEvent {
 	public $input = null;
 	public $output = null;
 	public $property = null;
+	public $data = null;
 
 	/** @var Node */
 	public $node;

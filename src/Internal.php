@@ -4,6 +4,7 @@ class Internal {
 	public static $nodes = [];
 	public static $interface = [];
 	public static $namespace = [];
+	public static $events = [];
 
 	public static function _loadNamespace($path){
 		$namespace = &Internal::$namespace;
@@ -17,7 +18,7 @@ class Internal {
 			if(file_exists($temp)){
 				include_once $temp;
 				$temp = str_replace('/', '\\', "BPNode/$path");
-				\Blackprint\Utils::deepProperty(Internal::$nodes, explode('/', $path), $temp);
+				\Blackprint\Utils::setDeepProperty(Internal::$nodes, explode('/', $path), $temp);
 				return;
 			}
 		}
@@ -30,7 +31,7 @@ function registerNode($namespace, $claz){
 	if(gettype($claz) !== 'string' || !class_exists($claz))
 		throw new \Exception("$namespace: The second parameter for ->registerNode must be class that already been defined before this registration", 1);
 
-	\Blackprint\Utils::deepProperty(Internal::$nodes, explode('/', $namespace), $claz);
+	\Blackprint\Utils::setDeepProperty(Internal::$nodes, explode('/', $namespace), $claz);
 }
 
 function registerInterface($templatePath, $claz){
@@ -48,6 +49,25 @@ function registerInterface($templatePath, $claz){
 function registerNamespace($nodeDirectory){
 	if(isset(Internal::$namespace[$nodeDirectory])) return;
 	Internal::$namespace[] = &$nodeDirectory;
+}
+
+function registerEvent($namespace, $options){
+	if(preg_match('/\s/', $namespace) !== 0)
+		throw new \Exception("Namespace can't have space character: '$namespace'");
+
+	$schema = &$options['schema'];
+	if($schema == null)
+		throw new \Exception("Registering an event must have a schema. If the event doesn't have a schema or dynamically created from an instance you may not need to do this registration.");
+
+	foreach ($schema as $key => &$obj) {
+		// Must be a data type
+		// or type from Blackprint.Port.{Feature}
+		if(!class_exists($obj) && (is_array($obj) && $obj['feature'] == null) && !isTypeExist($obj)){
+			throw new \Exception("Unsupported schema type for field '$key' in '$namespace'");
+		}
+	}
+
+	Internal::$events[$namespace] = new Constructor\InstanceEvent($options);
 }
 
 Internal::$interface['BP/default'] = \Blackprint\Interfaces::class;
@@ -71,6 +91,7 @@ class EvEnv {
 }
 class EvVariableNew {
 	function __construct(
+		public &$instance,
 		public $scope,
 		public &$id,
 	){}
