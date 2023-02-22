@@ -4,7 +4,6 @@ namespace Blackprint\Nodes;
 use Blackprint\PortType;
 
 include_once(__DIR__."/FnPortVar.php");
-include_once(__DIR__."/BPVariable.php");
 
 /** For internal library use only */
 class RefPortName {
@@ -33,7 +32,6 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 	public function __construct($id, $options, $instance){
 		$this->rootInstance = &$instance; // root instance
 
-		
 		$id = preg_replace('/^\/|\/$/m', '', $id);
 		$id = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $id);
 		$this->id = &$id;
@@ -240,8 +238,8 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 					|| ($which === 'input' && $proxyVar->namespace !== "BP/FnVar/Input"))
 					continue;
 
-				if($proxyVar->data->name !== $fromName) continue;
-				$proxyVar->data->name = &$toName;
+				if($proxyVar->data['name'] !== $fromName) continue;
+				$proxyVar->data['name'] = &$toName;
 
 				if($which === 'output')
 					$proxyVar[$proxyPort]['Val']->_name->name = &$toName;

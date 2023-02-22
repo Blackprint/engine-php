@@ -33,7 +33,7 @@ class FnVarInput extends \Blackprint\Node {
 		$iface = &$this->iface;
 		if($iface->_listener == null) return;
 
-		$port = &$iface->_proxyIface->output[$iface->data->name];
+		$port = &$iface->_proxyIface->output[$iface->data['name']];
 		if($port->feature === PortType::Trigger)
 			$port->off('call', $iface->_listener);
 		else $port->off('value', $iface->_listener);

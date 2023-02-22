@@ -57,7 +57,7 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 			Environment::set($data['name'], '');
 		}
 
-		$name = &$this->data->name;
+		$name = &$this->data['name'];
 		$rules = \Blackprint\Environment::$_rules[$name];
 
 		// Only allow connection to certain node namespace
