@@ -74,8 +74,10 @@ class Utils{
 		elseif($type === Types::Any) 0; // Any
 		elseif($type === Types::Slot) 0;
 		elseif($type === Types::Route) 0;
-		elseif($feature === false)
+		elseif($feature === false){
+			var_dump($type);
 			throw new \Exception("Unrecognized port type or port feature", 1);
+		}
 	
 		return [ &$type, &$def, &$feature ];
 	}
