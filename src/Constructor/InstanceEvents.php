@@ -61,11 +61,11 @@ class InstanceEvents extends CustomEvent {
 		$iterateList = function($ifaceList) use(&$refreshPorts, &$namespace, &$iterateList) {
 			foreach ($ifaceList as &$iface) {
 				if($iface->_enum === \Blackprint\Nodes\Enums::BPEventListen){
-					if($iface->data->namespace === $namespace)
+					if($iface->data['namespace'] === $namespace)
 						$refreshPorts($iface, 'output');
 				}
 				elseif($iface->_enum === \Blackprint\Nodes\Enums::BPEventEmit){
-					if($iface->data->namespace === $namespace)
+					if($iface->data['namespace'] === $namespace)
 						$refreshPorts($iface, 'input');
 				}
 				elseif($iface->_enum === \Blackprint\Nodes\Enums::BPFnMain){
@@ -80,7 +80,7 @@ class InstanceEvents extends CustomEvent {
 
 class InstanceEvent {
 	public $schema;
-	function __construct(&$options){
-		$this->schema = $options->schema;
+	function __construct($options){
+		$this->schema = &$options['schema'];
 	}
 }

@@ -7,6 +7,7 @@ use \Blackprint\Environment;
 class BPEventListen extends \Blackprint\Node {
 	// Defined below this class
 	public static $Input;
+	public static $Output = [];
 
 	/** @var IEventListen */
 	public $iface;
@@ -31,7 +32,7 @@ class BPEventListen extends \Blackprint\Node {
 
 		if($this->_off){
 			$iface = &$this->iface;
-			$this->instance->events->on($iface->data->namespace, $iface->_listener);
+			$this->instance->events->on($iface->data['namespace'], $iface->_listener);
 		}
 	}
 	public function eventUpdate($obj){
@@ -39,10 +40,10 @@ class BPEventListen extends \Blackprint\Node {
 		if($this->_limit > 0) $this->_limit--;
 
 		// Don't use object assign as we need to re-assign null/undefined field
-		$output = &$this->output;
-		foreach ($output as $key => &$value) {
-			// ToDo: find better way to reassign data inside this loop
-			$value = $obj[$key]; // ToDo: check if this already copy by reference
+		$output = &$this->iface->output;
+		foreach ($output as $key => &$port) {
+			$port->value = &$obj[$key];
+			$port->sync();
 		}
 
 		$this->routes->routeOut();
@@ -50,7 +51,7 @@ class BPEventListen extends \Blackprint\Node {
 	public function offEvent(){
 		if($this->_off === false){
 			$iface = $this->iface;
-			$this->instance->events->off($iface->data->namespace, $iface->_listener);
+			$this->instance->events->off($iface->data['namespace'], $iface->_listener);
 
 			$this->_off = true;
 		}
@@ -59,7 +60,7 @@ class BPEventListen extends \Blackprint\Node {
 		$iface = $this->iface;
 
 		if($iface->_listener == null) return;
-		$iface->_insEventsRef->off($iface->data->namespace, $iface->_listener);
+		$iface->_insEventsRef->off($iface->data['namespace'], $iface->_listener);
 	}
 }
 BPEventListen::$Input = [
@@ -89,13 +90,19 @@ class BPEventEmit extends \Blackprint\Node {
 	}
 	public function initPorts($data){ $this->iface->initPorts($data); }
 	public function trigger(){
-		$data = $this->input->getArrayCopy(); // Copy data from input ports
-		unset($data['Emit']);
+		$data = []; // Copy data from input ports
+		$IInput = &$this->iface->input;
+		$Input = &$this->input;
 
-		$this->instance->events->emit($this->iface->data->namespace, $data);
+		foreach ($IInput as $key => &$value) {
+			if($key === 'Emit') continue;
+			$data[$key] = $Input[$key]; // Obtain data by triggering the offsetGet (getter)
+		}
+
+		$this->instance->events->emit($this->iface->data['namespace'], $data);
 	}
 }
-BPEventListen::$Input = [
+BPEventEmit::$Input = [
 	"Emit" => Port::Trigger(fn($port) => $port->iface->node->trigger()),
 ];
 \Blackprint\registerNode('BP/Event/Emit', BPEventEmit::class);
@@ -104,14 +111,15 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 	// public $_nameListener;
 	public $_insEventsRef;
 	public $_eventRef;
-	public function __construct(){
+	public function __construct($node){
+		parent::__construct($node);
 		$this->_insEventsRef = &$this->node->instance->events;
 	}
 	public function initPorts($data){
-		$namespace = $data->namespace;
+		$namespace = $data['namespace'];
 		if(!$namespace) throw new \Exception("Parameter 'namespace' is required");
 
-		$this->data->namespace = $namespace;
+		$this->data['namespace'] = $namespace;
 		$this->title = $namespace;
 
 		$this->_eventRef = $this->node->instance->events->list[$namespace];
@@ -123,8 +131,8 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		}
 		else $createPortTarget = 'input';
 
-		foreach ($schema as $key => &$value) {
-			$this->node->createPort($createPortTarget, $key, $value);
+		foreach ($schema as &$key) {
+			$this->node->createPort($createPortTarget, $key, Types::Any);
 		}
 	}
 	public function createField($name, $type=Types::Any){
@@ -132,21 +140,21 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		if($schema[$name] != null) return;
 
 		$schema[$name] = &$type;
-		$this->_insEventsRef->refreshFields($this->data->namespace);
+		$this->_insEventsRef->refreshFields($this->data['namespace']);
 		$this->node->instance->emit('eventfield.create', new EvEFCreate(
 			$name,
-			$this->data->namespace
+			$this->data['namespace']
 		));
 	}
 	public function renameField($name, $to){
 		$schema = &$this->_eventRef->schema;
 		if($schema[$name] == null || $schema[$to] != null) return;
 
-		$this->_insEventsRef->_renameFields($this->data->namespace, $name, $to);
+		$this->_insEventsRef->_renameFields($this->data['namespace'], $name, $to);
 		$this->node->instance->emit('eventfield.rename', new EvEFRename(
 			$name,
 			$to,
-			$this->data->namespace
+			$this->data['namespace']
 		));
 	}
 	public function deleteField($name, $type=Types::Any){
@@ -154,10 +162,10 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		if($schema[$name] != null) return;
 
 		unset($schema[$name]);
-		$this->_insEventsRef->refreshFields($this->data->namespace);
+		$this->_insEventsRef->refreshFields($this->data['namespace']);
 		$this->node->instance->emit('eventfield.delete', new EvEFDelete(
 			$name,
-			$this->data->namespace
+			$this->data['namespace']
 		));
 	}
 };
@@ -172,7 +180,7 @@ class IEventListen extends BPEventListenEmit {
 		if($this->_listener) throw new \Exception("This node already listen to an event");
 		$this->_listener = fn($ev) => $this->node->eventUpdate($ev);
 
-		$this->_insEventsRef->on($data->namespace, $this->_listener);
+		$this->_insEventsRef->on($data['namespace'], $this->_listener);
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Event/Listen', IEventListen::class);

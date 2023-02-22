@@ -7,6 +7,8 @@ require_once __DIR__."/Internal.php";
 require_once __DIR__."/Types.php";
 require_once __DIR__."/Port/_PortTypes.php";
 require_once __DIR__."/PortGhost.php";
+require_once __DIR__."/Nodes/BPVariable.php";
+require_once __DIR__."/Nodes/BPEvent.php";
 
 class Engine extends Constructor\CustomEvent {
 	/** @var array<\Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut> */
