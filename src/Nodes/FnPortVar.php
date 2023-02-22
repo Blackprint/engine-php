@@ -63,7 +63,7 @@ class FnVarOutput extends \Blackprint\Node {
 		$proxyOutputNode = &$mainNodeIFace->_proxyOutput;
 
 		// Also update the cache on the proxy node
-		$proxyOutputNode->ref->IInput[$id]->_cache = &$this->ref->Input->Val;
+		$proxyOutputNode->ref->IInput[$id]->_cache = &$this->ref->Input['Val'];
 
 		// If main node has route and the output proxy doesn't have input route
 		// Then trigger out route on the main node
@@ -154,7 +154,7 @@ class FnVarInputIface extends BPFnVarInOut {
 	public function _addListener(){
 		$port = &$this->_proxyIface->output[$this->data['name']];
 
-		if($port->feature === Types::Function){
+		if($port->type === Types::Function){
 			$this->_listener = function() {
 				$this->ref->Output['Val']();
 			};
