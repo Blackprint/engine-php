@@ -291,20 +291,40 @@ class Port extends CustomEvent {
 		// Skip if the assigned type is also Slot type
 		if($type === Types::Slot) return;
 
-		// // Check current output value type
-		// if($this->value != null && !($this->value instanceof $type))
-		// 	throw new \Exception("The output value of this port is not instance of type that will be assigned: {$this->value->constructor->name} is not instance of {$type->name}");
+		// Check current output value type
+		if($this->value != null){
+			$gettype = \Blackprint\_getValueType($this->value);
+			$pass = false;
 
-		// // Check connected cable's type
-		// foreach ($this->cables as &$cable) {
-		// 	$inputPort = &$cable->input;
-		// 	if($inputPort == null) continue;
+			if($gettype === Types::Object){
+				if($this->value instanceof $type) $pass = true;
+			}
+			else if($type === Types::Any || $type === $gettype){
+				$pass = true;
+			}
 
-		// 	$portType = &$inputPort->type;
-		// 	if($portType !== Types::Any 
-		// 	   && !(is_subclass_of($portType, (is_array($type) && $type['type'] != null ? $type['type'] : $type)::class)))
-		// 		throw new \Exception("The target port's connection of this port is not instance of type that will be assigned: {$this->value->constructor->name} is not instance of {$type->name}");
-		// }
+			if($pass === false) throw new \Exception("The output value of this port is not instance of type that will be assigned: {$gettype->name} is not instance of {$type->name}");
+		}
+
+		// Check connected cable's type
+		foreach ($this->cables as &$cable) {
+			$inputPort = &$cable->input;
+			if($inputPort == null) continue;
+
+			$portType = &$inputPort->type;
+			if($portType === Types::Any) 1; // pass
+			elseif($portType === $type) 1; // pass
+			elseif($portType === Types::Slot) 1; // pass
+			elseif(\Blackprint\isTypeExist($portType) || \Blackprint\isTypeExist($type)){
+				throw new \Exception("The target port's connection of this port is not instance of type that will be assigned: {$portType->name} is not instance of {$type->name}");
+			}
+			else {
+				$clazz = (is_array($type) && $type['type'] != null ? $type['type'] : $type)::class;
+				if(!(is_subclass_of($portType, $clazz))){
+					throw new \Exception("The target port's connection of this port is not instance of type that will be assigned: {$portType} is not instance of {$clazz}");
+				}
+			}
+		}
 
 		if(is_array($type) && isset($type['feature'])){
 			if($this->source === 'output'){

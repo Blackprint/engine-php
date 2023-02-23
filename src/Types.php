@@ -43,6 +43,19 @@ class _Types{
 }
 _Types::$typeList = Types::cases();
 
+// internal only
 function isTypeExist(&$type){
 	return in_array($type, _Types::$typeList);
+}
+
+function _getValueType($value){
+	$type = gettype($value);
+	if($type === 'boolean') return Types::Boolean;
+	if($type === 'integer' || $type === 'double') return Types::Number;
+	if($type === 'string') return Types::String;
+	if($type === 'array') return Types::Array;
+	if($type === 'object' || $type === 'resource' || $type === 'resource (closed)')
+		return Types::Object;
+
+	return $type;
 }
