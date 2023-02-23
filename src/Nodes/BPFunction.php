@@ -388,6 +388,8 @@ class FnMain extends \Blackprint\Interfaces {
 	public $_importOnce = false;
 	public $_save = null;
 	public $_portSw_ = null;
+	public $_proxyInput = null;
+	public $uniqId = null;
 	public $bpInstance = null;
 
 	// We won't internally mark this node for having dynamic port

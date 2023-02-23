@@ -18,6 +18,9 @@ class Engine extends Constructor\CustomEvent {
 	public $disablePorts = false;
 	public $throwOnError = true;
 
+	// Private or function node's instance only
+	public $sharedVariables;
+
 	public $variables = []; // { category => BPVariable{ name, value, type }, category => { category } }
 	public $functions = []; // { category => BPFunction{ name, variables, input, output, used: [], node, description }, category => { category } }
 
@@ -246,6 +249,8 @@ class Engine extends Constructor\CustomEvent {
 						// Current output's available targets
 						foreach ($ports as &$target) {
 							$target['i'] += $appendLength;
+
+							/** @var \Blackprint\Interfaces|\Blackprint\Nodes\BPFnInOut|\Blackprint\Nodes\BPVarGetSet */
 							$targetNode = &$inserted[$target['i']]; // iface
 
 							if($linkPortA->isRoute){

@@ -324,7 +324,7 @@ class Port extends CustomEvent {
 				$this->type = &$type['type'];
 	
 				if($type['feature'] === PortType::StructOf){
-					$this->struct = &$type->default;
+					$this->struct = &$type['value'];
 					// $this->classAdd .= "BP-StructOf ";
 				}
 			}

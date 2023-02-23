@@ -10,6 +10,9 @@ class VarScope {
 
 class VarSet extends \Blackprint\Node {
 	public static $Input = [];
+
+	/** @var IVarSet */
+	public $iface;
 	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Set');
@@ -27,12 +30,15 @@ class VarSet extends \Blackprint\Node {
 	public function update($cable){
 		$this->iface->_bpVarRef->value = $this->input['Val'];
 	}
-	public function destroy(){ $this->iface->destroyListener(); }
+	public function destroy(){ $this->iface->destroyIface(); }
 };
 \Blackprint\registerNode('BP/Var/Set', VarSet::class);
 
 class VarGet extends \Blackprint\Node {
 	public static $Output = [];
+
+	/** @var IVarGet */
+	public $iface;
 	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Var/Get');
@@ -47,7 +53,7 @@ class VarGet extends \Blackprint\Node {
 		$iface->type = 'bp-var-get';
 		$iface->_enum = Enums::BPVarGet;
 	}
-	public function destroy(){ $this->iface->destroyListener(); }
+	public function destroy(){ $this->iface->destroyIface(); }
 };
 \Blackprint\registerNode('BP/Var/Get', VarGet::class);
 
@@ -211,6 +217,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 }
 
 class IVarGet extends BPVarGetSet {
+	private $_eventListen;
 	public function changeVar($name, $scopeId){
 		if($this->data['name'] !== '')
 			throw new \Exception("Can't change variable node that already be initialized");
@@ -250,7 +257,7 @@ class IVarGet extends BPVarGetSet {
 		}
 
 		if($temp->type !== \Blackprint\Types::Function)
-			$node->output['Val'] = &$temp->_value;
+			$node->output['Val'] = $temp->_value;
 
 		$temp->on($this->_eventListen, $this->_onChanged);
 		return $this->output['Val'];

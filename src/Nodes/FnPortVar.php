@@ -43,6 +43,8 @@ class FnVarInput extends \Blackprint\Node {
 
 class FnVarOutput extends \Blackprint\Node {
 	public static $Input = [];
+	public $refOutput;
+
 	public function __construct($instance){
 		parent::__construct($instance);
 
@@ -86,6 +88,11 @@ class BPFnVarInOut extends \Blackprint\Interfaces {
 };
 
 class FnVarInputIface extends BPFnVarInOut {
+	public $_listener;
+	public $_proxyIface;
+	public $_waitPortInit;
+	public $type;
+
 	public function __construct(&$node){
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-input';
@@ -187,6 +194,12 @@ class FnVarInputIface extends BPFnVarInOut {
 \Blackprint\registerInterface('BPIC/BP/FnVar/Input', FnVarInputIface::class);
 
 class FnVarOutputIface extends BPFnVarInOut {
+	public $_waitPortInit;
+	public $type;
+
+	/** @var FnVarOutput */
+	public $node;
+
 	public function __construct(&$node){
 		parent::__construct($node);
 		$this->type = 'bp-fnvar-output';

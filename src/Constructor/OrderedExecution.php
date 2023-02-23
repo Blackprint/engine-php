@@ -59,7 +59,7 @@ class OrderedExecution {
 		$sets = $tCable->get($node);
 		if($sets === null) {
 			$sets = new \Ds\Set();
-			$tCable->set($node, $sets);
+			$tCable->put($node, $sets);
 		}
 
 		$sets->add($cable);
@@ -82,7 +82,7 @@ class OrderedExecution {
 		if($this->index >= $this->length)
 			$this->index = $this->length = 0;
 
-		if($this->stepMode) $this->_tCable->delete($temp);
+		if($this->stepMode) $this->_tCable->remove($temp);
 		return $temp;
 	}
 
@@ -231,7 +231,7 @@ class OrderedExecution {
 			if($cableCall != null)
 				$cableCall->input->_call($cableCall);
 
-			$this->_tCable->delete($node);
+			$this->_tCable->remove($node);
 			$this->_emitNextExecution();
 		}
 		elseif(count($_pTrigger) !== 0){
