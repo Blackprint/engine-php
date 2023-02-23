@@ -9,33 +9,47 @@ class PortGhost extends Constructor\Port {
 	}
 }
 
-$fakeIface = (object)[
-	"title" => "Blackprint.PortGhost",
-	"isGhost" => true,
-	"node" => (object)["instance" => (object)["emit" => function($data){}]],
-	"emit" => function($data){},
-	"input" => [],
-	"output" => [],
-];
+class fakeIface {
+	public $title = "Blackprint.PortGhost";
+	public $isGhost = true;
+	public $node;
+	public $emit;
+	public $_iface;
+	public $input = [];
+	public $output = [];
+	function __construct(){
+		$this->node = (object)["instance" => new fakeInstance()];
+	}
+	function emit(){}
+}
+class fakeInstance {
+	public function emit(){}
+}
 
-$fakeIface->_iface = &$fakeIface;
-PortGhost::$fakeIface = &$fakeIface;
+PortGhost::$fakeIface = new fakeIface();
+PortGhost::$fakeIface->_iface = PortGhost::$fakeIface;
 
 // These may be useful for testing or creating custom port without creating nodes when scripting
 class OutputPort extends PortGhost {
 	public $_ghost = true;
-	public function __construct(&$type){
+	public function __construct($type){
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($type, PortGhost::$fakeIface);
+		$this->iface = PortGhost::$fakeIface;
 
-		parent::__construct('Blackprint.OutputPort', $type, $def, 'output', $fakeIface, $haveFeature);
+		$title = 'Blackprint.OutputPort';
+		$source = 'output';
+		parent::__construct($title, $type, $def, $source, $this->iface, $haveFeature);
 	}
 }
 
 class InputPort extends PortGhost {
 	public $_ghost = true;
-	public function __construct(&$type){
+	public function __construct($type){
 		[ $type, $def, $haveFeature ] = Utils::determinePortType($type, PortGhost::$fakeIface);
+		$this->iface = PortGhost::$fakeIface;
 
-		parent::__construct('Blackprint.InputPort', $type, $def, 'input', $fakeIface, $haveFeature);
+		$title = 'Blackprint.InputPort';
+		$source = 'input';
+		parent::__construct($title, $type, $def, $source, PortGhost::$fakeIface, $haveFeature);
 	}
 }

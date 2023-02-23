@@ -14,7 +14,7 @@ class Environment {
 		}
 
 		Environment::$_noEvent = false;
-		Event->emit('environment.imported');
+		Event::emit('environment.imported');
 	}
 
 	public static function set($key, string $val){
@@ -26,7 +26,7 @@ class Environment {
 
 		if(!Environment::$_noEvent){
 			$temp = new EvEnv($key, $val);
-			Event->emit('environment.added', $temp);
+			Event::emit('environment.added', $temp);
 		}
 	}
 
@@ -35,21 +35,18 @@ class Environment {
 		unset($map[$key]);
 
 		$temp = new EvEnv($key);
-		Event->emit('environment.deleted', $temp);
+		Event::emit('environment.deleted', $temp);
 	}
 
 	/**
 	 * options = {allowGet: {}, allowSet: {}}
 	 */
 	public static function rule($name, $options){
-		if(Environment::$map[$name] == null)
+		if(!isset(Environment::$map[$name]))
 			throw new \Exception("'$name' was not found on Blackprint\Environment, maybe it haven't been added or imported");
 
-		if(Environment::$_rules[$name] != null)
+		if(isset(Environment::$_rules[$name]))
 			throw new \Exception("'rule' only allow first registration");
-
-		if($options === null)
-			throw new \Exception("Second parameter is required");
 
 		Environment::$_rules[$name] = $options;
 	}

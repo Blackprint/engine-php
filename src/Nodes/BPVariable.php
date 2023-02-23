@@ -183,7 +183,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 				$bpVar->emit('type.assigned');
 			}
 			else {
-				$target = $this->input->Val ?? $this->output->Val;
+				$target = $this->input['Val'] ?? $this->output['Val'];
 				$target->assignType($bpVar->type);
 			}
 		};
@@ -250,7 +250,7 @@ class IVarGet extends BPVarGetSet {
 		}
 
 		if($temp->type !== \Blackprint\Types::Function)
-			$node->output->Val = &$temp->_value;
+			$node->output['Val'] = &$temp->_value;
 
 		$temp->on($this->_eventListen, $this->_onChanged);
 		return $this->output['Val'];

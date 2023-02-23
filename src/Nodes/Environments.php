@@ -58,14 +58,14 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 		}
 
 		$name = &$this->data['name'];
-		$rules = \Blackprint\Environment::$_rules[$name];
+		$rules = &\Blackprint\Environment::$_rules[$name];
 
 		// Only allow connection to certain node namespace
 		if($rules != null){
-			if($this->_enum === \Blackprint\Nodes\Enums::BPEnvGet && $rules->allowGet != null){
-				$Val = &$this->output->Val;
+			if($this->_enum === \Blackprint\Nodes\Enums::BPEnvGet && isset($rules['allowGet'])){
+				$Val = &$this->output['Val'];
 				$Val->onConnect = function(&$cable, &$targetPort) use(&$rules, &$Val) {
-					if(!$rules->allowGet->includes($targetPort->iface->namespace)){
+						if(!in_array($targetPort->iface->namespace, $rules['allowGet'])){
 						$Val->_cableConnectError('cable.rule.disallowed', [
 							"cable" => &$cable,
 							"port" => &$Val,
@@ -76,10 +76,10 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 					}
 				};
 			}
-			elseif($this->_enum === \Blackprint\Nodes\Enums::BPEnvSet && $rules->allowSet != null){
-				$Val = &$this->input->Val;
+			elseif($this->_enum === \Blackprint\Nodes\Enums::BPEnvSet && isset($rules['allowSet'])){
+				$Val = &$this->input['Val'];
 				$Val->onConnect = function(&$cable, &$targetPort) use(&$rules, &$Val) {
-					if(!$rules->allowSet->includes($targetPort->iface->namespace)){
+					if(!in_array($targetPort->iface->namespace, $rules['allowSet'])){
 						$Val->_cableConnectError('cable.rule.disallowed', [
 							"cable" => &$cable,
 							"port" => &$Val,
@@ -107,12 +107,12 @@ class IEnvGet extends BPEnvGetSet {
 			$this->ref->Output->setByRef("Val", $v->value);
 		};
 
-		\Blackprint\Event->on('environment.changed environment.added', $this->_listener);
+		\Blackprint\Event::on('environment.changed environment.added', $this->_listener);
 		$this->ref->Output->setByRef("Val", Environment::$map[$this->data['name']]);
 	}
 	public function destroyListener(){
 		if($this->_listener == null) return;
-		\Blackprint\Event->off('environment.changed environment.added', $this->_listener);
+		\Blackprint\Event::off('environment.changed environment.added', $this->_listener);
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/Env/Get', IEnvGet::class);
