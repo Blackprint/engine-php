@@ -1,12 +1,13 @@
 {
 	"name":"blackprint/engine",
 	"description": "PHP Engine for Blackprint",
-	"version": "0.8.0",
+	"version": "0.8.12",
 	"keywords": ["blackprint", "engine"],
 	"license":"MIT",
 	"require": {
 		"php": "^8.1",
-		"ext-json": "*"
+		"ext-json": "*",
+		"php-ds/php-ds": "^1.4"
 	},
 	"autoload": {
 		"files": ["src/Internal.php"],
