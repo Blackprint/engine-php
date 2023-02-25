@@ -98,6 +98,7 @@ class Node {
 		$this->_bpUpdating = true;
 		$this->update(\Blackprint\Utils::$_null);
 		$this->_bpUpdating = false;
+		$this->iface->emit('updated');
 
 		if($this->routes->out == null){
 			if($isMainFuncNode && $thisIface->node->routes->out != null){
