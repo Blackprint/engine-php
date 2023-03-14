@@ -44,8 +44,10 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		// This will be updated if the function sketch was modified
 		$this->structure = $options['structure'] ?? [
-			'BP/Fn/Input' => [['i' => 0]],
-			'BP/Fn/Output' => [['i' => 1]],
+			'instance' => [
+				'BP/Fn/Input' => [['i' => 0]],
+				'BP/Fn/Output' => [['i' => 1]],
+			],
 		];
 
 		$temp = &$this;

@@ -1,5 +1,6 @@
 <?php
 namespace Blackprint\Constructor;
+use \Blackprint\Types;
 
 class InstanceEvents extends CustomEvent {
 	public $list = [];
@@ -13,9 +14,15 @@ class InstanceEvents extends CustomEvent {
 		if(preg_match('/\s/', $namespace) !== 0)
 			throw new \Exception("Namespace can't have space character: '$namespace'");
 
-		$this->list[$namespace] = new InstanceEvent([
-			'schema' => $options['schema'] ?? [],
-		]);
+		$schema = [];
+		$list = &$options['schema'];
+		if($list !== null){
+			foreach ($list as &$value) {
+				$schema[$value] = Types::Any;
+			}
+		}
+
+		$this->list[$namespace] = new InstanceEvent([ 'schema' => &$schema ]);
 	}
 
 	public function _renameFields($namespace, $name, $to){
