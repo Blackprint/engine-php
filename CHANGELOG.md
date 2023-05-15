@@ -1,3 +1,9 @@
+# 0.8.15
+
+### Bug Fix
+- Fix incorrect condition check
+- Catch error to reset flag/status
+
 # 0.8.14
 
 ### Bug Fix
