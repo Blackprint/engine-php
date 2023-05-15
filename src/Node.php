@@ -96,8 +96,12 @@ class Node {
 		$ref = &$this->instance->executionOrder;
 
 		$this->_bpUpdating = true;
-		$this->update(\Blackprint\Utils::$_null);
-		$this->_bpUpdating = false;
+		try {
+			$this->update(\Blackprint\Utils::$_null);
+		}
+		finally {
+			$this->_bpUpdating = false;
+		}
 		$this->iface->emit('updated');
 
 		if($this->routes->out == null){

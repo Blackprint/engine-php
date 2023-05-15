@@ -120,8 +120,12 @@ class Port extends CustomEvent {
 		}
 
 		$this->_calling = $cable->_calling = true;
-		($this->_callDef)($this);
-		$this->_calling = $cable->_calling = false;
+		try {
+			($this->_callDef)($this);
+		}
+		finally {
+			$this->_calling = $cable->_calling = false;
+		}
 
 		if($iface->_enum !== \Blackprint\Nodes\Enums::BPFnMain)
 			$iface->node->routes->routeOut();
