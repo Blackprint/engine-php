@@ -125,7 +125,7 @@ class Engine extends Constructor\CustomEvent {
 		if(!isset($options['clean'])) $options['clean'] = true;
 		if(!isset($options['noEnv'])) $options['noEnv'] = false;
 
-		$appendMode = isset($options['appendMode']) && $options['appendMode'] === false;
+		$appendMode = isset($options['appendMode']) && $options['appendMode'];
 		if(!$appendMode) $this->clearNodes();
 		$reorderInputPort = [];
 
