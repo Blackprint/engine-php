@@ -8,7 +8,7 @@ use \Blackprint\{
 
 class Simple extends \Blackprint\Node {
 	public static $Output = [
-		'Clicked'=> Types::Function
+		'Clicked'=> Types::Trigger
 	];
 
 	function __construct($instance){

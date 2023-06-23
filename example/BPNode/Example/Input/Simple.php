@@ -8,7 +8,7 @@ use \Blackprint\{
 
 class Simple extends \Blackprint\Node {
 	public static $Output = [
-		'Changed'=> Types::Function,
+		'Changed'=> Types::Trigger,
 		'Value'=> Types::String,
 	];
 
