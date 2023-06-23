@@ -1,6 +1,8 @@
 <?php
 namespace Blackprint\Nodes;
 
+use Blackprint\PortType;
+
 /** For internal library use only */
 class VarScope {
 	const public = 0;
@@ -73,6 +75,7 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	public $funcInstance = null;
 	public $_value = null;
 	public $_scope = null;
+	public $isShared = false;
 
 	public function __construct($id, $options=null){
 		$id = preg_replace('/^\/|\/$/m', '', $id);
@@ -172,10 +175,15 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 
 		if($port === null) throw new \Exception("Can't set type with null");
 		$temp->type = $port->_config ?? $port->type;
+		if($temp->type->portFeature === PortType::Trigger)
+			$temp->type = \Blackprint\Types::Trigger;
 
 		if($port->type === \Blackprint\Types::Slot)
 			$this->waitTypeChange($temp, $port);
-		else $temp->emit('type.assigned');
+		else {
+			$this->_recheckRoute();
+			$temp->emit('type.assigned');
+		}
 
 		// Also create port for other node that using $this variable
 		$used = &$temp->used;
@@ -186,16 +194,29 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		$this->_waitTypeChange = function() use(&$bpVar, &$port) {
 			if($port !== null) {
 				$bpVar->type = $port->_config ?? $port->type;
+				if($bpVar->type->portFeature === PortType::Trigger)
+					$bpVar->type = \Blackprint\Types::Trigger;
+
 				$bpVar->emit('type.assigned');
 			}
 			else {
 				$target = $this->input['Val'] ?? $this->output['Val'];
 				$target->assignType($bpVar->type);
 			}
+
+			$this->_recheckRoute();
 		};
 
 		$this->_destroyWaitType = fn() => $bpVar->off('type.assigned', $this->_waitTypeChange);
 		($port ?? $bpVar)->once('type.assigned', $this->_waitTypeChange);
+	}
+	public function _recheckRoute(){
+		if($this->input?->Val?->type === \Blackprint\Types::Trigger
+		|| $this->output?->Val?->type === \Blackprint\Types::Trigger){
+			$routes = &$this->node->routes;
+			$routes->disableOut = true;
+			$routes->noUpdate = true;
+		}
 	}
 	public function destroyIface(){
 		$temp = &$this->_destroyWaitType;
@@ -232,6 +253,7 @@ class IVarGet extends BPVarGetSet {
 		if($varRef->type === \Blackprint\Types::Slot) return;
 
 		$this->_reinitPort();
+		$this->_recheckRoute();
 	}
 
 	public function _reinitPort(){
@@ -247,7 +269,7 @@ class IVarGet extends BPVarGetSet {
 		$ref = &$node->output;
 		$node->createPort('output', 'Val', $temp->type);
 
-		if($temp->type === \Blackprint\Types::Function){
+		if($temp->type === \Blackprint\Types::Trigger){
 			$this->_eventListen = 'call';
 			$this->_onChanged = function() use(&$ref) { $ref['Val'](); };
 		}
@@ -256,7 +278,7 @@ class IVarGet extends BPVarGetSet {
 			$this->_onChanged = function() use(&$ref, &$temp) { $ref->setByRef('Val', $temp->_value); };
 		}
 
-		if($temp->type !== \Blackprint\Types::Function)
+		if($temp->type !== \Blackprint\Types::Trigger)
 			$node->output['Val'] = $temp->_value;
 
 		$temp->on($this->_eventListen, $this->_onChanged);
@@ -280,6 +302,7 @@ class IVarSet extends BPVarGetSet {
 		if($varRef->type === \Blackprint\Types::Slot) return;
 
 		$this->_reinitPort();
+		$this->_recheckRoute();
 	}
 
 	public function _reinitPort(){
@@ -293,7 +316,7 @@ class IVarSet extends BPVarGetSet {
 		if(isset($input['Val']))
 			$node->deletePort('input', 'Val');
 
-		if($temp->type === \Blackprint\Types::Function){
+		if($temp->type === \Blackprint\Types::Trigger){
 			$node->createPort('input', 'Val', \Blackprint\Port::Trigger(function() use(&$temp) {
 				$temp->emit('call');
 			}));

@@ -344,6 +344,13 @@ class Engine extends Constructor\CustomEvent {
 		$this->settings[$which] = &$val;
 	}
 
+	public function linkVariables($vars){
+		foreach($vars as &$temp){
+			Utils::setDeepProperty($this->variables, explode('/', $temp->id), $temp);
+			$this->_emit('variable.new', $temp);
+		}
+	}
+
 	public function &_getTargetPortType(&$instance, $whichPort, &$targetNodes){
 		$target = &$targetNodes[0]; // ToDo: check all target in case if it's supporting Union type
 		$targetIface = &$instance->ifaceList[$target['i']];
@@ -460,6 +467,8 @@ class Engine extends Constructor\CustomEvent {
 		$parentObj = Utils::getDeepProperty($this->variables, $ids, 1);
 
 		if($parentObj !== null && isset($parentObj[$lastId])){
+			if($parentObj[$lastId]->isShared) return;
+
 			$this->variables[$id]->destroy();
 			unset($this->variables[$id]);
 		}

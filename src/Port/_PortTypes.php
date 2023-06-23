@@ -52,7 +52,7 @@ class Port {
 
 		return [
 			'feature'=>PortType::Trigger,
-			'type'=>Types::Function,
+			'type'=>Types::Trigger,
 			'func'=>&$func
 		];
 	}

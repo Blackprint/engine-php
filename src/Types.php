@@ -2,8 +2,6 @@
 namespace Blackprint;
 
 enum Types {
-	// Port will accept any data type
-	case Any;
 	case Function;
 	case Number;
 	case Array;
@@ -11,15 +9,20 @@ enum Types {
 	case Boolean;
 	case Object;
 
+	// Port will accept any data type
+	case Any;
+
+	// Port that will trigger other input port if being called
+	case Trigger;
+
 	/**
-	 * [Experimental] May get deleted/changed anytime
 	 * Port's type can be assigned and validated later
 	 * This port will accept any port for initial connection
 	 * Currently only for output port
 	 */
 	case Slot;
 
-	// Can only be applicable for output port's type
+	// Can only be used for output port's type
 	case Route;
 }
 

@@ -46,7 +46,7 @@ class Utils{
 	
 		if($feature === \Blackprint\PortType::Trigger){
 			$def = &$val['func'];
-			$type = Types::Function;
+			$type = &$val['type'];
 		}
 		elseif($feature === \Blackprint\PortType::ArrayOf){
 			$type = &$val['type'];
@@ -70,7 +70,7 @@ class Utils{
 			$def = '';
 		elseif($type === Types::Array)
 			$def = [];
-		// elseif($type === Types::Function) 0;
+		// elseif($type === Types::Trigger) 0;
 		// elseif($type === Types::Any) 0; // Any
 		// elseif($type === Types::Slot) 0;
 		// elseif($type === Types::Route) 0;

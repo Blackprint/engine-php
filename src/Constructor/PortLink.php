@@ -127,7 +127,7 @@ class PortLink extends \ArrayObject {
 		// else output ports
 
 		// This may get called if the port is lazily assigned with Slot port feature
-		if($port->type === Types::Function){
+		if($port->type === Types::Trigger){
 			if($port->__call === null)
 				$port->__call = fn() => $port->_callAll();
 
@@ -229,7 +229,7 @@ class PortLink extends \ArrayObject {
 			if($val['feature'] === PortType::Union)
 				$val = Types::Any;
 			elseif($val['feature'] === PortType::Trigger)
-				$val = Types::Function;
+				$val = Types::Trigger;
 			elseif($val['feature'] === PortType::ArrayOf)
 				$val = Types::Array;
 			elseif($val['feature'] === PortType::Default)

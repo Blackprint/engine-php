@@ -1,5 +1,7 @@
 <?php
 namespace Blackprint;
+use Blackprint\Nodes\VarScope;
+
 class Internal {
 	public static $nodes = [];
 	public static $interface = [];
@@ -68,6 +70,18 @@ function registerEvent($namespace, $options){
 	}
 
 	Internal::$events[$namespace] = new Constructor\InstanceEvent($options);
+}
+
+
+function &createVariable($namespace, $options=[]){
+	if(preg_match('/\s/', $namespace) !== 0)
+		throw new \Exception("Namespace can't have space character: '$namespace'");
+
+	$temp = new Nodes\BPVariable($namespace, $options);
+	$temp->_scope = VarScope::public;
+	$temp->isShared = true;
+
+	return $temp;
 }
 
 Internal::$interface['BP/default'] = \Blackprint\Interfaces::class;

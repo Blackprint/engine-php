@@ -175,11 +175,11 @@ class Port extends CustomEvent {
 
 	public function createLinker(){
 		// Callable port
-		if($this->source === 'output' && ($this->type === Types::Function || $this->type === Types::Route)){
+		if($this->source === 'output' && ($this->type === Types::Trigger || $this->type === Types::Route)){
 			// Disable sync
 			$this->_sync = false;
 
-			if($this->type !== Types::Function){
+			if($this->type !== Types::Trigger){
 				$this->isRoute = true;
 				$this->iface->node->routes->disableOut = true;
 			}
@@ -335,7 +335,7 @@ class Port extends CustomEvent {
 				if($type['feature'] === PortType::Union)
 					$type = Types::Any;
 				elseif($type['feature'] === PortType::Trigger)
-					$type = Types::Function;
+					$type = $type['type'];
 				elseif($type['feature'] === PortType::ArrayOf)
 					$type = Types::Array;
 				elseif($type['feature'] === PortType::Default)
@@ -447,8 +447,8 @@ class Port extends CustomEvent {
 
 		// Remove cable if type restriction
 		if(!$isInstance || (
-			   $cableOwner->type === Types::Function && $this->type !== Types::Function
-			|| $cableOwner->type !== Types::Function && $this->type === Types::Function
+			   $cableOwner->type === Types::Trigger && $this->type !== Types::Trigger
+			|| $cableOwner->type !== Types::Trigger && $this->type === Types::Trigger
 		)){
 			$this->_cableConnectError('cable.wrong_type_pair', [
 				"cable" => &$cable,
@@ -505,7 +505,7 @@ class Port extends CustomEvent {
 		}
 
 		// Remove old cable if the port not support array
-		if($inp->feature !== PortType::ArrayOf && $inp->type !== Types::Function){
+		if($inp->feature !== PortType::ArrayOf && $inp->type !== Types::Trigger){
 			$cables = &$inp->cables; // Cables in input port
 
 			if(!empty($cables)){

@@ -294,7 +294,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 
 			// Sync all port value
 			foreach ($IOutput as $key => &$value){
-				if($value->type === \Blackprint\Types::Function) continue;
+				if($value->type === \Blackprint\Types::Trigger) continue;
 				$Output->setByRef($key, $thisInput[$key]);
 			}
 
@@ -374,7 +374,7 @@ class NodeOutput extends \Blackprint\Node {
 
 			// Sync all port value
 			foreach ($IOutput as $key => &$value){
-				if($value->type === \Blackprint\Types::Function) continue;
+				if($value->type === \Blackprint\Types::Trigger) continue;
 				$Output->setByRef($key, $thisInput[$key]);
 			}
 
@@ -406,6 +406,7 @@ class FnMain extends \Blackprint\Interfaces {
 		$node = &$this->node;
 
 		$this->bpInstance = new \Blackprint\Engine();
+		if($this->data?->pause) $this->bpInstance->executionOrder->pause = true;
 
 		$bpFunction = &$node->_funcInstance;
 
@@ -452,6 +453,7 @@ class FnMain extends \Blackprint\Interfaces {
 
 		$this->bpInstance->on('cable.connect cable.disconnect node.created node.delete node.id.changed port.default.changed _port.split _port.unsplit _port.resync.allow _port.resync.disallow', $this->_save);
 	}
+	public function imported($data){ $this->data = &$data; }
 	public function renamePort($which, $fromName, $toName){
 		$this->node->_funcInstance->renamePort($which, $fromName, $toName);
 		($this->_save)(false, false, true);
@@ -493,7 +495,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$nodeB = &$this->node;
 			$refName = new RefPortName($name);
 
-			$portType = getFnPortType($port, 'input', $this->_funcMain, $refName);
+			$portType = getFnPortType($port, 'input', $this, $refName);
 			$nodeA->_funcInstance->input[$name] = &$portType;
 		}
 		else { // Output (input) -> Main (output)
@@ -510,13 +512,13 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$nodeB = &$this->_funcMain->node;
 			$refName = new RefPortName($name);
 
-			$portType = getFnPortType($port, 'output', $this->_funcMain, $refName);
+			$portType = getFnPortType($port, 'output', $this, $refName);
 			$nodeB->_funcInstance->output[$name] = &$portType;
 		}
 
 		$outputPort = $nodeB->createPort('output', $name, $portType);
 
-		if($portType === \Blackprint\Types::Function)
+		if($portType === \Blackprint\Types::Trigger)
 			$inputPort = $nodeA->createPort('input', $name, \Blackprint\Port::Trigger(fn() => $outputPort->_callAll()));
 		else $inputPort = $nodeA->createPort('input', $name, $portType);
 

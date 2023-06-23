@@ -120,7 +120,7 @@ class FnVarInputIface extends BPFnVarInOut {
 				$this->_waitPortInit = null;
 
 				$portName = new RefPortName($name);
-				$portType = getFnPortType($port, 'input', $this->_funcMain, $portName);
+				$portType = getFnPortType($port, 'input', $this, $portName);
 				$iPort->assignType($portType);
 				$iPort->_name = $portName;
 
@@ -139,7 +139,7 @@ class FnVarInputIface extends BPFnVarInOut {
 				$iPort->onConnect = false;
 				$this->_waitPortInit = null;
 
-				$portType = getFnPortType($port, 'input', $this->_funcMain, $port->_name);
+				$portType = getFnPortType($port, 'input', $this, $port->_name);
 				$iPort->assignType($portType);
 				$this->_addListener();
 			};
@@ -149,7 +149,7 @@ class FnVarInputIface extends BPFnVarInOut {
 		else{
 			if(!isset($this->output['Val'])){
 				$port = &$this->_funcMain->_proxyInput->iface->output[$name];
-				$portType = getFnPortType($port, 'input', $this->_funcMain, $port->_name);
+				$portType = getFnPortType($port, 'input', $this, $port->_name);
 
 				$newPort = $node->createPort('output', 'Val', $portType);
 				$newPort->_name = &$port->_name;
@@ -161,7 +161,7 @@ class FnVarInputIface extends BPFnVarInOut {
 	public function _addListener(){
 		$port = &$this->_proxyIface->output[$this->data['name']];
 
-		if($port->type === Types::Function){
+		if($port->type === Types::Trigger){
 			$this->_listener = function() {
 				$this->ref->Output['Val']();
 			};
@@ -227,9 +227,11 @@ class FnVarOutputIface extends BPFnVarInOut {
 				$this->_waitPortInit = null;
 
 				$portName = new RefPortName($name);
-				$portType = getFnPortType($port, 'output', $this->_funcMain, $portName);
+				$portType = getFnPortType($port, 'output', $this, $portName);
 				$iPort->assignType($portType);
 				$iPort->_name = $portName;
+
+				$this->_recheckRoute();
 
 				// echo $name;
 				// debug_print_backtrace();
@@ -248,7 +250,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 				$iPort->onConnect = false;
 				$this->_waitPortInit = null;
 
-				$portType = getFnPortType($port, 'output', $this->_funcMain, $port->_name);
+				$portType = getFnPortType($port, 'output', $this, $port->_name);
 				// echo $port->_name->name;
 				// debug_print_backtrace();
 				$iPort->assignType($portType);
@@ -258,10 +260,17 @@ class FnVarOutputIface extends BPFnVarInOut {
 		}
 		else {
 			$port = &$this->_funcMain->_proxyOutput->iface->input[$name];
-			$portType = getFnPortType($port, 'output', $this->_funcMain, $port->_name);
+			$portType = getFnPortType($port, 'output', $this, $port->_name);
 			$newPort = $node->createPort('input', 'Val', $portType);
 			$newPort->_name = &$port->_name;
 		}
+	}
+	public function _recheckRoute(){
+		if($this->input->Val->type !== Types::Trigger) return;
+
+		$routes = &$this->node->routes;
+		$routes->disableOut = true;
+		$routes->noUpdate = true;
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/FnVar/Output', FnVarOutputIface::class);
@@ -269,10 +278,12 @@ class FnVarOutputIface extends BPFnVarInOut {
 class _Dummy{ public static $PortTrigger;}
 _Dummy::$PortTrigger = \Blackprint\Port::Trigger(fn()=> throw new \Exception("This can't be called"));
 
-function getFnPortType(&$port, $which, &$parentNode, &$ref){
-	if($port->feature === \Blackprint\PortType::Trigger || $port->type === Types::Function){
-		if($which === 'input') // Function Input (has output port inside, and input port on main node)
-			return Types::Function;
+function getFnPortType(&$port, $which, &$forIface, &$ref){
+	if($port->feature === \Blackprint\PortType::Trigger || $port->type === Types::Trigger){
+		// Function Input (has output port inside, and input port on main node)
+
+		if($which === 'input')
+			return Types::Trigger;
 		else
 			return _Dummy::$PortTrigger;
 	}
