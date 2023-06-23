@@ -1,7 +1,7 @@
 {
 	"name":"blackprint/engine",
 	"description": "PHP Engine for Blackprint",
-	"version": "0.8.15",
+	"version": "0.9.0",
 	"keywords": ["blackprint", "engine"],
 	"license":"MIT",
 	"require": {

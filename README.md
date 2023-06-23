@@ -47,7 +47,7 @@ class Hello extends \Blackprint\Node {
     // Please remember to capitalize the port name
     // Set the output port structure for your node (Optional)
     static $output = [
-        'Changed'=> Types::Function,
+        'Changed'=> Types::Trigger,
         // Callable: $this->output['Changed']()
 
         'Output'=> Types::Number,
