@@ -34,10 +34,12 @@ class Simple extends \Blackprint\Node {
 	}
 
 	// Remote sync in
-	function syncIn($id, &$data){
+	function syncIn($id, &$data, $isRemote = false){
 		if($id === 'data'){
 			$this->iface->data->value = &$data->value;
-			$this->iface->changed($data->value);
+		}
+		else if($id === 'value'){
+			$this->iface->data->value = $data;
 		}
 	}
 }
@@ -56,8 +58,10 @@ class InputIFaceData {
 	function __set($key, $val) {
 		$this->data[$key] = &$val;
 
-		if($key === 'value')
+		if($key === 'value'){
 			$this->iface->changed($val);
+			$this->iface->node->routes->routeOut();
+		}
 	}
 }
 

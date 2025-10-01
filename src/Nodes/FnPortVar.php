@@ -27,7 +27,7 @@ class FnVarInput extends \Blackprint\Node {
 		$iface = &$this->iface;
 
 		// This will trigger the port to request from outside and assign to this node's port
-		$this->output->setByRef('Val', $iface->_funcMain->node->input[$iface->data['name']]);
+		$this->output->setByRef('Val', $iface->parentInterface->node->input[$iface->data['name']]);
 	}
 	public function destroy(){
 		$iface = &$this->iface;
@@ -52,27 +52,11 @@ class FnVarOutput extends \Blackprint\Node {
 
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = ["name" => ''];
-		$iface->title = 'FnOutput';
+		$iface->title = 'Function Output Variable';
+		$iface->description = 'This will be removed in the future. Use BP/Fn/Output instead.';
+		trigger_error("Function Output Variable node is removed. Use BP/Fn/Output instead.", E_USER_DEPRECATED);
 
 		$iface->_enum = Enums::BPFnVarOutput;
-	}
-	public function update($cable){
-		$iface = &$this->iface;
-		$id = &$iface->data['name'];
-		$this->refOutput->setByRef($id, $this->ref->Input["Val"]);
-
-		$mainNodeIFace = &$iface->_funcMain;
-		$proxyOutputNode = &$mainNodeIFace->_proxyOutput;
-
-		// Also update the cache on the proxy node
-		$proxyOutputNode->ref->IInput[$id]->_cache = &$this->ref->Input['Val'];
-
-		// If main node has route and the output proxy doesn't have input route
-		// Then trigger out route on the main node
-		$mainNodeRoutes = &$mainNodeIFace->node->routes;
-		if($mainNodeRoutes->out !== null && count($proxyOutputNode->routes->in) === 0){
-			$mainNodeRoutes->routeOut();
-		}
 	}
 }
 \Blackprint\registerNode('BP/FnVar/Output', FnVarOutput::class);
@@ -83,7 +67,7 @@ class BPFnVarInOut extends \Blackprint\Interfaces {
 	public function imported($data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = &$data['name'];
-		$this->_funcMain = &$this->node->instance->_funcMain;
+		$this->parentInterface = &$this->node->instance->parentInterface;
 	}
 };
 
@@ -92,6 +76,7 @@ class FnVarInputIface extends BPFnVarInOut {
 	public $_proxyIface;
 	public $_waitPortInit;
 	public $type;
+	public $parentInterface;
 
 	public function __construct(&$node){
 		parent::__construct($node);
@@ -99,10 +84,10 @@ class FnVarInputIface extends BPFnVarInOut {
 	}
 	public function imported($data){
 		parent::imported($data);
-		$ports = &$this->_funcMain->ref->IInput;
+		$ports = &$this->parentInterface->ref->IInput;
 		$node = &$this->node;
 
-		$this->_proxyIface = &$this->_funcMain->_proxyInput->iface;
+		$this->_proxyIface = &$this->parentInterface->_proxyInput->iface;
 
 		// Create temporary port if the main function doesn't have the port
 		$name = $data['name'];
@@ -124,7 +109,7 @@ class FnVarInputIface extends BPFnVarInOut {
 				$iPort->assignType($portType);
 				$iPort->_name = $portName;
 
-				$proxyIface->addPort($port, $name);
+				$proxyIface->createPort($port, $name);
 				($cable->owner === $iPort ? $port : $iPort)->connectCable($cable);
 
 				$this->_addListener();
@@ -148,11 +133,11 @@ class FnVarInputIface extends BPFnVarInOut {
 		}
 		else{
 			if(!isset($this->output['Val'])){
-				$port = &$this->_funcMain->_proxyInput->iface->output[$name];
+				$port = &$this->parentInterface->_proxyInput->iface->output[$name];
 				$portType = getFnPortType($port, 'input', $this, $port->_name);
 
 				$newPort = $node->createPort('output', 'Val', $portType);
-				$newPort->_name = &$port->_name;
+				$newPort->_name = $port->_name ??= new RefPortName($name);
 			}
 
 			$this->_addListener();
@@ -206,16 +191,16 @@ class FnVarOutputIface extends BPFnVarInOut {
 	}
 	public function imported($data){
 		parent::imported($data);
-		$ports = &$this->_funcMain->ref->IOutput;
+		$ports = &$this->parentInterface->ref->IOutput;
 		$node = &$this->node;
 
-		$node->refOutput = &$this->_funcMain->ref->Output;
+		$node->refOutput = &$this->parentInterface->ref->Output;
 
 		// Create temporary port if the main function doesn't have the port
 		$name = $data['name'];
 		if(!isset($ports[$name])){
 			$iPort = $node->createPort('input', 'Val', Types::Slot);
-			$proxyIface = &$this->_funcMain->_proxyOutput->iface;
+			$proxyIface = &$this->parentInterface->_proxyOutput->iface;
 
 			// Run when this node is being connected with other node
 			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
@@ -236,7 +221,7 @@ class FnVarOutputIface extends BPFnVarInOut {
 				// echo $name;
 				// debug_print_backtrace();
 
-				$proxyIface->addPort($port, $name);
+				$proxyIface->createPort($port, $name);
 				($cable->owner === $iPort ? $port : $iPort)->connectCable($cable);
 
 				return true;
@@ -259,10 +244,10 @@ class FnVarOutputIface extends BPFnVarInOut {
 			$proxyIface->once("_add.{$name}", $this->_waitPortInit);
 		}
 		else {
-			$port = &$this->_funcMain->_proxyOutput->iface->input[$name];
+			$port = &$this->parentInterface->_proxyOutput->iface->input[$name];
 			$portType = getFnPortType($port, 'output', $this, $port->_name);
 			$newPort = $node->createPort('input', 'Val', $portType);
-			$newPort->_name = &$port->_name;
+			$newPort->_name = $port->_name;
 		}
 	}
 	public function _recheckRoute(){

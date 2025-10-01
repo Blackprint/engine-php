@@ -63,6 +63,9 @@ class CustomEvent {
 	}
 
 	public function emit($eventName, &$data=null){
+		if($data !== null && !is_array($data) && !is_object($data))
+			throw new \Exception("Event object must be an Object, but got:" . gettype($data));
+
 		$events = &$this->events;
 		$once = &$this->once;
 

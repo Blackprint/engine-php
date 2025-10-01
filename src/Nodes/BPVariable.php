@@ -5,9 +5,9 @@ use Blackprint\PortType;
 
 /** For internal library use only */
 class VarScope {
-	const public = 0;
-	const private = 1;
-	const shared = 2;
+	const Public = 0;
+	const Private = 1;
+	const Shared = 2;
 };
 
 class VarSet extends \Blackprint\Node {
@@ -22,7 +22,7 @@ class VarSet extends \Blackprint\Node {
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = [
 			"name" => '',
-			"scope" => VarScope::public
+			"scope" => VarScope::Public
 		];
 
 		$iface->title = 'VarSet';
@@ -48,7 +48,7 @@ class VarGet extends \Blackprint\Node {
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = [
 			"name" => '',
-			"scope" => VarScope::public
+			"scope" => VarScope::Public
 		];
 
 		$iface->title = 'VarGet';
@@ -69,10 +69,10 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	public $type = null;
 	public $id = null;
 	public $title = null;
-	public $used = [];
+	public $used = []; // [Interface, Interface, ...]
 	// this->totalSet = 0;
 	// this->totalGet = 0;
-	public $funcInstance = null;
+	public $bpFunction = null; // Only exist for function node's variable (shared/private)
 	public $_value = null;
 	public $_scope = null;
 	public $isShared = false;
@@ -103,12 +103,11 @@ class BPVariable extends \Blackprint\Constructor\CustomEvent {
 	}
 
 	public function destroy(){
-		$map = &$this->used;
+		$map = &$this->used; // This list can be altered multiple times when deleting a node
 		foreach ($map as &$iface) {
 			$iface->node->instance->deleteNode($iface);
 		}
-
-		array_splice($map, 0);
+		$this->emit('destroy');
 	}
 }
 
@@ -118,6 +117,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	public $_waitTypeChange;
 	public $_bpVarRef;
 	public $_dynamicPort = true; // Port is initialized dynamically
+	public $type;
 
 	public function imported($data){
 		if(!isset($data['scope']) || !isset($data['name']))
@@ -130,30 +130,28 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	public function changeVar($name, $scopeId){
 		if($this->data['name'] !== '')
 			throw new \Exception("Can't change variable node that already be initialized");
-			
+
 		$this->data['name'] = &$name;
 		$this->data['scope'] = &$scopeId;
 
-		$_funcInstance = $this->node->instance->_funcMain;
-		if($_funcInstance !== null)
-			$_funcInstance = $_funcInstance->node->_funcInstance;
+		$bpFunction = &$this->node->instance->parentInterface->node->bpFunction;
 
-		if($scopeId === VarScope::public){
-			if($_funcInstance !== null)
-				$scope = &$_funcInstance->rootInstance->variables;
+		if($scopeId === VarScope::Public){
+			if($bpFunction !== null)
+				$scope = &$bpFunction->rootInstance->variables;
 			else $scope = &$this->node->instance->variables;
 		}
-		elseif($scopeId === VarScope::shared)
-			$scope = &$_funcInstance->variables;
+		elseif($scopeId === VarScope::Shared)
+			$scope = &$bpFunction->variables;
 		else // private
 			$scope = &$this->node->instance->variables;
 
 		$construct = \Blackprint\Utils::getDeepProperty($scope, explode('/', $name));
 
 		if($construct === null){
-			if($scopeId === VarScope::public) $_scopeName = 'public';
-			elseif($scopeId === VarScope::private) $_scopeName = 'private';
-			elseif($scopeId === VarScope::shared) $_scopeName = 'shared';
+			if($scopeId === VarScope::Public) $_scopeName = 'public';
+			elseif($scopeId === VarScope::Private) $_scopeName = 'private';
+			elseif($scopeId === VarScope::Shared) $_scopeName = 'shared';
 			else throw new \Exception("Unrecognized scopeId: $scopeId");
 
 			throw new \Exception("'{$name}' variable was not defined on the '{$_scopeName} (scopeId: $scopeId)' instance");
@@ -165,7 +163,7 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	public function _reinitPort(){
 		throw new \Exception("It should only call child method and not the parent");
 	}
-	
+
 	public function useType(\Blackprint\Constructor\Port $port){
 		$temp = &$this->_bpVarRef;
 		if($temp->type !== \Blackprint\Types::Slot){
@@ -174,8 +172,9 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		}
 
 		if($port === null) throw new \Exception("Can't set type with null");
-		$temp->type = $port->_config ?? $port->type;
-		if($temp->type->portFeature === PortType::Trigger)
+		$type = $temp->type = $port->_config ?? $port->type;
+
+		if(is_array($type) && $type['feature'] === PortType::Trigger)
 			$temp->type = \Blackprint\Types::Trigger;
 
 		if($port->type === \Blackprint\Types::Slot)
@@ -193,8 +192,8 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 	public function waitTypeChange(&$bpVar, &$port=null){
 		$this->_waitTypeChange = function() use(&$bpVar, &$port) {
 			if($port !== null) {
-				$bpVar->type = $port->_config ?? $port->type;
-				if($bpVar->type->portFeature === PortType::Trigger)
+				$type = $bpVar->type = $port->_config ?? $port->type;
+				if(is_array($type) && $type['feature'] === PortType::Trigger)
 					$bpVar->type = \Blackprint\Types::Trigger;
 
 				$bpVar->emit('type.assigned');
@@ -211,8 +210,8 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 		($port ?? $bpVar)->once('type.assigned', $this->_waitTypeChange);
 	}
 	public function _recheckRoute(){
-		if($this->input?->Val?->type === \Blackprint\Types::Trigger
-		|| $this->output?->Val?->type === \Blackprint\Types::Trigger){
+		if(($this->input['Val']->type ?? null) === \Blackprint\Types::Trigger
+		|| ($this->output['Val']->type ?? null) === \Blackprint\Types::Trigger){
 			$routes = &$this->node->routes;
 			$routes->disableOut = true;
 			$routes->noUpdate = true;
@@ -228,12 +227,6 @@ class BPVarGetSet extends \Blackprint\Interfaces {
 
 		$i = array_search($this, $temp->used);
 		if($i !== false) array_splice($temp->used, $i, 1);
-
-		$listener = &$this->_bpVarRef->listener;
-		if($listener == null) return;
-
-		$i = array_search($this, $listener);
-		if($i !== false) array_splice($listener, $i, 1);
 	}
 }
 

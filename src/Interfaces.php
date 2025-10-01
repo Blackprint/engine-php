@@ -69,10 +69,10 @@ class Interfaces extends Constructor\CustomEvent {
 		foreach ($portSwitches as $key => &$value) {
 			$ref = &$this->output[$key];
 
-			if(($value | 1) === 1)
+			if(($value & 1) === 1)
 				\Blackprint\Port::StructOf_split($ref);
 
-			if(($value | 2) === 2){
+			if(($value & 2) === 2){
 				$ref->allowResync = true;
 			}
 		}

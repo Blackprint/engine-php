@@ -15,7 +15,7 @@ class Engine extends Constructor\CustomEvent {
 	/** @var array<\Blackprint\Interfaces|\Blackprint\Nodes\FnMain|\Blackprint\Nodes\BPVarGetSet|\Blackprint\Nodes\BPFnInOut> */
 	public $ifaceList = [];
 	protected $settings = [];
-	public $disablePorts = false;
+	public $disablePorts = false; // true = disable port data sync and disable route
 	public $throwOnError = true;
 
 	// Private or function node's instance only
@@ -31,18 +31,49 @@ class Engine extends Constructor\CustomEvent {
 	public $executionOrder;
 	public $events;
 
-	/** @var Nodes/FnMain */
-	public $_funcMain = null;
-	public $_mainInstance = null;
+	/** @var Nodes\FnMain */
+	public $parentInterface = null;
+	/** @var Engine */
+	public $rootInstance = null;
+	/** @var Nodes\BPFunction */
+	public $bpFunction = null;
+
 	public $_importing = false;
-	public $_remote = false;
+	public $_remote = null;
 	public $_locked_ = false;
 	public $_eventsInsNew = false;
 	public $_destroyed_ = false;
+	public $_destroying = false;
+	public $_ready = false;
+
+	/** @var callable */
+	private $_envDeleted = null;
 
 	public function __construct(){
 		$this->executionOrder = new Constructor\OrderedExecution($this);
 		$this->events = new Constructor\InstanceEvents($this);
+		$this->_importing = false;
+		$this->_destroying = false;
+		$this->_ready = false;
+
+		$this->_envDeleted = function($data) {
+			$key = $data->key;
+			$list = &$this->ifaceList;
+			for ($i = count($list) - 1; $i >= 0; $i--) {
+				$iface = &$list[$i];
+				if($iface->namespace !== 'BP/Env/Get' && $iface->namespace !== 'BP/Env/Set') continue;
+				if($iface->data['name'] === $key) $this->deleteNode($iface);
+			}
+		};
+		\Blackprint\Event::on('environment.deleted', $this->_envDeleted);
+
+		$this->once('json.imported', function() {
+			$this->_ready = true;
+		});
+	}
+
+	public function ready(){
+		return $this->_ready;
 	}
 
 	public function deleteNode($iface){
@@ -92,7 +123,7 @@ class Engine extends Constructor\CustomEvent {
 		unset($this->iface[$iface->id]);
 		unset($this->ref[$iface->id]);
 
-		$parent = &$iface->node->_funcInstance;
+		$parent = &$iface->node->bpFunction;
 		if($parent != null)
 			unset($parent->rootInstance->ref[$iface->id]);
 
@@ -100,17 +131,27 @@ class Engine extends Constructor\CustomEvent {
 	}
 
 	public function clearNodes(){
+		if($this->_locked_) throw new \Exception("This instance was locked");
+		$this->_destroying = true;
+
 		$list = &$this->ifaceList;
 		foreach ($list as &$iface) {
 			if($iface == null) continue;
 
+			$eventData = new EvIface($iface);
+			$this->_emit('node.delete', $eventData);
+
 			$iface->node->destroy();
 			$iface->destroy();
+
+			$this->_emit('node.deleted', $eventData);
 		}
 
 		$this->ifaceList = [];
 		$this->iface = [];
 		$this->ref = [];
+
+		$this->_destroying = false;
 	}
 
 	public function &importJSON($json, $options=[]){
@@ -139,22 +180,21 @@ class Engine extends Constructor\CustomEvent {
 		}
 		elseif(!$options['appendMode']) $this->clearNodes();
 
-		// Do we need this?
-		// $this->emit("json.importing", {appendMode: options.appendMode, raw: json});
-		
+		$this->emit("json.importing", ['appendMode' => $options['appendMode'], 'data' => $json]);
+
 		if(isset($json['environments']) && !$options['noEnv'])
 			\Blackprint\Environment::import($json['environments']);
 
 		if(isset($json['functions'])){
 			$functions = &$json['functions'];
-	
+
 			foreach ($functions as $key => &$value)
 				$this->createFunction($key, $value);
 		}
-	
+
 		if(isset($json['variables'])){
 			$variables = &$json['variables'];
-	
+
 			foreach ($variables as $key => &$value)
 				$this->createVariable($key, $value);
 		}
@@ -231,10 +271,10 @@ class Engine extends Constructor\CustomEvent {
 								$target = $this->_getTargetPortType($iface->node->instance, 'input', $ports);
 
 								/** @var Constructor\Port */
-								$linkPortA = $iface->addPort($target, $portName);
+								$linkPortA = $iface->createPort($target, $portName);
 
 								if($linkPortA === null)
-									throw new \Exception("Can't create output port ({$portName}) for function ({$iface->_funcMain->node->_funcInstance->id})");
+									throw new \Exception("Can't create output port ({$portName}) for function ({$iface->parentInterface->node->bpFunction->id})");
 							}
 							elseif($iface->_enum === Nodes\Enums::BPVarGet){
 								$target = $this->_getTargetPortType($this, 'input', $ports);
@@ -268,10 +308,10 @@ class Engine extends Constructor\CustomEvent {
 							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null){
 								if($targetNode->_enum === Nodes\Enums::BPFnOutput){
-									$linkPortB = &$targetNode->addPort($linkPortA, $target['name']);
+									$linkPortB = &$targetNode->createPort($linkPortA, $target['name']);
 
 									if($linkPortB === null)
-										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->_funcMain->node->_funcInstance->id})");
+										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->parentInterface->node->bpFunction->id})");
 								}
 								elseif($targetNode->_enum === Nodes\Enums::BPVarSet){
 									$targetNode->useType($linkPortA);
@@ -330,7 +370,7 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		$this->_importing = false;
-		// $this->emit("json.imported", {appendMode: options.appendMode, nodes: inserted, raw: json});
+		$this->emit("json.imported", ['appendMode' => $options['appendMode'], 'startIndex' => $appendLength, 'nodes' => $inserted, 'data' => $json]);
 		$this->executionOrder->next();
 
 		return $inserted;
@@ -410,7 +450,7 @@ class Engine extends Constructor\CustomEvent {
 			$this->iface[$iface->id] = &$iface;
 			$this->ref[$iface->id] = &$iface->ref;
 
-			$parent = &$iface->node->_funcInstance;
+			$parent = &$iface->node->bpFunction;
 			if($parent != null)
 				$parent->rootInstance->ref[$iface->id] = &$iface->ref;
 		}
@@ -434,10 +474,10 @@ class Engine extends Constructor\CustomEvent {
 			foreach($portSwitches as $key => &$val) {
 				$ref = &$iface->output[$key];
 
-				if(($val | 1) === 1)
+				if(($val & 1) === 1)
 					Port::StructOf_split($ref);
 
-				if(($val | 2) === 2)
+				if(($val & 2) === 2)
 					$ref->allowResync = true;
 			}
 		}
@@ -477,10 +517,86 @@ class Engine extends Constructor\CustomEvent {
 		$temp = new Nodes\BPVariable($id, $options);
 		Utils::setDeepProperty($this->variables, $ids, $temp);
 
-		$temp->_scope = VarScope::public;
-		$this->_emit('variable.new', $temp);
+		$temp->_scope = VarScope::Public;
+		$this->_emit('variable.new', [
+			'reference' => $temp,
+			'scope' => $temp->_scope,
+			'id' => $temp->id,
+		]);
 
 		return $temp;
+	}
+
+	public function renameVariable($from, $to, $scopeId = VarScope::Public){
+		$from = preg_replace('/^\/|\/$/m', '', $from);
+		$from = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $from);
+		$to = preg_replace('/^\/|\/$/m', '', $to);
+		$to = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $to);
+
+		$instance = null;
+		$varsObject = null;
+		if($scopeId === VarScope::Public) {
+			$instance = $this->rootInstance ?? $this;
+			$varsObject = &$instance->variables;
+		}
+		elseif($scopeId === VarScope::Private) {
+			$instance = $this;
+			if($instance->rootInstance === null) throw new \Exception("Can't rename private function variable from main instance");
+			$varsObject = &$instance->variables;
+		}
+		elseif($scopeId === VarScope::Shared) return; // Already handled on nodes/Fn.js
+
+		// Old variable object
+		$ids = explode('/', $from);
+		$oldObj = Utils::getDeepProperty($varsObject, $ids);
+		if($oldObj === null)
+			throw new \Exception("Variable with name '$from' was not found");
+
+		// New target variable object
+		$ids2 = explode('/', $to);
+		if(Utils::getDeepProperty($varsObject, $ids2) !== null)
+			throw new \Exception("Variable with similar name already exist in '$to'");
+
+		$map = $oldObj->used;
+		foreach ($map as &$iface) {
+			$iface->title = $iface->data['name'] = $to;
+		}
+
+		$oldObj->id = $oldObj->title = $to;
+
+		Utils::deleteDeepProperty($varsObject, $ids);
+		Utils::setDeepProperty($varsObject, $ids2, $oldObj);
+
+		if($scopeId === VarScope::Private) {
+			$this->_emit('variable.renamed', [
+				'old' => $from, 'now' => $to, 'bpFunction' => $this->parentInterface->node->bpFunction, 'scope' => $scopeId
+			]);
+		}
+		else $this->_emit('variable.renamed', ['old' => $from, 'now' => $to, 'reference' => $oldObj, 'scope' => $scopeId]);
+	}
+
+	public function deleteVariable($namespace, $scopeId = VarScope::Public){
+		$instance = null;
+		$varsObject = null;
+		if($scopeId === VarScope::Public) {
+			$instance = $this->rootInstance ?? $this;
+			$varsObject = &$instance->variables;
+		}
+		elseif($scopeId === VarScope::Private) {
+			$instance = $this;
+			$varsObject = &$instance->variables;
+		}
+		elseif($scopeId === VarScope::Shared) {
+			$varsObject = &$instance->sharedVariables;
+		}
+
+		$path = explode('/', $namespace);
+		$oldObj = Utils::getDeepProperty($varsObject, $path);
+		if($oldObj === null) return;
+		$oldObj->destroy();
+
+		Utils::deleteDeepProperty($varsObject, $path);
+		$this->_emit('variable.deleted', ['scope' => $scopeId, 'id' => $oldObj->id, 'reference' => $oldObj, 'bpFunction' => $this->parentInterface->node->bpFunction]);
 	}
 
 	public function &createFunction($id, $options){
@@ -509,7 +625,7 @@ class Engine extends Constructor\CustomEvent {
 		if(isset($options['vars'])){
 			$vars = &$options['vars'];
 			foreach ($vars as &$val) {
-				$temp->createVariable($val, ["scope" => Nodes\VarScope::shared]);
+				$temp->createVariable($val, ["scope" => Nodes\VarScope::Shared]);
 			}
 		}
 
@@ -520,15 +636,62 @@ class Engine extends Constructor\CustomEvent {
 			}
 		}
 
-		$this->_emit('function.new', $temp);
+		$event = [
+			'reference' => $temp,
+		];
+		$this->_emit('function.new', $event);
 		return $temp;
+	}
+
+	public function renameFunction($from, $to){
+		$from = preg_replace('/^\/|\/$/m', '', $from);
+		$from = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $from);
+		$to = preg_replace('/^\/|\/$/m', '', $to);
+		$to = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $to);
+
+		// Old function object
+		$ids = explode('/', $from);
+		$oldObj = Utils::getDeepProperty($this->functions, $ids);
+		if($oldObj === null)
+			throw new \Exception("Function with name '$from' was not found");
+
+		// New target function object
+		$ids2 = explode('/', $to);
+		if(Utils::getDeepProperty($this->functions, $ids2) !== null)
+			throw new \Exception("Function with similar name already exist in '$to'");
+
+		$map = $oldObj->used;
+		foreach ($map as &$iface) {
+			$iface->namespace = 'BPI/F/'.$to;
+			if($iface->title === $from) $iface->title = $to;
+		}
+
+		if($oldObj->title === $from) $oldObj->title = $to;
+		$oldObj->id = $to;
+
+		Utils::deleteDeepProperty($this->functions, $ids);
+		Utils::setDeepProperty($this->functions, $ids2, $oldObj);
+
+		$this->_emit('function.renamed', [
+			'old' => $from, 'now' => $to, 'reference' => $oldObj,
+		]);
+	}
+
+	public function deleteFunction($id){
+		$path = explode('/', $id);
+		$oldObj = Utils::getDeepProperty($this->functions, $path);
+		if($oldObj === null) return;
+		$oldObj->destroy();
+
+		Utils::deleteDeepProperty($this->functions, $path);
+		$this->_emit('function.deleted', ['id' => $oldObj->id, 'reference' => $oldObj]);
 	}
 
 	public function _log($data){
 		$data->instance = $this;
 
-		if($this->_mainInstance != null)
-			$this->_mainInstance->_emit('log', $data);
+		if($this->rootInstance != null)
+			$this->rootInstance->_emit('log', $data);
 		else $this->_emit('log', $data);
 	}
 
@@ -536,17 +699,17 @@ class Engine extends Constructor\CustomEvent {
 		$this->_locked_ = false;
 		$this->_destroyed_ = true;
 		$this->clearNodes();
+		\Blackprint\Event::off('environment.deleted', $this->_envDeleted);
 		$this->emit('destroy');
 	}
 
 	public function _emit($evName, &$data=[]){
 		$this->emit($evName, $data);
-		if($this->_funcMain == null) return;
+		if($this->parentInterface == null) return;
 
-		$rootInstance = &$this->_funcMain->node->_funcInstance->rootInstance;
+		$rootInstance = &$this->parentInterface->node->bpFunction->rootInstance;
 		if($rootInstance->_remote == null) return;
 
-		$data['bpFunction'] = &$rootInstance->_funcInstance;
 		$rootInstance->emit($evName, $data);
 	}
 }

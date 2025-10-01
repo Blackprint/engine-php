@@ -19,7 +19,7 @@ class Port extends CustomEvent {
 	/** @var array<Cable> */
 	public $cables = [];
 	public $source;
-	
+
 	/** @var \Blackprint\Interfaces */
 	public $iface;
 	public $default;
@@ -158,7 +158,7 @@ class Port extends CustomEvent {
 				// 	$cable->visualizeFlow();
 
 				if($target->_name != null)
-					$target->iface->_funcMain->node->iface->output[$target->_name->name]->_callAll();
+					$target->iface->parentInterface->node->iface->output[$target->_name->name]->_callAll();
 				else {
 					if($executionOrder->stepMode){
 						$executionOrder->_addStepPending($cable, 2);
@@ -243,8 +243,8 @@ class Port extends CustomEvent {
 
 			// echo "\n4. {$inp->name} = {$inpIface->title}, {$inpIface->_requesting}";
 
-			if($nextUpdate)
-				$inpNode->_bpUpdate();
+			if($inpNode->update && $nextUpdate)
+				$inpNode->_bpUpdate($cable);
 		}
 
 		if($singlePortUpdate){
@@ -346,7 +346,7 @@ class Port extends CustomEvent {
 
 				$this->feature = &$type['feature'];
 				$this->type = &$type['type'];
-	
+
 				if($type['feature'] === PortType::StructOf){
 					$this->struct = &$type['value'];
 					// $this->classAdd .= "BP-StructOf ";
@@ -534,10 +534,27 @@ class Port extends CustomEvent {
 	}
 
 	public function connectPort(Port &$port){
-		$cable = new Cable($port, $this);
-		if($port->_ghost) $cable->_ghost = true;
+		if($this->_node->instance->_locked_)
+			throw new \Exception("This instance was locked");
 
-		$port->cables[] = &$cable;
-		return $this->connectCable($cable);
+		if($port instanceof Port){
+			$cable = new Cable($port, $this);
+			if($port->_ghost) $cable->_ghost = true;
+
+			$port->cables[] = &$cable;
+			if($this->connectCable($cable))
+				return true;
+
+			return false;
+		}
+		elseif($port instanceof \Blackprint\RoutePort){
+			if($this->source === 'output'){
+				$cable = new Cable($this, $this);
+				$this->cables[] = &$cable;
+				return $port->connectCable($cable);
+			}
+			throw new \Exception("Unhandled connection for RoutePort");
+		}
+		throw new \Exception("First parameter must be instance of Port or RoutePort");
 	}
 }

@@ -10,19 +10,65 @@ class InstanceEvents extends CustomEvent {
 	// public function emit($eventName, &$obj){ }
 
 	public function createEvent($namespace, $options=[]){
-		if(in_array($namespace, $this->list)) return;
+		if(isset($this->list[$namespace])) return; // throw new \Exception(`Event with name '${namespace}' already exist`);
 		if(preg_match('/\s/', $namespace) !== 0)
 			throw new \Exception("Namespace can't have space character: '$namespace'");
 
-		$schema = [];
-		$list = &$options['schema'];
+		if(isset($options['schema']) && !is_array($options['schema'])){
+			$options['fields'] = $options['schema'];
+			unset($options['schema']);
+			error_log(".createEvent: schema options need to be object, please re-export this instance and replace your old JSON");
+		}
+
+		$schema = $options['schema'] ?? [];
+		$list = $options['fields'] ?? null;
 		if($list !== null){
-			foreach ($list as &$value) {
+			foreach ($list as $value) {
 				$schema[$value] = Types::Any;
 			}
 		}
 
-		$this->list[$namespace] = new InstanceEvent([ 'schema' => &$schema ]);
+		$obj = $this->list[$namespace] = new InstanceEvent([ 'schema' => &$schema, 'namespace' => $namespace, '_root' => $this ]);
+		$event = ['reference' => $obj];
+		$this->instance->_emit('event.created', $event);
+	}
+
+	public function renameEvent($from, $to){
+		if(isset($this->list[$to])) throw new \Exception("Event with name '$to' already exist");
+		if(preg_match('/\s/', $to) !== 0)
+			throw new \Exception("Namespace can't have space character: '$to'");
+
+		$oldEvInstance = $this->list[$from];
+		$used = $oldEvInstance->used;
+		$oldEvInstance->namespace = $to;
+
+		foreach ($used as $iface) {
+			if($iface->_enum === \Blackprint\Nodes\Enums::BPEventListen){
+				$this->off($iface->data['namespace'], $iface->_listener);
+				$this->on($to, $iface->_listener);
+			}
+
+			$iface->data['namespace'] = $to;
+			$iface->title = implode(' ', array_slice(explode('/', $to), -2));
+		}
+
+		$this->list[$to] = $this->list[$from];
+		unset($this->list[$from]);
+		$this->instance->_emit('event.renamed', ['old' => $from, 'now' => $to, 'reference' => $oldEvInstance]);
+	}
+
+	public function deleteEvent($namespace){
+		if(!isset($this->list[$namespace])) return;
+
+		$exist = $this->list[$namespace];
+		$map = $exist->used; // This list can be altered multiple times when deleting a node
+		while (!empty($map)) {
+			$iface = array_pop($map);
+			$iface->node->instance->deleteNode($iface);
+		}
+
+		unset($this->list[$namespace]);
+		$this->instance->_emit('event.deleted', ['reference' => $exist]);
 	}
 
 	public function _renameFields($namespace, $name, $to){
@@ -37,11 +83,12 @@ class InstanceEvents extends CustomEvent {
 
 	// second and third parameter is only be used for renaming field
 	public function refreshFields($namespace, $_name=null, $_to=null){
-		$schema = $this->list[$namespace]?->schema;
-		if($schema === null) return;
+		$evInstance = $this->list[$namespace] ?? null;
+		if($evInstance === null) return;
+		$schema = &$evInstance->schema;
 
 		$refreshPorts = function($iface, $target) use(&$schema, &$_name, &$_to) {
-			$ports = $iface[$target];
+			$ports = &$iface[$target];
 			$node = $iface->node;
 
 			if($_name !== null){
@@ -53,41 +100,41 @@ class InstanceEvents extends CustomEvent {
 			$isEmitPort = $target === 'input' ? true : false;
 			foreach ($ports as $name => &$val) {
 				if($isEmitPort) { $isEmitPort = false; continue; }
-				if($schema[$name] != $ports[$name]->_config){
+				if(!isset($schema[$name]) || $schema[$name] != $ports[$name]->_config){
 					$node->deletePort($target, $name);
 				}
 			}
 
 			// Create port that not exist
-			foreach ($schema as $name => &$val) {
-				if($ports[$target] == null)
+			foreach ($schema as $name => $val) {
+				if(!isset($ports[$target]))
 					$node->createPort($target, $name, $schema[$name]);
 			}
 		};
 
-		$iterateList = function($ifaceList) use(&$refreshPorts, &$namespace, &$iterateList) {
-			foreach ($ifaceList as &$iface) {
-				if($iface->_enum === \Blackprint\Nodes\Enums::BPEventListen){
-					if($iface->data['namespace'] === $namespace)
-						$refreshPorts($iface, 'output');
-				}
-				elseif($iface->_enum === \Blackprint\Nodes\Enums::BPEventEmit){
-					if($iface->data['namespace'] === $namespace)
-						$refreshPorts($iface, 'input');
-				}
-				elseif($iface->_enum === \Blackprint\Nodes\Enums::BPFnMain){
-					$iterateList($iface->bpInstance->ifaceList);
-				}
+		$used = &$evInstance->used;
+		foreach ($used as &$iface) {
+			if($iface->_enum === \Blackprint\Nodes\Enums::BPEventListen){
+				if($iface->data['namespace'] === $namespace)
+					$refreshPorts($iface, 'output');
 			}
-		};
-
-		$iterateList($this->instance->ifaceList);
+			elseif($iface->_enum === \Blackprint\Nodes\Enums::BPEventEmit){
+				if($iface->data['namespace'] === $namespace)
+					$refreshPorts($iface, 'input');
+			}
+			else throw new \Exception("Unrecognized node in event list's stored nodes");
+		}
 	}
 }
 
 class InstanceEvent {
 	public $schema;
+	public $_root;
+	public $namespace;
+	public $used = [];
 	function __construct($options){
 		$this->schema = &$options['schema'];
+		$this->_root = $options['_root'];
+		$this->namespace = $options['namespace'];
 	}
 }

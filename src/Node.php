@@ -2,6 +2,8 @@
 namespace Blackprint;
 
 use Blackprint\Nodes\Enums;
+use Blackprint\Types;
+use Blackprint\PortType;
 
 class Node {
 	/** @var Constructor\PortLink */
@@ -16,9 +18,20 @@ class Node {
 	public $disablePorts = false;
 	public $partialUpdate = false;
 
+	/** @var \Blackprint\Engine|null */
+	public $parentInterface = null;
+
+	/** @var \Blackprint\Engine|null */
+	public $rootInstance = null;
+
+	/** @var \Blackprint\Nodes\BPFunction|null */
+	public $bpFunction = null;
+
+	/** @var int Automatically call `.update` on node init depends on this flag rules */
+	public static $initUpdate = 0;
+
 	private $contructed = false;
 	public $_bpUpdating = false;
-	public $_funcInstance = null;
 
 	/** @var Constructor\References */
 	public $ref;
@@ -52,7 +65,42 @@ class Node {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only create port for 'input' and 'output'");
 
-		return $this->{$which}->_add($name, $type);
+		if($type === null)
+			throw new \Exception("Type is required for creating new port");
+
+		if(!is_string($name)) $name = strval($name);
+
+		if(
+			# Types from Blackprint
+			   $type === Types::Slot
+			|| $type === Types::Any
+			|| $type === Types::Slot
+			|| $type === Types::Route
+			|| $type === Types::Trigger
+
+			# Types from PHP
+			|| $type === Types::Function
+			|| $type === Types::Number
+			|| $type === Types::Array
+			|| $type === Types::String
+			|| $type === Types::Boolean
+			|| $type === Types::Object
+
+			# PortFeature
+			|| (is_array($type) && isset($type['feature']) && (
+				   $type['feature'] === PortType::ArrayOf
+				|| $type['feature'] === PortType::Default
+				|| $type['feature'] === PortType::Trigger
+				|| $type['feature'] === PortType::Union
+				|| $type['feature'] === PortType::StructOf
+			))
+		){
+			return $this->{$which}->_add($name, $type);
+		}
+
+		print_r("Get type: ");
+		var_dump($type);
+		throw new \Exception("Type must be a class object or from Blackprint.Port.{feature}");
 	}
 
 	public function renamePort($which, string $name, $to){
@@ -83,6 +131,7 @@ class Node {
 		if($which !== 'input' && $which !== 'output')
 			throw new \Exception("Can only delete port for 'input' and 'output'");
 
+		if(!is_string($name)) $name = strval($name);
 		return $this->{$which}->_delete($name);
 	}
 
@@ -90,38 +139,70 @@ class Node {
 		$this->instance->_log(new NodeLog($this->iface, $message));
 	}
 
-	public function _bpUpdate(){
+	public function _bpUpdate($cable = null){
 		$thisIface = $this->iface;
 		$isMainFuncNode = $thisIface->_enum === Enums::BPFnMain;
 		$ref = &$this->instance->executionOrder;
 
 		$this->_bpUpdating = true;
 		try {
-			$this->update(\Blackprint\Utils::$_null);
+			$this->update($cable);
 		}
 		finally {
 			$this->_bpUpdating = false;
 		}
-		$this->iface->emit('updated');
+		$thisIface->emit('updated');
 
 		if($this->routes->out == null){
-			if($isMainFuncNode && $thisIface->node->routes->out != null){
-				$thisIface->node->routes->routeOut();
-				$ref->next();
+			if($isMainFuncNode && $thisIface->_proxyInput->routes->out != null){
+				$thisIface->_proxyInput->routes->routeOut();
 			}
-			else $ref->next();
 		}
 		else{
 			if(!$isMainFuncNode)
 				$this->routes->routeOut();
 			else $thisIface->_proxyInput->routes->routeOut();
-
-			$ref->next();
 		}
+
+		$ref->next();
 	}
 
 	// ToDo: remote-control PHP
-	public function syncOut($id, $data){}
+	public function syncOut($id, $data, $force = false){
+		$this->_syncToAllFunction($id, $data);
+
+		$instance = $this->instance;
+		if($instance->rootInstance !== null) $instance->rootInstance = $instance->rootInstance; // Ensure rootInstance is set
+
+		$remote = $instance->_remote ?? null;
+		if($remote !== null)
+			$remote->nodeSyncOut($this, $id, $data, $force);
+	}
+
+	// Check into main instance if this instance is created inside of a function
+	private function _isInsideFunction($fnNamespace){
+		if($this->instance->rootInstance == null) return false;
+		if($this->instance->parentInterface->namespace === $fnNamespace) return true;
+		return $this->instance->parentInterface->node->instance->_isInsideFunction($fnNamespace);
+	}
+
+	// Sync data to all function instances
+	private function _syncToAllFunction($id, $data){
+		$parentInterface = &$this->instance->parentInterface;
+		if($parentInterface == null) return; // This is not in a function node
+
+		$list = $parentInterface->node->bpFunction->used;
+		$nodeIndex = $this->iface->i;
+		$namespace = $parentInterface->namespace;
+
+		foreach ($list as &$iface) {
+			if($iface === $parentInterface) continue; // Skip self
+			$target = $iface->bpInstance->ifaceList[$nodeIndex];
+
+			if($target == null) throw new \Exception("Target node was not found on other function instance, maybe the node was not correctly synced? (" . str_replace('BPI/F/', '', $namespace) . ");");
+			$target->node->syncIn($id, $data, false);
+		}
+	}
 
 	// To be overriden by module developer
 	public function imported($data){}
@@ -132,7 +213,7 @@ class Node {
 	public function initPorts($data){}
 	public function destroy(){}
 	public function init(){}
-	public function syncIn($id, &$data){}
+	public function syncIn($id, &$data, $isRemote = false){}
 }
 
 class NodeLog {

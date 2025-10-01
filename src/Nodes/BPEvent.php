@@ -25,7 +25,7 @@ class BPEventListen extends \Blackprint\Node {
 
 		$iface->_enum = Enums::BPEventListen;
 	}
-	public function initPorts($data){ $this->iface->initPorts($data); }	
+	public function initPorts($data){ $this->iface->initPorts($data); }
 	public function resetLimit(){
 		$limit = &$this->input['Limit'];
 		$this->_limit = $limit === 0 ? -1 : $limit;
@@ -58,6 +58,7 @@ class BPEventListen extends \Blackprint\Node {
 	}
 	public function destroy(){
 		$iface = $this->iface;
+		$iface->_removeFromList();
 
 		if($iface->_listener == null) return;
 		$iface->_insEventsRef->off($iface->data['namespace'], $iface->_listener);
@@ -73,14 +74,14 @@ BPEventListen::$Input = [
 class BPEventEmit extends \Blackprint\Node {
 	// Defined below this class
 	public static $Input;
-	
+
 	/** @var IEnvEmit */
 	public $iface;
 
 	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Event/Emit');
-		
+
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = ["namespace" => ''];
 		$iface->title = 'EventEmit';
@@ -101,6 +102,10 @@ class BPEventEmit extends \Blackprint\Node {
 
 		$this->instance->events->emit($this->iface->data['namespace'], $data);
 	}
+
+	public function destroy(){
+		$this->iface->_removeFromList();
+	}
 }
 BPEventEmit::$Input = [
 	"Emit" => Port::Trigger(fn($port) => $port->iface->node->trigger()),
@@ -120,7 +125,9 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		if(!$namespace) throw new \Exception("Parameter 'namespace' is required");
 
 		$this->data['namespace'] = $namespace;
-		$this->title = $namespace;
+		$this->title = explode('/', $namespace);
+		if(count($this->title) >= 2) array_splice($this->title, -2);
+		$this->title = implode(' ', $this->title);
 
 		$this->_eventRef = $this->node->instance->events->list[$namespace];
 		if($this->_eventRef == null) throw new \Exception("Events ($namespace) is not defined");
@@ -134,6 +141,8 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		foreach ($schema as &$key) {
 			$this->node->createPort($createPortTarget, $key, Types::Any);
 		}
+
+		$this->_addToList();
 	}
 	public function createField($name, $type=Types::Any){
 		$schema = &$this->_eventRef->schema;
@@ -141,7 +150,7 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 
 		$schema[$name] = &$type;
 		$this->_insEventsRef->refreshFields($this->data['namespace']);
-		$this->node->instance->emit('eventfield.create', new EvEFCreate(
+		$this->node->instance->_emit('event.field.created', new EvEFCreate(
 			$name,
 			$this->data['namespace']
 		));
@@ -151,22 +160,34 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		if($schema[$name] == null || $schema[$to] != null) return;
 
 		$this->_insEventsRef->_renameFields($this->data['namespace'], $name, $to);
-		$this->node->instance->emit('eventfield.rename', new EvEFRename(
+		$this->node->instance->_emit('event.field.renamed', new EvEFRename(
 			$name,
 			$to,
 			$this->data['namespace']
 		));
 	}
-	public function deleteField($name, $type=Types::Any){
+	public function deleteField($name){
 		$schema = &$this->_eventRef->schema;
-		if($schema[$name] != null) return;
+		if($schema[$name] == null) return;
 
 		unset($schema[$name]);
 		$this->_insEventsRef->refreshFields($this->data['namespace']);
-		$this->node->instance->emit('eventfield.delete', new EvEFDelete(
+		$this->node->instance->_emit('event.field.deleted', new EvEFDelete(
 			$name,
 			$this->data['namespace']
 		));
+	}
+
+	public function _addToList(){
+		$used = &$this->_insEventsRef->list[$this->data['namespace']]->used;
+		if(!in_array($this, $used)) $used[] = $this;
+		else \trigger_error("Tried to adding this node to the InstanceEvents more than once", E_USER_ERROR);
+	}
+
+	public function _removeFromList(){
+		$used = &$this->_insEventsRef->list[$this->data['namespace']]->used;
+		$usedIndex = array_search($this, $used);
+		if($usedIndex !== false) unset($used[$usedIndex]);
 	}
 };
 

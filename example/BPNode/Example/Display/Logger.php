@@ -7,6 +7,9 @@ use \Blackprint\{
 };
 
 class Logger extends \Blackprint\Node {
+	/** @var \Blackprint\Nodes\BPFunction|null */
+	public $bpFunction = null;
+
 	public static $Input = [
 		// 'Any'=> Port::ArrayOf(Types::Any) // Defined on bottom
 	];
@@ -55,7 +58,7 @@ class Logger extends \Blackprint\Node {
 	}
 
 	// Remote sync in
-	function syncIn($id, &$data){
+	function syncIn($id, &$data, $isRemote = false){
 		if($id === 'log') $this->iface->log($data);
 	}
 }

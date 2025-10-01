@@ -7,6 +7,9 @@ use \Blackprint\{
 };
 
 class Multiply extends \Blackprint\Node {
+	/** @var bool */
+	public $_inactive_ = false;
+
 	// Define input port here
 	public static $Input = [
 		// 'Exec'=> Port::Trigger,
@@ -24,7 +27,7 @@ class Multiply extends \Blackprint\Node {
 
 		$iface = $this->setInterface(); // default interface
 		$iface->title = "Multiply";
-		$iface->_inactive_ = true;
+		$this->_inactive_ = true;
 	}
 
 	function init(){
@@ -38,7 +41,7 @@ class Multiply extends \Blackprint\Node {
 	// When any output value from other node are updated
 	// Let's immediately change current node result
 	function update($cable){
-		if($this->iface->_inactive_) return;
+		if($this->_inactive_) return;
 		$this->output['Result'] = $this->multiply();
 	}
 
@@ -57,6 +60,6 @@ Multiply::$Input['Exec'] = Port::Trigger(function(&$port){
 	$node->output['Result'] = $node->multiply();
 	\App\colorLog("Math/Multiply:", "Result has been set: ".$node->output['Result']);
 
-	if($port->iface->_inactive_ !== false)
-		$port->iface->_inactive_ = false;
+	if($node->_inactive_ !== false)
+		$node->_inactive_ = false;
 });

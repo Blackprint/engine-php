@@ -31,6 +31,7 @@ class PortLink extends \ArrayObject {
 		}
 	}
 
+	#[\ReturnTypeWillChange]
 	public function &offsetGet($key){
 		$port = &$this->ifacePort[$key];
 		if($port === null) throw new \Exception("Port '$key' was not found");
@@ -150,7 +151,7 @@ class PortLink extends \ArrayObject {
 		// setter (only for output port)
 		if($port->iface->node->disablePorts || (!($port->splitted || $port->allowResync) && $port->value === $val))
 			return;
-		
+
 		if($port->source === 'input')
 			throw new \Exception("Can't set data to input port");
 
@@ -219,9 +220,6 @@ class PortLink extends \ArrayObject {
 	}
 
 	public function &_add(&$portName, $val){
-		if(preg_match('/([~!@#$%^&*()_\-+=[]{};\'\\:"|,.\/<>?]|\s)/', $portName))
-			throw new \Exception("Port name can't include symbol character except underscore");
-
 		if($portName === '')
 			throw new \Exception("Port name can't be empty");
 

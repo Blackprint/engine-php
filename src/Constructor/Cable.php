@@ -26,7 +26,7 @@ class Cable{
 	// For remote-control
 	public $_evDisconnected = false;
 	public $source = null;
-	
+
 	public $_hasUpdate = false;
 	public $_ghost = false;
 	public $_disconnecting = false;
@@ -88,7 +88,7 @@ class Cable{
 		if($node->instance->_importing)
 			$node->instance->executionOrder->add($node, $this);
 		elseif(count($node->routes->in) === 0)
-			$node->_bpUpdate();
+			$node->_bpUpdate($this);
 	}
 
 	// For debugging
@@ -105,30 +105,44 @@ class Cable{
 	}
 
 	public function disconnect($which=false){ // which = port
+		$owner = &$this->owner;
+		$target = &$this->target;
 		if($this->isRoute){ // ToDo: simplify, use 'which' instead of check all
 			$input = &$this->input;
 			$output = &$this->output;
 
-			if($output->cables != null) array_splice($output->cables, 0);
-			elseif($output->out === $this) $output->out = null;
+			if($output == null) return;
+
+			if($output->out === $this) $output->out = null;
 			elseif($input->out === $this) $input->out = null;
 
 			$i = $output->in ? array_search($this, $output->in) : -1;
 			if($i !== -1){
 				array_splice($output->in, $i, 1);
 			}
-			elseif($input != null) {
+			else if($input != null) {
 				$i = array_search($this, $input->in);
 				if($i !== -1)
 					array_splice($input->in, $i, 1);
 			}
 
 			$this->connected = false;
+
+			if($target == null) return; // Skip disconnection event emit
+
+			$temp1 = new \Blackprint\EvPortValue($owner, $target, $this);
+			$owner->emit('disconnect', $temp1);
+			$owner->iface->emit('cable.disconnect', $temp1);
+			$owner->iface->node->instance->emit('cable.disconnect', $temp1);
+
+			if($target == null) return;
+			$temp2 = new \Blackprint\EvPortValue($target, $owner, $this);
+			$target->emit('disconnect', $temp2);
+			$target->iface->emit('cable.disconnect', $temp2);
+
 			return;
 		}
 
-		$owner = &$this->owner;
-		$target = &$this->target;
 		$alreadyEmitToInstance = false;
 		$this->_disconnecting = true;
 

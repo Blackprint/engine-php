@@ -7,8 +7,11 @@ class OrderedExecution {
 	public $initialSize = 30;
 	public $pause = false;
 	public $stepMode = false;
+	public $stop = false;
 	private $_processing = false;
-		
+	private $_execCounter = null;
+	private $_rootExecOrder = ['stop' => false];
+
 	// Pending because stepMode
 	private $_pRequest = [];
 	private $_pRequestLast = [];
@@ -45,7 +48,7 @@ class OrderedExecution {
 	}
 
 	public function add(&$node, &$_cable=null){
-		if($this->isPending($node)) return;
+		if($this->stop || $this->_rootExecOrder['stop'] || $this->isPending($node)) return;
 		$this->_isReachLimit();
 
 		$this->list[$this->length++] = $node;
@@ -55,6 +58,7 @@ class OrderedExecution {
 		}
 	}
 	public function _tCableAdd($node, $cable){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		$tCable = &$this->_tCable; // Cable triggerer
 		$sets = $tCable->get($node);
 		if($sets === null) {
@@ -72,6 +76,7 @@ class OrderedExecution {
 	}
 
 	public function &_next(){
+		if($this->stop || $this->_rootExecOrder['stop']) return \Blackprint\Utils::$_null;
 		if($this->index >= $this->length)
 			return \Blackprint\Utils::$_null;
 
@@ -87,6 +92,7 @@ class OrderedExecution {
 	}
 
 	public function _emitPaused($afterNode, $beforeNode, $triggerSource, $cable, $cables=null){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		$this->instance->_emit('execution.paused', new EvExecutionPaused(
 			$afterNode,
 			$beforeNode,
@@ -97,6 +103,7 @@ class OrderedExecution {
 	}
 
 	public function _addStepPending($cable, $triggerSource){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		// 0 = execution order, 1 = route, 2 = trigger port, 3 = request
 		if($triggerSource === 1 && !in_array($cable, $this->_pRoute)) $this->_pRoute[] = &$cable;
 		if($triggerSource === 2 && !in_array($cable, $this->_pTrigger)) $this->_pTrigger[] = &$cable;
@@ -140,6 +147,7 @@ class OrderedExecution {
 
 	// For step mode
 	public function _emitNextExecution($afterNode=null){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		$triggerSource = 0; $beforeNode = null;
 
 		if(count($this->_pRequest) !== 0){
@@ -174,17 +182,20 @@ class OrderedExecution {
 			if($this->_lastBeforeNode === $beforeNode) return;
 
 			$cables = $this->_tCable->get($beforeNode); // Set<Cables>
-			if($cables) $cables = $cables->toArray();
-
-			return $this->_emitPaused($afterNode, $beforeNode, 0, null, $cables);
+			if($cables) {
+				$cables = $cables->toArray();
+				return $this->_emitPaused($afterNode, $beforeNode, 0, null, $cables);
+			}
 		}
-		elseif($triggerSource === 3)
-			return $this->_emitPaused($inputNode, $outputNode, $triggerSource, $cable);
+		elseif($triggerSource === 3) return $this->_emitPaused($inputNode, $outputNode, $triggerSource, $cable);
 		else return $this->_emitPaused($outputNode, $inputNode, $triggerSource, $cable);
 	}
 
 	public function _checkStepPending(){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		if(!$this->_hasStepPending) return;
+		if($this->_checkExecutionLimit()) return;
+
 		$_pRequest = &$this->_pRequest;
 		$_pRequestLast = &$this->_pRequestLast;
 		$_pTrigger = &$this->_pTrigger;
@@ -230,7 +241,7 @@ class OrderedExecution {
 		elseif(count($_pRequestLast) !== 0){
 			[ $node, $cableCall ] = array_pop($_pRequestLast);
 
-			$node->update();
+			$node->update(); // await
 
 			if($cableCall != null)
 				$cableCall->input->_call($cableCall);
@@ -265,8 +276,10 @@ class OrderedExecution {
 
 	// Can be async function if the programming language support it
 	public function next($force=false){
+		if($this->stop || $this->_rootExecOrder['stop']) return;
 		if($this->_processing) return;
 		if($this->pause && !$force) return;
+		if(count($this->instance->ifaceList) === 0) return;
 		if($this->_checkStepPending()) return;
 		if($this->stepMode) $this->pause = true;
 
@@ -303,7 +316,7 @@ class OrderedExecution {
 									$cable->_hasUpdate = false;
 
 									// Make this async if possible
-									$next->update($cable);
+									$next->update($cable); // await
 								}
 							}
 						}
@@ -313,7 +326,7 @@ class OrderedExecution {
 						$inp->_hasUpdateCable = null;
 
 						// Make this async if possible
-						if(!$skipUpdate) $next->update($cable);
+						if(!$skipUpdate) $next->update($cable); // await
 					}
 				}
 			}
@@ -322,7 +335,7 @@ class OrderedExecution {
 			if($_proxyInput) $_proxyInput->_bpUpdating = false;
 
 			// Make this async if possible
-			if(!$next->partialUpdate && !$skipUpdate) $next->_bpUpdate();
+			if(!$next->partialUpdate && !$skipUpdate) $next->_bpUpdate(); // await
 		} catch(\Exception $e) {
 			if($_proxyInput) $_proxyInput->_bpUpdating = false;
 
@@ -334,6 +347,39 @@ class OrderedExecution {
 
 		$this->_processing = false;
 		$this->next();
+	}
+
+	// Using singleNodeExecutionLoopLimit may affect performance
+	private function _checkExecutionLimit(){
+		$limit = \Blackprint\settings('singleNodeExecutionLoopLimit');
+		if($limit == null || $limit == 0) {
+			$this->_execCounter = null;
+			return;
+		}
+		if($this->length - $this->index === 0) {
+			$this->_execCounter?->clear();
+			return;
+		}
+
+		$node = $this->list[$this->index];
+		if($node == null) throw new \Exception("Empty");
+
+		$map = $this->_execCounter ??= new \Ds\Map();
+		if(!$map->has($node)) $map->put($node, 0);
+
+		$count = $map->get($node) + 1;
+		$map->put($node, $count);
+
+		if($count > $limit){
+			error_log("Execution terminated at " . $node->iface);
+			$this->stepMode = true;
+			$this->pause = true;
+			$this->_execCounter->clear();
+
+			$message = "Single node execution loop exceeded the limit ({$limit}): " . $node->iface->namespace;
+			$this->instance->_emit('execution.terminated', ['reason' => $message, 'iface' => $node->iface]);
+			return true;
+		}
 	}
 }
 

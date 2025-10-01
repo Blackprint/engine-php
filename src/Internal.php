@@ -78,7 +78,7 @@ function &createVariable($namespace, $options=[]){
 		throw new \Exception("Namespace can't have space character: '$namespace'");
 
 	$temp = new Nodes\BPVariable($namespace, $options);
-	$temp->_scope = VarScope::public;
+	$temp->_scope = VarScope::Public;
 	$temp->isShared = true;
 
 	return $temp;

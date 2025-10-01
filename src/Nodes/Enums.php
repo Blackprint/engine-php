@@ -7,7 +7,7 @@ enum Enums {
 	case BPVarGet;
 	case BPVarSet;
 	case BPFnVarInput;
-	case BPFnVarOutput;
+	case BPFnVarOutput; // Not used, but reserved
 	case BPFnInput;
 	case BPFnOutput;
 	case BPFnMain;

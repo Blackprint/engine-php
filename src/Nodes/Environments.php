@@ -31,7 +31,7 @@ class BPEnvSet extends \Blackprint\Node {
 	public function __construct($instance){
 		parent::__construct($instance);
 		$iface = $this->setInterface('BPIC/BP/Env/Set');
-		
+
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = ["name" => ''];
 		$iface->title = 'EnvSet';
@@ -47,15 +47,27 @@ class BPEnvSet extends \Blackprint\Node {
 \Blackprint\registerNode('BP/Env/Set', BPEnvSet::class);
 
 class BPEnvGetSet extends \Blackprint\Interfaces {
-	// private $_nameListener;
+	private $_nameListener;
+	public $type;
+
 	public function imported($data){
 		if(!$data['name']) throw new \Exception("Parameter 'name' is required");
 		$this->data['name'] = $data['name'];
+		$this->title = $data['name'];
 
 		// Create new environment if not exist
 		if(!isset(Environment::$map[$data['name']])){
 			Environment::set($data['name'], '');
 		}
+
+		// Listen for name change
+		$this->_nameListener = function($event) {
+			if($this->data['name'] !== $event->old) return;
+			$this->data['name'] = $event->now;
+			$this->title = $event->now;
+		};
+
+		\Blackprint\Event::on('environment.renamed', $this->_nameListener);
 
 		$name = &$this->data['name'];
 		$rules = &\Blackprint\Environment::$_rules[$name];
@@ -93,8 +105,8 @@ class BPEnvGetSet extends \Blackprint\Interfaces {
 		}
 	}
 	public function destroyListener(){
-		// if($this->_nameListener == null) return;
-		// Blackprint.off('environment.renamed', $this->_nameListener);
+		if($this->_nameListener == null) return;
+		\Blackprint\Event::off('environment.renamed', $this->_nameListener);
 	}
 };
 
