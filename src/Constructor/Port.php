@@ -206,7 +206,7 @@ class Port extends CustomEvent {
 
 		if($thisNode->routes->out !== null
 		   && $thisNode->iface->_enum === Enums::BPFnMain
-		   && $thisNode->iface->bpInstance->executionOrder->length !== 0){
+		   && $thisNode->iface->bpInstance->executionOrder->isPending()){
 			$skipSync = true;
 		}
 

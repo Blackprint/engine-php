@@ -278,6 +278,7 @@ class BPFunctionNode extends \Blackprint\Node { // Main function node -> BPI/F/{
 	public static $type = 'function';
 	public function __construct($instance){
 		parent::__construct($instance);
+		$this->partialUpdate = true;
 		$iface = $this->setInterface("BPIC/BP/Fn/Main");
 		$iface->type = 'function';
 		$iface->_enum = Enums::BPFnMain;
@@ -359,6 +360,7 @@ class NodeOutput extends \Blackprint\Node {
 	public static $Input = [];
 	public function __construct($instance){
 		parent::__construct($instance);
+		$this->partialUpdate = true; // Trigger this.update(cable) function everytime this node connected to any port that have update
 
 		$iface = $this->setInterface('BPIC/BP/Fn/Output');
 		$iface->_enum = Enums::BPFnOutput;
@@ -553,6 +555,16 @@ class BPFnInOut extends \Blackprint\Interfaces {
 
 		$inputPort->_name = $refName; // When renaming port, this also need to be changed
 		$this->emit("_add.{$name}", $inputPort);
+
+		// Code below is used when we dynamically modify function output node inside the function node
+		// where in a single function we can have multiple output node "BP/Fn/Output"
+		$list = &$this->parentInterface->_proxyOutput;
+		foreach ($list as &$item) {
+			$port_ = $item->createPort('input', $name, $inputPortType);
+			$port_->_name = $inputPort->_name;
+			$this->emit("_add.$name", $port_);
+		}
+
 		return $inputPort;
 	}
 	public function renamePort($fromName, $toName){

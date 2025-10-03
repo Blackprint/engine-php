@@ -1,14 +1,15 @@
 <?php
 namespace Blackprint\Constructor;
 
-class OrderedExecution {
+class ExecutionOrder {
 	public $index = 0;
-	public $length = 0;
+	public $lastIndex = 0;
 	public $initialSize = 30;
+	public $stop = false;
 	public $pause = false;
 	public $stepMode = false;
-	public $stop = false;
-	private $_processing = false;
+	public $_lockNext = false;
+	public $_nextLocked = false;
 	private $_execCounter = null;
 	private $_rootExecOrder = ['stop' => false];
 
@@ -18,6 +19,8 @@ class OrderedExecution {
 	private $_pTrigger = [];
 	private $_pRoute = [];
 	private $_hasStepPending = false;
+
+	// Cable who trigger the execution order's update (with stepMode)
 	private $_tCable;
 	private $_lastCable;
 	private $_lastBeforeNode;
@@ -33,25 +36,26 @@ class OrderedExecution {
 		$this->_tCable = new \Ds\Map(); // { Node => Set<Cable> }
 	}
 
-	public function isPending(&$node){
-		if($this->index === $this->length) return false;
-		return in_array($node, $this->list);
+	public function isPending(&$node=null){
+		if($this->index === $this->lastIndex) return false;
+		if($node === null) return true;
+		return in_array($node, $this->list, true);
 	}
 
 	public function clear(){
 		$list = &$this->list;
-		for ($i=$this->index, $n=$this->length; $i < $n; $i++) {
+		for ($i=$this->index; $i < $this->lastIndex; $i++) {
 			$list[$i] = null;
 		}
 
-		$this->length = $this->index = 0;
+		$this->lastIndex = $this->index = 0;
 	}
 
 	public function add(&$node, &$_cable=null){
 		if($this->stop || $this->_rootExecOrder['stop'] || $this->isPending($node)) return;
 		$this->_isReachLimit();
 
-		$this->list[$this->length++] = $node;
+		$this->list[$this->lastIndex++] = $node;
 		if($this->stepMode) {
 			if($_cable != null) $this->_tCableAdd($node, $_cable);
 			$this->_emitNextExecution();
@@ -71,21 +75,21 @@ class OrderedExecution {
 
 	public function _isReachLimit(){
 		$i = $this->index + 1;
-		if($i >= $this->initialSize || $this->length >= $this->initialSize)
+		if($i >= $this->initialSize || $this->lastIndex >= $this->initialSize)
 			throw new \Exception("Execution order limit was exceeded");
 	}
 
 	public function &_next(){
 		if($this->stop || $this->_rootExecOrder['stop']) return \Blackprint\Utils::$_null;
-		if($this->index >= $this->length)
+		if($this->index >= $this->lastIndex)
 			return \Blackprint\Utils::$_null;
 
 		$i = $this->index;
 		$temp = $this->list[$this->index++];
 		$this->list[$i] = null;
 
-		if($this->index >= $this->length)
-			$this->index = $this->length = 0;
+		if($this->index >= $this->lastIndex)
+			$this->index = $this->lastIndex = 0;
 
 		if($this->stepMode) $this->_tCable->remove($temp);
 		return $temp;
@@ -143,6 +147,39 @@ class OrderedExecution {
 
 		$this->_hasStepPending = true;
 		$this->_emitNextExecution();
+	}
+
+	// Using singleNodeExecutionLoopLimit may affect performance
+	private function _checkExecutionLimit(){
+		$limit = \Blackprint\settings('singleNodeExecutionLoopLimit');
+		if($limit == null || $limit == 0) {
+			$this->_execCounter = null;
+			return;
+		}
+		if($this->lastIndex - $this->index === 0) {
+			$this->_execCounter?->clear();
+			return;
+		}
+
+		$node = $this->list[$this->index];
+		if($node == null) throw new \Exception("Empty");
+
+		$map = $this->_execCounter ??= new \Ds\Map();
+		if(!$map->has($node)) $map->put($node, 0);
+
+		$count = $map->get($node) + 1;
+		$map->put($node, $count);
+
+		if($count > $limit){
+			error_log("Execution terminated at " . $node->iface);
+			$this->stepMode = true;
+			$this->pause = true;
+			$this->_execCounter->clear();
+
+			$message = "Single node execution loop exceeded the limit ({$limit}): " . $node->iface->namespace;
+			$this->instance->_emit('execution.terminated', ['reason' => $message, 'iface' => $node->iface]);
+			return true;
+		}
 	}
 
 	// For step mode
@@ -276,37 +313,37 @@ class OrderedExecution {
 
 	// Can be async function if the programming language support it
 	public function next($force=false){
-		if($this->stop || $this->_rootExecOrder['stop']) return;
-		if($this->_processing) return;
+		if($this->stop || $this->_rootExecOrder['stop'] || $this->_nextLocked) return;
+		if($this->stepMode) $this->pause = true;
 		if($this->pause && !$force) return;
 		if(count($this->instance->ifaceList) === 0) return;
 		if($this->_checkStepPending()) return;
-		if($this->stepMode) $this->pause = true;
 
 		/** @var \Blackprint\Node */
 		$next = $this->_next(); // next => node
 		if($next == null) return;
-		$this->_processing = true;
 
-		$_proxyInput = null;
+		$skipUpdate = count($next->routes->in) !== 0;
 		$nextIface = &$next->iface;
 		$next->_bpUpdating = true;
 
-		if($next->partialUpdate)
+		if($next->partialUpdate && $next->update == null)
 			$next->partialUpdate = false;
 
-		$skipUpdate = count($next->routes->in) !== 0;
+		$_proxyInput = null;
 		if($nextIface->_enum === \Blackprint\Nodes\Enums::BPFnMain){
 			$_proxyInput = &$nextIface->_proxyInput;
 			$_proxyInput->_bpUpdating = true;
 		}
+
+		if($this->_lockNext) $this->_nextLocked = true;
 
 		try{
 			if($next->partialUpdate){
 				$portList = &$nextIface->input;
 				foreach($portList as &$inp){
 					if($inp->feature === \Blackprint\PortType::ArrayOf){
-						if($inp->_hasUpdate !== false){
+						if($inp->_hasUpdate){
 							$inp->_hasUpdate = false;
 
 							if(!$skipUpdate){
@@ -315,7 +352,6 @@ class OrderedExecution {
 									if(!$cable->_hasUpdate) continue;
 									$cable->_hasUpdate = false;
 
-									// Make this async if possible
 									$next->update($cable); // await
 								}
 							}
@@ -325,61 +361,38 @@ class OrderedExecution {
 						$cable = $inp->_hasUpdateCable;
 						$inp->_hasUpdateCable = null;
 
-						// Make this async if possible
 						if(!$skipUpdate) $next->update($cable); // await
 					}
 				}
 			}
 
 			$next->_bpUpdating = false;
-			if($_proxyInput) $_proxyInput->_bpUpdating = false;
+			if($_proxyInput !== null) $_proxyInput->_bpUpdating = false;
 
 			// Make this async if possible
-			if(!$next->partialUpdate && !$skipUpdate) $next->_bpUpdate(); // await
+			if(!$skipUpdate) {
+				if(!$next->partialUpdate) $next->_bpUpdate(); // await
+				elseif($next->bpFunction !== null) $nextIface->bpInstance->executionOrder->start(); // start execution runner
+			}
 		} catch(\Exception $e) {
-			if($_proxyInput) $_proxyInput->_bpUpdating = false;
+			if($_proxyInput !== null) $_proxyInput->_bpUpdating = false;
 
 			$this->clear();
 			throw $e;
 		} finally {
+			$this->_nextLocked = false;
 			if($this->stepMode) $this->_emitNextExecution($next);
 		}
-
-		$this->_processing = false;
-		$this->next();
 	}
 
-	// Using singleNodeExecutionLoopLimit may affect performance
-	private function _checkExecutionLimit(){
-		$limit = \Blackprint\settings('singleNodeExecutionLoopLimit');
-		if($limit == null || $limit == 0) {
-			$this->_execCounter = null;
-			return;
+	public function start(){
+		if($this->stop || $this->_rootExecOrder['stop'] || $this->_nextLocked || $this->pause) return;
+
+		$this->_lockNext = true;
+		for ($i=$this->index; $i < $this->lastIndex; $i++) {
+			$this->next();
 		}
-		if($this->length - $this->index === 0) {
-			$this->_execCounter?->clear();
-			return;
-		}
-
-		$node = $this->list[$this->index];
-		if($node == null) throw new \Exception("Empty");
-
-		$map = $this->_execCounter ??= new \Ds\Map();
-		if(!$map->has($node)) $map->put($node, 0);
-
-		$count = $map->get($node) + 1;
-		$map->put($node, $count);
-
-		if($count > $limit){
-			error_log("Execution terminated at " . $node->iface);
-			$this->stepMode = true;
-			$this->pause = true;
-			$this->_execCounter->clear();
-
-			$message = "Single node execution loop exceeded the limit ({$limit}): " . $node->iface->namespace;
-			$this->instance->_emit('execution.terminated', ['reason' => $message, 'iface' => $node->iface]);
-			return true;
-		}
+		$this->_lockNext = false;
 	}
 }
 

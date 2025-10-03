@@ -27,7 +27,7 @@ class Engine extends Constructor\CustomEvent {
 	public $iface = []; // { id => IFace }
 	public $ref = []; // { id => Port references }
 
-	/** @var Constructor\OrderedExecution */
+	/** @var Constructor\ExecutionOrder */
 	public $executionOrder;
 	public $events;
 
@@ -50,7 +50,7 @@ class Engine extends Constructor\CustomEvent {
 	private $_envDeleted = null;
 
 	public function __construct(){
-		$this->executionOrder = new Constructor\OrderedExecution($this);
+		$this->executionOrder = new Constructor\ExecutionOrder($this);
 		$this->events = new Constructor\InstanceEvents($this);
 		$this->_importing = false;
 		$this->_destroying = false;
@@ -371,7 +371,7 @@ class Engine extends Constructor\CustomEvent {
 
 		$this->_importing = false;
 		$this->emit("json.imported", ['appendMode' => $options['appendMode'], 'startIndex' => $appendLength, 'nodes' => $inserted, 'data' => $json]);
-		$this->executionOrder->next();
+		$this->executionOrder->start();
 
 		return $inserted;
 	}

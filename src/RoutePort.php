@@ -67,7 +67,7 @@ class RoutePort {
 		$node = &$this->iface->node;
 		if($node->disablePorts) return;
 
-		// Add to execution list if the OrderedExecution is in Step Mode
+		// Add to execution list if the ExecutionOrder is in Step Mode
 		$executionOrder = &$node->instance->executionOrder;
 		if($executionOrder->stepMode && $_cable && !$_force){
 			$executionOrder->_addStepPending($_cable, 1);
