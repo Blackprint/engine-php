@@ -295,6 +295,10 @@ class Port extends CustomEvent {
 		// Skip if the assigned type is also Slot type
 		if($type === Types::Slot) return;
 
+		if($type === Types::Trigger && $this->source === 'input') {
+			throw new \Exception("Assigning Trigger type must use PortFeatures, and not only Types.Trigger");
+		}
+
 		// Check current output value type
 		if($this->value != null){
 			$gettype = \Blackprint\_getValueType($this->value);

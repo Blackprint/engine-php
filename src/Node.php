@@ -18,6 +18,9 @@ class Node {
 	public $disablePorts = false;
 	public $partialUpdate = false;
 
+	// If enabled, syncIn will have 3 parameter, and syncOut will be send to related node in other function instances
+	public $allowSyncToAllFunction = false;
+
 	/** @var \Blackprint\Engine|null */
 	public $parentInterface = null;
 
@@ -169,7 +172,7 @@ class Node {
 
 	// ToDo: remote-control PHP
 	public function syncOut($id, $data, $force = false){
-		$this->_syncToAllFunction($id, $data);
+		if($this->allowSyncToAllFunction) $this->_syncToAllFunction($id, $data);
 
 		$instance = $this->instance;
 		if($instance->rootInstance !== null) $instance->rootInstance = $instance->rootInstance; // Ensure rootInstance is set
@@ -199,7 +202,10 @@ class Node {
 			if($iface === $parentInterface) continue; // Skip self
 			$target = $iface->bpInstance->ifaceList[$nodeIndex];
 
-			if($target == null) throw new \Exception("Target node was not found on other function instance, maybe the node was not correctly synced? (" . str_replace('BPI/F/', '', $namespace) . ");");
+			if($target == null) {
+				// console.log(12, iface.bpInstance.ifaceList, target, nodeIndex, this.iface)
+				throw new \Exception("Target node was not found on other function instance, maybe the node was not correctly synced/saved? (" . str_replace('BPI/F/', '', $namespace) . ");");
+			}
 			$target->node->syncIn($id, $data, false);
 		}
 	}

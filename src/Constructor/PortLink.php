@@ -234,6 +234,10 @@ class PortLink extends \ArrayObject {
 				$val = &$val['type'];
 		}
 
+		if($val === Types::Trigger && $this->_which === 'input') {
+			throw new \Exception("Port with Trigger type must use PortFeatures, and not only Types.Trigger");
+		}
+
 		$iPort = &$this->ifacePort;
 		$exist = &$iPort[$portName];
 

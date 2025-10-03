@@ -492,9 +492,11 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		if(str_starts_with($port->iface->namespace, "BP/Fn"))
 			throw new \Exception("Function Input can't be connected directly to Output");
 
-		$name = $port->_name?->name ?? $customName ?? $port->name;
+		$portType = null;
+		$inputPortType = null;
 
-		// $nodeA, $nodeB; // Main (input) -> Input (output), Output (input) -> Main (output)
+		$name = $port->_name?->name ?? $customName ?? $port->name;
+		$nodeA, $nodeB; // Main (input) -> Input (output), Output (input) -> Main (output)
 		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
 			$inc = 1;
 			while(isset($this->output[$name])){
@@ -510,7 +512,12 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$refName = new RefPortName($name);
 
 			$portType = getFnPortType($port, 'input', $this, $refName);
-			$nodeA->bpFunction->input[$name] = &$portType;
+
+			if($portType === \Blackprint\Types::Trigger)
+				$inputPortType = \Blackprint\Port::Trigger(fn(&$_port) => $_port->iface->_proxyInput->output[$refName->name]());
+			else $inputPortType = $portType;
+
+			$nodeA->bpFunction->input[$name] = &$inputPortType;
 		}
 		else { // Output (input) -> Main (output)
 			$inc = 1;
@@ -527,14 +534,16 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			$refName = new RefPortName($name);
 
 			$portType = getFnPortType($port, 'output', $this, $refName);
-			$nodeB->bpFunction->output[$name] = &$portType;
+
+			if($port->type === \Blackprint\Types::Trigger)
+				$inputPortType = \Blackprint\Port::Trigger(fn(&$_port) => $_port->iface->parentInterface->node->output[$refName->name]());
+			else $inputPortType = $portType;
+
+			$nodeB->bpFunction->output[$name] = &$inputPortType;
 		}
 
 		$outputPort = $nodeB->createPort('output', $name, $portType);
-
-		if($portType === \Blackprint\Types::Trigger)
-			$inputPort = $nodeA->createPort('input', $name, \Blackprint\Port::Trigger(fn() => $outputPort->_callAll()));
-		else $inputPort = $nodeA->createPort('input', $name, $portType);
+		$inputPort = $nodeA->createPort('input', $name, $inputPortType);
 
 		if($this->type === 'bp-fn-input'){
 			$outputPort->_name = $refName; // When renaming port, this also need to be changed
