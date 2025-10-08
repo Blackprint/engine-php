@@ -195,7 +195,8 @@ class Engine extends Constructor\CustomEvent {
 		}
 		elseif(!$options['appendMode']) $this->clearNodes();
 
-		$this->emit("json.importing", new EvJsonImporting($options['appendMode'], $json));
+		$_eventData = new EvJsonImporting($options['appendMode'], $json);
+		$this->emit("json.importing", $_eventData);
 
 		if(isset($json['environments']) && !$options['noEnv'])
 			\Blackprint\Environment::import($json['environments']);
@@ -286,7 +287,7 @@ class Engine extends Constructor\CustomEvent {
 								$target = $this->_getTargetPortType($iface->node->instance, 'input', $ports);
 
 								/** @var Constructor\Port */
-								$linkPortA = $iface->createPort($target, $portName);
+								$linkPortA = $iface->addPort($target, $portName);
 
 								if($linkPortA === null)
 									throw new \Exception("Can't create output port ({$portName}) for function ({$iface->parentInterface->node->bpFunction->id})");
@@ -323,7 +324,7 @@ class Engine extends Constructor\CustomEvent {
 							$linkPortB = &$targetNode->input[$target['name']];
 							if($linkPortB === null){
 								if($targetNode->_enum === Nodes\Enums::BPFnOutput){
-									$linkPortB = &$targetNode->createPort($linkPortA, $target['name']);
+									$linkPortB = &$targetNode->addPort($linkPortA, $target['name']);
 
 									if($linkPortB === null)
 										throw new \Exception("Can't create output port ({$target['name']}) for function ({$targetNode->parentInterface->node->bpFunction->id})");
@@ -504,7 +505,8 @@ class Engine extends Constructor\CustomEvent {
 				throw new \Exception("Node nodes for $namespace was not found, maybe .registerNode() haven't being called?");
 		}
 
-		$this->emit('node.creating', new \Blackprint\EvNodeCreating($namespace, $options));
+		$_evData = new \Blackprint\EvNodeCreating($namespace, $options);
+		$this->emit('node.creating', $_evData);
 
 		/** @var Node */
 		$node = $funcNode ?? new $func($this);
@@ -574,7 +576,8 @@ class Engine extends Constructor\CustomEvent {
 			$this->_tryInitUpdateNode($node, $func->initUpdate, true);
 		}
 
-		$this->emit('node.created', new \Blackprint\EvNodeCreated($iface));
+		$_evData = new \Blackprint\EvNodeCreated($iface);
+		$this->emit('node.created', $_evData);
 		return $iface;
 	}
 
@@ -715,7 +718,8 @@ class Engine extends Constructor\CustomEvent {
 			}
 		}
 
-		$this->_emit('function.new', new EvFunctionNew($temp));
+		$_evData = new EvFunctionNew($temp);
+		$this->_emit('function.new', $_evData);
 		return $temp;
 	}
 

@@ -47,8 +47,9 @@ class FnVarOutput extends \Blackprint\Node {
 
 	public function __construct($instance){
 		parent::__construct($instance);
+		printr("Function Output Variable node is removed. Use BP/Fn/Output instead.");
 
-		$iface = $this->setInterface('BPIC/BP/FnVar/Output');
+		$iface = $this->setInterface();
 
 		// Specify data field from here to make it enumerable and exportable
 		$iface->data = ["name" => ''];
@@ -109,7 +110,7 @@ class FnVarInputIface extends BPFnVarInOut {
 				$iPort->assignType($portType);
 				$iPort->_name = $portName;
 
-				$proxyIface->createPort($port, $name);
+				$proxyIface->addPort($port, $name);
 				($cable->owner === $iPort ? $port : $iPort)->connectCable($cable);
 
 				$this->_addListener();
@@ -177,88 +178,6 @@ class FnVarInputIface extends BPFnVarInOut {
 	}
 }
 \Blackprint\registerInterface('BPIC/BP/FnVar/Input', FnVarInputIface::class);
-
-class FnVarOutputIface extends BPFnVarInOut {
-	public $_waitPortInit;
-	public $type;
-
-	/** @var FnVarOutput */
-	public $node;
-
-	public function __construct(&$node){
-		parent::__construct($node);
-		$this->type = 'bp-fnvar-output';
-	}
-	public function imported($data){
-		parent::imported($data);
-		$ports = &$this->parentInterface->ref->IOutput;
-		$node = &$this->node;
-
-		$node->refOutput = &$this->parentInterface->ref->Output;
-
-		// Create temporary port if the main function doesn't have the port
-		$name = $data['name'];
-		if(!isset($ports[$name])){
-			$iPort = $node->createPort('input', 'Val', Types::Slot);
-			$proxyIface = &$this->parentInterface->_proxyOutput->iface;
-
-			// Run when this node is being connected with other node
-			$iPort->onConnect = function(&$cable, &$port) use(&$iPort, &$proxyIface, &$name, &$node) {
-				// Skip port with feature: ArrayOf
-				if($port->feature === PortType::ArrayOf) return;
-
-				$iPort->onConnect = false;
-				$proxyIface->off("_add.$name", $this->_waitPortInit);
-				$this->_waitPortInit = null;
-
-				$portName = new RefPortName($name);
-				$portType = getFnPortType($port, 'output', $this, $portName);
-				$iPort->assignType($portType);
-				$iPort->_name = $portName;
-
-				$this->_recheckRoute();
-
-				// echo $name;
-				// debug_print_backtrace();
-
-				$proxyIface->createPort($port, $name);
-				($cable->owner === $iPort ? $port : $iPort)->connectCable($cable);
-
-				return true;
-			};
-
-			// Run when main node is the missing port
-			$this->_waitPortInit = function(&$port) use(&$iPort, &$node) {
-				// Skip port with feature: ArrayOf
-				if($port->feature === PortType::ArrayOf) return;
-
-				$iPort->onConnect = false;
-				$this->_waitPortInit = null;
-
-				$portType = getFnPortType($port, 'output', $this, $port->_name);
-				// echo $port->_name->name;
-				// debug_print_backtrace();
-				$iPort->assignType($portType);
-			};
-
-			$proxyIface->once("_add.{$name}", $this->_waitPortInit);
-		}
-		else {
-			$port = &$this->parentInterface->_proxyOutput->iface->input[$name];
-			$portType = getFnPortType($port, 'output', $this, $port->_name);
-			$newPort = $node->createPort('input', 'Val', $portType);
-			$newPort->_name = $port->_name;
-		}
-	}
-	public function _recheckRoute(){
-		if($this->input->Val->type !== Types::Trigger) return;
-
-		$routes = &$this->node->routes;
-		$routes->disableOut = true;
-		$routes->noUpdate = true;
-	}
-}
-\Blackprint\registerInterface('BPIC/BP/FnVar/Output', FnVarOutputIface::class);
 
 class _Dummy{ public static $PortTrigger;}
 _Dummy::$PortTrigger = \Blackprint\Port::Trigger(fn()=> throw new \Exception("This can't be called"));

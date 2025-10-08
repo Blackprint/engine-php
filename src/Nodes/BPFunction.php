@@ -371,7 +371,8 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		if($options['scope'] === VarScope::Private){
 			if(!in_array($id, $this->privateVars, true)){
 				$this->privateVars[] = $id;
-				$eventData = new \Blackprint\EvVariableNew(VarScope::Private, $id, $this, null);
+				$_null = null;
+				$eventData = new \Blackprint\EvVariableNew(VarScope::Private, $id, $this, $_null);
 				$this->emit('variable.new', $eventData);
 				$this->rootInstance->emit('variable.new', $eventData);
 			}
@@ -381,7 +382,8 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 				$vars = &$iface->bpInstance->variables;
 				$vars[$id] = new BPVariable($id);
 			}
-			return $null = null;
+			$null = null;
+			return $null;
 		}
 		elseif($options['scope'] === VarScope::Public){
 			throw new \Exception("Can't create public variable from a function");
@@ -392,7 +394,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 			throw new \Exception("Variable id already exist: $id");
 
 		$temp = new BPVariable($id, $options);
-		$temp->funcInstance = $this;
+		$temp->bpFunction = $this;
 		$temp->_scope = $options['scope'];
 		$this->variables[$id] = $temp;
 
@@ -460,7 +462,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 			}
 		}
 
-		$this->rootInstance->emit('function.port.renamed', new \Blackprint\EvFunctionPortRenamed($fromName, $toName, $this, $which))
+		$this->rootInstance->emit('function.port.renamed', new \Blackprint\EvFunctionPortRenamed($fromName, $toName, $this, $which));
 	}
 
 	public function deletePort($which, $portName){
@@ -738,8 +740,8 @@ class FnMain extends \Blackprint\Interfaces {
 
 		$bpFunction->refreshPrivateVars($newInstance);
 
-		if($bpFunction->structure['_bpStale']) {
-			print_r($node->iface->namespace + ": Function structure was stale, this maybe get modified or not re-synced with remote sketch on runtime")
+		if($bpFunction->structure['_bpStale'] ?? false) {
+			print_r($node->iface->namespace + ": Function structure was stale, this maybe get modified or not re-synced with remote sketch on runtime");
 			throw new \Exception("Unable to create stale function structure");
 		}
 
@@ -818,7 +820,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		$inputPortType = null;
 
 		$name = $port->_name?->name ?? $customName ?? $port->name;
-		$nodeA, $nodeB; // Main (input) -> Input (output), Output (input) -> Main (output)
+		$nodeA = null; $nodeB = null; // Main (input) -> Input (output), Output (input) -> Main (output)
 		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
 			$inc = 1;
 			while(isset($this->output[$name])){

@@ -28,7 +28,7 @@ class Interfaces extends Constructor\CustomEvent {
 	public $_requesting = false;
 
 	/** @var Nodes/FnMain */
-	public $_funcMain = null;
+	public $parentInterface = null;
 
 	/** @var Constructor\References */
 	public $ref;

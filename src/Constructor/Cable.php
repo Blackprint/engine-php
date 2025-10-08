@@ -103,8 +103,8 @@ class Cable{
 
 	public function visualizeFlow(){
 		$instance = $this->owner->iface->node->instance;
-		if($instance->_remote !== null):
-			$instance->_emit('_flowEvent', new EvCable($this))
+		if($instance->_remote !== null)
+			$instance->_emit('_flowEvent', new EvCable($this));
 	}
 
 	// ToDo: redesign after https://github.com/php/php-src/pull/6873 been merged
