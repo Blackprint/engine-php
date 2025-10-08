@@ -177,7 +177,7 @@ class ExecutionOrder {
 			$this->_execCounter->clear();
 
 			$message = "Single node execution loop exceeded the limit ({$limit}): " . $node->iface->namespace;
-			$this->instance->_emit('execution.terminated', ['reason' => $message, 'iface' => $node->iface]);
+			$this->instance->_emit('execution.terminated', new \Blackprint\EvExecutionTerminated($message, $node->iface));
 			return true;
 		}
 	}

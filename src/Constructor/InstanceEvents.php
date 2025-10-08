@@ -29,8 +29,7 @@ class InstanceEvents extends CustomEvent {
 		}
 
 		$obj = $this->list[$namespace] = new InstanceEvent([ 'schema' => &$schema, 'namespace' => $namespace, '_root' => $this ]);
-		$event = ['reference' => $obj];
-		$this->instance->_emit('event.created', $event);
+		$this->instance->_emit('event.created', new EvEventCreated($obj));
 	}
 
 	public function renameEvent($from, $to){
@@ -54,7 +53,7 @@ class InstanceEvents extends CustomEvent {
 
 		$this->list[$to] = $this->list[$from];
 		unset($this->list[$from]);
-		$this->instance->_emit('event.renamed', ['old' => $from, 'now' => $to, 'reference' => $oldEvInstance]);
+		$this->instance->_emit('event.renamed', new EvEventRenamed($from, $to, $oldEvInstance));
 	}
 
 	public function deleteEvent($namespace){
@@ -68,7 +67,7 @@ class InstanceEvents extends CustomEvent {
 		}
 
 		unset($this->list[$namespace]);
-		$this->instance->_emit('event.deleted', ['reference' => $exist]);
+		$this->instance->_emit('event.deleted', new EvEventDeleted($exist));
 	}
 
 	public function _renameFields($namespace, $name, $to){
@@ -137,4 +136,25 @@ class InstanceEvent {
 		$this->_root = $options['_root'];
 		$this->namespace = $options['namespace'];
 	}
+}
+
+// Don't put below to Internal.php script to avoid circular import
+class EvEventCreated {
+	function __construct(
+		public &$reference
+	){}
+}
+
+class EvEventRenamed {
+	function __construct(
+		public $old,
+		public $now,
+		public &$reference
+	){}
+}
+
+class EvEventDeleted {
+	function __construct(
+		public &$reference
+	){}
 }

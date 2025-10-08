@@ -56,11 +56,26 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 		// This will be updated if the function sketch was modified
 		$this->structure = $options['structure'] ?? [
+			'_bpStale' => false,
 			'instance' => [
 				'BP/Fn/Input' => [['i' => 0]],
 				'BP/Fn/Output' => [['i' => 1]],
 			],
 		];
+
+		// Event listeners for environment, variable, function, and event renaming
+		$this->_envNameListener = function($ev) { return $this->_onEnvironmentRenamed($ev); };
+		$this->_varNameListener = function($ev) { return $this->_onVariableRenamed($ev); };
+		$this->_funcNameListener = function($ev) { return $this->_onFunctionRenamed($ev); };
+		$this->_funcPortNameListener = function($ev) { return $this->_onFunctionPortRenamed($ev); };
+		$this->_eventNameListener = function($ev) { return $this->_onEventRenamed($ev); };
+
+		// Register event listeners
+		$this->rootInstance->on('environment.renamed', $this->_envNameListener);
+		$this->rootInstance->on('variable.renamed', $this->_varNameListener);
+		$this->rootInstance->on('function.renamed', $this->_funcNameListener);
+		$this->rootInstance->on('function.port.renamed', $this->_funcPortNameListener);
+		$this->rootInstance->on('event.renamed', $this->_eventNameListener);
 
 		$temp = &$this;
 		$uniqId = 0;
@@ -83,6 +98,89 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 			$iface->_prepare_(BPFunctionNode::class);
 			return $node;
 		};
+	}
+
+	public function _onEnvironmentRenamed($ev){
+		/** Handle environment name changes */
+		$instance = &$this->structure['instance'];
+		$list = [];
+		if (isset($instance['BP/Env/Get']))
+			$list = array_merge($list, $instance['BP/Env/Get']);
+		if (isset($instance['BP/Env/Set']))
+			$list = array_merge($list, $instance['BP/Env/Set']);
+
+		foreach ($list as &$item) {
+			if ($item['data']['name'] === $ev->old) {
+				$item['data']['name'] = $ev->now;
+				$item['data']['title'] = $ev->now;
+			}
+		}
+	}
+
+	public function _onVariableRenamed($ev){
+		/** Handle variable name changes */
+		$instance = &$this->structure['instance'];
+		if (in_array($ev->scope, [VarScope::Public, VarScope::Shared])) {
+			$list = [];
+			if (isset($instance['BP/Var/Get']))
+				$list = array_merge($list, $instance['BP/Var/Get']);
+			if (isset($instance['BP/Var/Set']))
+				$list = array_merge($list, $instance['BP/Var/Set']);
+
+			foreach ($list as &$item) {
+				if ($item['data']['scope'] === $ev->scope && $item['data']['name'] === $ev->old) {
+					$item['data']['name'] = $ev->now;
+				}
+			}
+		}
+	}
+
+	public function _onFunctionRenamed($ev){
+		/** Handle function name changes */
+		$instance = &$this->structure['instance'];
+		if (!isset($instance['BPI/F/'.$ev->old]))
+			return;
+
+		$instance['BPI/F/'.$ev->now] = $instance['BPI/F/'.$ev->old];
+		unset($instance['BPI/F/'.$ev->old]);
+	}
+
+	public function _onFunctionPortRenamed($ev){
+		/** Handle function port name changes */
+		$instance = &$this->structure['instance'];
+		$funcs = $instance['BPI/F/'.$ev->reference->id] ?? null;
+		if ($funcs === null)
+			return;
+
+		foreach ($funcs as &$item) {
+			if ($ev->which === 'output') {
+				if (isset($item['output_sw']) && isset($item['output_sw'][$ev->old])) {
+					$item['output_sw'][$ev->now] = $item['output_sw'][$ev->old];
+					unset($item['output_sw'][$ev->old]);
+				}
+			} elseif ($ev->which === 'input') {
+				if (isset($item['input_d']) && isset($item['input_d'][$ev->old])) {
+					$item['input_d'][$ev->now] = $item['input_d'][$ev->old];
+					unset($item['input_d'][$ev->old]);
+				}
+			}
+		}
+	}
+
+	public function _onEventRenamed($ev){
+		/** Handle event name changes */
+		$instance = &$this->structure['instance'];
+		$list = [];
+		if (isset($instance['BP/Event/Listen']))
+			$list = array_merge($list, $instance['BP/Event/Listen']);
+		if (isset($instance['BP/Event/Emit']))
+			$list = array_merge($list, $instance['BP/Event/Emit']);
+
+		foreach ($list as &$item) {
+			if ($item['data']['namespace'] === $ev->old) {
+				$item['data']['namespace'] = $ev->now;
+			}
+		}
 	}
 
 	public function _onFuncChanges($eventName, $obj, $fromNode){
@@ -126,14 +224,14 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 
 					if($targetInput === null){
 						if($inputIface->_enum === Enums::BPFnOutput){
-							$targetInput = &$inputIface->createPort($targetOutput, $output->name);
+							$targetInput = &$inputIface->addPort($targetOutput, $output->name);
 						}
 						else throw new \Exception("Output port was not found");
 					}
 
 					if($targetOutput === null){
 						if($outputIface->_enum === Enums::BPFnInput){
-							$targetOutput = &$outputIface->createPort($targetInput, $input->name);
+							$targetOutput = &$outputIface->addPort($targetInput, $input->name);
 						}
 						else throw new \Exception("Input port was not found");
 					}
@@ -175,30 +273,132 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		}
 	}
 
+	public function renameVariable($from_, $to, $scopeId){
+		if ($scopeId === null)
+			throw new \Exception("Third parameter couldn't be null");
+		if (str_contains($to, '/'))
+			throw new \Exception("Slash symbol is reserved character and currently can't be used for creating path");
+
+		$to = preg_replace('/^\/|\/$/m', '', $to);
+		$to = preg_replace('/[`~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.<>?]+/', '_', $to);
+
+		if ($scopeId === VarScope::Private) {
+			$privateVars = &$this->privateVars;
+			$i = array_search($from_, $privateVars);
+			if ($i === false)
+				throw new \Exception("Private variable with name '$from_' was not found on '{$this->id}' function");
+			$privateVars[$i] = $to;
+		} elseif ($scopeId === VarScope::Shared) {
+			$varObj = $this->variables[$from_] ?? null;
+			if ($varObj === null)
+				throw new \Exception("Shared variable with name '$from_' was not found on '{$this->id}' function");
+
+			$varObj->id = $varObj->title = $to;
+			$this->variables[$to] = $varObj;
+			if (isset($this->variables[$from_]))
+				unset($this->variables[$from_]);
+
+			$this->rootInstance->emit('variable.renamed', new \Blackprint\EvVariableRenamed($scopeId, $from_, $to, $this, $varObj));
+		} else {
+			throw new \Exception("Can't rename variable from scopeId: $scopeId");
+		}
+
+		// Update references in all function instances
+		$lastInstance = null;
+		if ($scopeId === VarScope::Shared) {
+			$used = $this->variables[$to]->used;
+			foreach ($used as &$iface) {
+				$iface->title = $iface->data['name'] = $to;
+				$lastInstance = $iface->node->instance;
+			}
+		} else {
+			foreach ($this->used as &$iface) {
+				$lastInstance = $iface->bpInstance;
+				$lastInstance->renameVariable($from_, $to, $scopeId);
+			}
+		}
+	}
+
+	public function deleteVariable($namespace, $scopeId){
+		if ($scopeId === VarScope::Public)
+			return $this->rootInstance->deleteVariable($namespace, $scopeId);
+
+		$used = &$this->used;
+		$path = explode('/', $namespace);
+
+		if ($scopeId === VarScope::Private) {
+			$privateVars = &$this->privateVars;
+			$i = array_search($namespace, $privateVars);
+			if ($i === false)
+				return;
+			array_splice($privateVars, $i, 1);
+
+			$used[0]->bpInstance->deleteVariable($namespace, $scopeId);
+
+			// Delete from all function node instances
+			for ($i = 1; $i < count($used); $i++) {
+				$instance = &$used[$i];
+				$varsObject = &$instance->variables;
+				$oldObj = \Blackprint\Utils::getDeepProperty($varsObject, $path);
+				if ($oldObj === null)
+					continue;
+				if ($scopeId === VarScope::Private)
+					$oldObj->destroy();
+				\Blackprint\Utils::deleteDeepProperty($varsObject, $path, true);
+				$eventData = new \Blackprint\EvVariableDeleted($oldObj->_scope, $oldObj->id, $this);
+				$instance->emit('variable.deleted', $eventData);
+			}
+		} elseif ($scopeId === VarScope::Shared) {
+			$oldObj = \Blackprint\Utils::getDeepProperty($this->variables, $path);
+			$used[0]->bpInstance->deleteVariable($namespace, $scopeId);
+
+			// Delete from all function node instances
+			$eventData = new \Blackprint\EvVariableDeleted($oldObj->_scope, $oldObj->id, $this);
+			for ($i = 1; $i < count($used); $i++) {  // Skip the first element and iterate directly over the rest
+				$used[$i]->bpInstance->emit('variable.deleted', $eventData);
+			}
+		}
+	}
+
 	public function createNode(&$instance, &$options){
 		return $instance->createNode($this->node, $options);
 	}
 
 	public function &createVariable($id, $options){
-		if(isset($this->variables[$id]))
-			throw new \Exception("Variable id already exist: $id");
-
 		if(str_contains($id, '/'))
 			throw new \Exception("Slash symbol is reserved character and currently can't be used for creating path");
 
-		// setDeepProperty
+		if($options['scope'] === VarScope::Private){
+			if(!in_array($id, $this->privateVars, true)){
+				$this->privateVars[] = $id;
+				$eventData = new \Blackprint\EvVariableNew(VarScope::Private, $id, $this, null);
+				$this->emit('variable.new', $eventData);
+				$this->rootInstance->emit('variable.new', $eventData);
+			}
 
-		$temp = new BPVariable($id, $options);
-		$temp->_scope = &$options['scope'];
-
-		if($options['scope'] === VarScope::Shared)
-			$this->variables[$id] = &$temp;
-		else {
-			return $temp2 = $this->addPrivateVars($id);
+			// Add private variable to all function instances
+			foreach ($this->used as &$iface) {
+				$vars = &$iface->bpInstance->variables;
+				$vars[$id] = new BPVariable($id);
+			}
+			return $null = null;
+		}
+		elseif($options['scope'] === VarScope::Public){
+			throw new \Exception("Can't create public variable from a function");
 		}
 
-		$this->emit('variable.new', $temp);
-		$this->rootInstance->emit('variable.new', $temp);
+		// Shared variable
+		if(isset($this->variables[$id]))
+			throw new \Exception("Variable id already exist: $id");
+
+		$temp = new BPVariable($id, $options);
+		$temp->funcInstance = $this;
+		$temp->_scope = $options['scope'];
+		$this->variables[$id] = $temp;
+
+		$eventData = new \Blackprint\EvVariableNew($temp->_scope, $temp->id, $this, $temp);
+		$this->emit('variable.new', $eventData);
+		$this->rootInstance->emit('variable.new', $eventData);
 		return $temp;
 	}
 
@@ -209,7 +409,7 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 		if(!in_array($id, $this->privateVars, true)){
 			$this->privateVars[] = &$id;
 
-			$temp = new \Blackprint\EvVariableNew($this, VarScope::Private, $id);
+			$temp = new \Blackprint\EvVariableNew(VarScope::Private, $id, $this, $null=null);
 			$this->emit('variable.new', $temp);
 			$this->rootInstance->emit('variable.new', $temp);
 		}
@@ -259,6 +459,107 @@ class BPFunction extends \Blackprint\Constructor\CustomEvent { // <= _funcInstan
 					$proxyVar[$proxyPort]['Val']->_name->name = &$toName;
 			}
 		}
+
+		$this->rootInstance->emit('function.port.renamed', new \Blackprint\EvFunctionPortRenamed($fromName, $toName, $this, $which))
+	}
+
+	public function deletePort($which, $portName){
+		$used = &$this->used;
+		if (count($used) == 0) {
+			throw new \Exception("One function node need to be placed to the instance before deleting port");
+		}
+
+		$main = &$this->{$which};
+		unset($main[$portName]);
+
+		$hasDeletion = false;
+		foreach ($used as &$iface) {
+			if ($which == 'output') {
+				$list_ = &$iface->_proxyOutput;
+				foreach ($list_ as &$item) {
+					$item->iface->deletePort($portName);
+				}
+				$hasDeletion = true;
+			} elseif ($which == 'input') {
+				$iface->_proxyInput->iface->deletePort($portName);
+				$hasDeletion = true;
+			}
+		}
+
+		if ($hasDeletion) {
+			$used[0]->_save(false, false, true);
+			$this->rootInstance->emit('function.port.deleted', new \Blackprint\EvFunctionPortDeleted($which, $portName, $this));
+		}
+	}
+
+	public function invoke($input){
+		$iface = $this->directInvokeFn;
+		if ($iface === null) {
+			$iface = $this->directInvokeFn = $this->createNode($this->rootInstance);
+			$iface->bpInstance->executionOrder->stop = true;  // Disable execution order and force to use route cable
+			$iface->bpInstance->pendingRender = true;
+			$iface->isDirectInvoke = true;  // Mark this node as direct invoke, for some optimization
+
+			// For sketch instance, we will remove it from sketch visibility
+			$sketchScope = $iface->node->instance->scope;
+			if ($sketchScope !== null) {
+				$list_ = $sketchScope('nodes')->list;
+				if (in_array($iface, $list_)) {
+					$key = array_search($iface, $list_);
+					array_splice($list_, $key, 1);
+				}
+			}
+
+			// Wait until ready - using event listener instead of Promise
+			$ready_event = new \Blackprint\Utils\Event();
+
+			$on_ready = function() use(&$ready_event, &$iface) {
+				$iface->off('ready', $on_ready);
+				$ready_event->set();
+			};
+
+			$iface->once('ready', $on_ready);
+			$ready_event->wait();
+		}
+
+		$proxyInput = $iface->_proxyInput;
+		if ($proxyInput->routes->out === null) {
+			throw new \Exception("{$this->id}: Blackprint function node must have route port that connected from input node to the output node");
+		}
+
+		$inputPorts = $proxyInput->iface->output;
+		foreach ($inputPorts as $key => &$port) {
+			$val = $input[$key];
+
+			if ($port->value === $val)
+				continue;  // Skip if value is the same
+
+			// Set the value if different, and reset cache and emit value event after this line
+			$port->value = $val;
+
+			// Check all connected cables, if any node need to synchronize
+			$cables = $port->cables;
+			foreach ($cables as &$cable) {
+				if ($cable->hasBranch)
+					continue;
+				$inp = $cable->input;
+				if ($inp === null)
+					continue;
+
+				$inp->_cache = null;
+				$inp->emit('value', new \Blackprint\EvPortValue($inp, $iface, $cable));
+			}
+		}
+
+		$proxyInput->routes->routeOut();
+
+		$ret = [];
+		$outputs = $iface->node->output;
+		foreach ($outputs as $key => &$value) {
+			$ret[$key] = $value;
+		}
+
+		return $ret;
 	}
 
 	public function destroy(){
@@ -338,11 +639,11 @@ class NodeInput extends \Blackprint\Node {
 		$iface->_proxyInput = true; // Port is initialized dynamically
 
 		$funcMain = &$this->instance->parentInterface;
-		$iface->_funcMain = &$funcMain;
+		$iface->parentInterface = &$funcMain;
 		$funcMain->_proxyInput = &$this;
 	}
 	public function imported($data){
-		$input = &$this->iface->_funcMain->node->bpFunction->input;
+		$input = &$this->iface->parentInterface->node->bpFunction->input;
 
 		foreach ($input as $key => &$value)
 			$this->createPort('output', $key, $value);
@@ -351,7 +652,7 @@ class NodeInput extends \Blackprint\Node {
 		$name = &$cable->output->name;
 
 		// This will trigger the port to request from outside and assign to this node's port
-		$this->output->setByRef($name, $this->iface->_funcMain->node->input[$name]);
+		$this->output->setByRef($name, $this->iface->parentInterface->node->input[$name]);
 	}
 }
 \Blackprint\registerNode('BP/Fn/Input', NodeInput::class);
@@ -367,19 +668,20 @@ class NodeOutput extends \Blackprint\Node {
 		$iface->_dynamicPort = true; // Port is initialized dynamically
 
 		$funcMain = &$this->instance->parentInterface;
-		$iface->_funcMain = &$funcMain;
-		$funcMain->_proxyOutput = &$this;
+		$iface->parentInterface = &$funcMain;
+		$funcMain->_proxyOutput ??= [];
+		$funcMain->_proxyOutput[] = &$this;
 	}
 
 	public function imported($data){
-		$output = &$this->iface->_funcMain->node->bpFunction->output;
+		$output = &$this->iface->parentInterface->node->bpFunction->output;
 
 		foreach ($output as $key => &$value)
 			$this->createPort('input', $key, $value);
 	}
 
 	public function update($cable){
-		$iface = &$this->iface->_funcMain;
+		$iface = &$this->iface->parentInterface;
 		$Output = &$iface->node->output;
 
 		if($cable === null){ // Triggered by port route
@@ -436,6 +738,11 @@ class FnMain extends \Blackprint\Interfaces {
 
 		$bpFunction->refreshPrivateVars($newInstance);
 
+		if($bpFunction->structure['_bpStale']) {
+			print_r($node->iface->namespace + ": Function structure was stale, this maybe get modified or not re-synced with remote sketch on runtime")
+			throw new \Exception("Unable to create stale function structure");
+		}
+
 		$swallowCopy = array_slice($bpFunction->structure, 0);
 		$newInstance->importJSON($swallowCopy, ['clean'=> false]);
 
@@ -451,9 +758,22 @@ class FnMain extends \Blackprint\Interfaces {
 			}
 		}
 
-		$this->_save = function(&$ev, &$eventName, $force=false) use(&$bpFunction, &$newInstance) {
+		$iface = $this;
+		$this->_save = function(&$ev, &$eventName=false, $force=false) use(&$bpFunction, &$newInstance, &$iface) {
+			$eventName = $newInstance->_currentEventName;
+
 			// $this->bpInstance._emit('_fn.structure.update', { iface: this });
 			if($force || $bpFunction->_syncing) return;
+			if($iface->_bpDestroy) return;
+
+			# This will be synced by remote sketch as this engine dont have exportJSON
+			$bpFunction->structure['_bpStale'] = true;
+			# bpFunction.structure = this.bpInstance.exportJSON({
+			# 	toRawObject: true,
+			# 	exportFunctions: false,
+			# 	exportVariables: false,
+			# 	exportEvents: false,
+			# });
 
 			// $ev->bpFunction = &$bpFunction;
 			$newInstance->rootInstance->emit($eventName, $ev);
@@ -488,7 +808,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 	public $_proxyOutput;
 	public $type = false;
 	public $_dynamicPort = true; // Port is initialized dynamically
-	public function &createPort(\Blackprint\Constructor\Port $port, $customName){
+	public function &addPort(\Blackprint\Constructor\Port $port, $customName){
 		if($port === null) return;
 
 		if(str_starts_with($port->iface->namespace, "BP/Fn"))
@@ -509,7 +829,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 				}
 			}
 
-			$nodeA = &$this->_funcMain->node;
+			$nodeA = &$this->parentInterface->node;
 			$nodeB = &$this->node;
 			$refName = new RefPortName($name);
 
@@ -532,7 +852,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 			}
 
 			$nodeA = &$this->node;
-			$nodeB = &$this->_funcMain->node;
+			$nodeB = &$this->parentInterface->node;
 			$refName = new RefPortName($name);
 
 			$portType = getFnPortType($port, 'output', $this, $refName);
@@ -568,7 +888,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		return $inputPort;
 	}
 	public function renamePort($fromName, $toName){
-		$bpFunction = &$this->_funcMain->node->bpFunction;
+		$bpFunction = &$this->parentInterface->node->bpFunction;
 
 		// Main (input) -> Input (output)
 		if($this->type === 'bp-fn-input')
@@ -583,7 +903,7 @@ class BPFnInOut extends \Blackprint\Interfaces {
 		// });
 	}
 	public function deletePort($name){
-		$funcMainNode = &$this->_funcMain->node;
+		$funcMainNode = &$this->parentInterface->node;
 		if($this->type === 'bp-fn-input'){ // Main (input) -> Input (output)
 			$funcMainNode->deletePort('input', $name);
 			$this->node->deletePort('output', $name);

@@ -38,6 +38,22 @@ class Environment {
 		Event::emit('environment.deleted', $temp);
 	}
 
+	public static function _rename($keyA, $keyB){
+		if(!$keyB) return;
+
+		if(preg_match("/[^A-Z_][^A-Z0-9_]/", $keyB) !== 0)
+			throw new \Exception("Environment must be uppercase and not contain any symbol except underscore, and not started by a number. But got: '$keyB'");
+
+		if(!isset(Environment::$map[$keyA]))
+			throw new \Exception("'$keyA' was not defined in the environment");
+
+		Environment::$map[$keyB] = Environment::$map[$keyA];
+		unset(Environment::$map[$keyA]);
+
+		$event = new \Blackprint\EvEnvRenamed($keyA, $keyB);
+		Event::emit('environment.renamed', $event);
+	}
+
 	/**
 	 * options = {allowGet: {}, allowSet: {}}
 	 */

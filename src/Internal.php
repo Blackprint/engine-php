@@ -103,11 +103,9 @@ class EvEnv {
 		public &$value=null,
 	){}
 }
-class EvVariableNew {
+class EvCable {
 	function __construct(
-		public &$instance,
-		public $scope,
-		public &$id,
+		public &$cable
 	){}
 }
 class EvPortValue {
@@ -121,4 +119,109 @@ class EvPortSelf {
 	function __construct(
 		public &$port
 	){}
+}
+
+class EvJsonImporting {
+	function __construct(
+		public $appendMode,
+		public &$data
+	){}
+}
+
+class EvJsonImported {
+	function __construct(
+		public $appendMode,
+		public $startIndex,
+		public &$nodes,
+		public &$data
+	){}
+}
+
+class EvVariableNew {
+	function __construct(
+		public $scope,
+		public $id,
+		public &$bpFunction,
+		public &$reference # Only available for Public/Shared scope
+	){}
+}
+
+class EvVariableRenamed {
+	function __construct(
+		public $scope,
+		public $old,
+		public $now,
+		public &$bpFunction,
+		public &$reference # Only available for Public/Shared scope
+	){}
+}
+
+class EvVariableDeleted {
+	function __construct(
+		public $scope,
+		public $id,
+		public &$bpFunction,
+	){}
+}
+
+class EvFunctionNew {
+	function __construct(
+		public &$reference
+	){}
+}
+
+class EvFunctionRenamed {
+	function __construct(
+		public $old,
+		public $now,
+		public &$reference
+	){}
+}
+
+class EvFunctionDeleted {
+	function __construct(
+		public $id,
+		public &$reference
+	){}
+}
+
+class EvExecutionTerminated {
+	function __construct(
+		public $reason,
+		public &$iface
+	){}
+}
+
+class EvEFieldCreated {
+	function __construct(public $name, public $namespace){}
+}
+class EvEFieldRenamed {
+	function __construct(public $old, public $to, public $namespace){}
+}
+class EvEFieldDeleted {
+	function __construct(public $name, public $namespace){}
+}
+
+class EvEnvRenamed {
+	function __construct(public $old, public $now){}
+}
+
+class EvFunctionPortRenamed {
+	function __construct(public $old, public $now, public &$reference, public $which){}
+}
+
+class EvFunctionPortDeleted {
+	function __construct(public $which, public $name, public &$reference){}
+}
+
+class EvNodeIdChanged {
+	function __construct(public &$iface, public $oldId, public $newId){}
+}
+
+class EvNodeCreating {
+	function __construct(public $namespace, public &$options){}
+}
+
+class EvNodeCreated {
+	function __construct(public &$iface){}
 }

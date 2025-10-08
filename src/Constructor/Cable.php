@@ -2,6 +2,7 @@
 namespace Blackprint\Constructor;
 
 use Blackprint\EvPortValue;
+use Blackprint\EvCable;
 use Exception;
 
 class Cable{
@@ -62,38 +63,48 @@ class Cable{
 		$this->_connected();
 	}
 	public function _connected(){
-		$owner = &$this->owner;
-		$target = &$this->target;
+		$inp = &$this->input;
+		$out = &$this->output;
 		$this->connected = true;
 
 		// Skip event emit or node update for route cable connection
 		if($this->isRoute) return;
 
-		$temp = new \Blackprint\EvPortValue($owner, $target, $this);
-		$owner->emit('cable.connect', $temp);
-		$owner->iface->emit('cable.connect', $temp);
+		$tempEv = new \Blackprint\EvPortValue($inp, $out, $this);
+		$inp->emit('cable.connect', $tempEv);
+		$inp->iface->emit('cable.connect', $tempEv);
 
-		$temp2 = new \Blackprint\EvPortValue($target, $owner, $this);
-		$target->emit('cable.connect', $temp2);
-		$target->iface->emit('cable.connect', $temp2);
+		$tempEv2 = new \Blackprint\EvPortValue($out, $inp, $this);
+		$out->emit('cable.connect', $tempEv2);
+		$out->iface->emit('cable.connect', $tempEv2);
 
-		if($this->output->value === null) return;
+		$inp->iface->node->instance->emit('cable.connect', $tempEv);
+		$inp->emit('connect', $tempEv);
+		$out->emit('connect', $tempEv2);
 
-		$input = &$this->input;
-		$tempEv = new \Blackprint\EvPortValue($input, $this->output, $this);
-		$input->emit('value', $tempEv);
-		$input->iface->emit('port.value', $tempEv);
+		if($this->output->value !== null) {
+			$input = &$this->input;
+			$tempEv3 = new \Blackprint\EvPortValue($input, $this->output, $this);
+			$input->emit('value', $tempEv3);
+			$input->iface->emit('port.value', $tempEv3);
 
-		$node = &$input->iface->node;
-		if($node->instance->_importing)
-			$node->instance->executionOrder->add($node, $this);
-		elseif(count($node->routes->in) === 0)
-			$node->_bpUpdate($this);
+			$node = &$input->iface->node;
+			if($node->instance->_importing)
+				$node->instance->executionOrder->add($node, $this);
+			elseif(count($node->routes->in) === 0)
+				$node->_bpUpdate($this);
+		}
 	}
 
 	// For debugging
 	public function _print(){
 		echo "\nCable: {$this->output->iface->title}.{$this->output->name} -> {$this->input->name}.{$this->input->iface->title}";
+	}
+
+	public function visualizeFlow(){
+		$instance = $this->owner->iface->node->instance;
+		if($instance->_remote !== null):
+			$instance->_emit('_flowEvent', new EvCable($this))
 	}
 
 	// ToDo: redesign after https://github.com/php/php-src/pull/6873 been merged

@@ -150,7 +150,7 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 
 		$schema[$name] = &$type;
 		$this->_insEventsRef->refreshFields($this->data['namespace']);
-		$this->node->instance->_emit('event.field.created', new EvEFCreate(
+		$this->node->instance->_emit('event.field.created', new \Blackprint\EvEFieldCreated(
 			$name,
 			$this->data['namespace']
 		));
@@ -160,7 +160,7 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 		if($schema[$name] == null || $schema[$to] != null) return;
 
 		$this->_insEventsRef->_renameFields($this->data['namespace'], $name, $to);
-		$this->node->instance->_emit('event.field.renamed', new EvEFRename(
+		$this->node->instance->_emit('event.field.renamed', new \Blackprint\EvEFieldRenamed(
 			$name,
 			$to,
 			$this->data['namespace']
@@ -172,7 +172,7 @@ class BPEventListenEmit extends \Blackprint\Interfaces {
 
 		unset($schema[$name]);
 		$this->_insEventsRef->refreshFields($this->data['namespace']);
-		$this->node->instance->_emit('event.field.deleted', new EvEFDelete(
+		$this->node->instance->_emit('event.field.deleted', new \Blackprint\EvEFieldDeleted(
 			$name,
 			$this->data['namespace']
 		));
@@ -208,13 +208,3 @@ class IEventListen extends BPEventListenEmit {
 
 class IEnvEmit extends BPEventListenEmit { }
 \Blackprint\registerInterface('BPIC/BP/Event/Emit', IEnvEmit::class);
-
-class EvEFCreate {
-	function __construct(public $name, public $namespace){}
-}
-class EvEFRename {
-	function __construct(public $name, public $to, public $namespace){}
-}
-class EvEFDelete {
-	function __construct(public $name, public $namespace){}
-}

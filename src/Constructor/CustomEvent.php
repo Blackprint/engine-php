@@ -4,6 +4,7 @@ namespace Blackprint\Constructor;
 class CustomEvent {
 	private $events = [];
 	private $once = [];
+	public $_currentEventName = null;
 
 	public function on($eventName, $func, $once = false){
 		if(str_contains($eventName, ' ')){
@@ -69,18 +70,19 @@ class CustomEvent {
 		$events = &$this->events;
 		$once = &$this->once;
 
+		$this->_currentEventName = $eventName;
+
 		if(isset($events[$eventName])){
 			$evs1 = &$events[$eventName];
-			foreach ($evs1 as &$val)
-				$val($data);
+			foreach ($evs1 as &$val) $val($data);
 		}
 
 		if(isset($once[$eventName])){
 			$evs2 = $once[$eventName];
 			unset($once[$eventName]);
-
-			foreach ($evs2 as &$val)
-				$val($data);
+			foreach ($evs2 as &$val) $val($data);
 		}
+
+		$this->_currentEventName = null;
 	}
 }
