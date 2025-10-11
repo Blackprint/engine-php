@@ -83,14 +83,15 @@ class Cable{
 		$out->emit('connect', $tempEv2);
 
 		if($this->output->value !== null) {
-			$input = &$this->input;
-			$tempEv3 = new \Blackprint\EvPortValue($input, $this->output, $this);
-			$input->emit('value', $tempEv3);
-			$input->iface->emit('port.value', $tempEv3);
+			$tempEv3 = new \Blackprint\EvPortValue($inp, $this->output, $this);
+			$inp->emit('value', $tempEv3);
+			$inp->iface->emit('port.value', $tempEv3);
 
-			$node = &$input->iface->node;
-			if($node->instance->_importing)
+			$node = &$inp->iface->node;
+			if($node->instance->_importing){
+				if ($node->partialUpdate) $inp->_hasUpdateCable = $this;
 				$node->instance->executionOrder->add($node, $this);
+			}
 			elseif(count($node->routes->in) === 0)
 				$node->_bpUpdate($this);
 		}

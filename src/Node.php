@@ -220,6 +220,7 @@ class Node {
 	public function destroy(){}
 	public function init(){}
 	public function syncIn($id, &$data, $isRemote = false){}
+	public function notifyEditorDataChanged(){} // Do nothing, this only required for Blackprint.Sketch
 }
 
 class NodeLog {
