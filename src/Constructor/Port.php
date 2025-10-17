@@ -213,10 +213,10 @@ class Port extends CustomEvent {
 		foreach ($cables as &$cable) {
 			$inp = &$cable->input;
 			if($inp === null) continue;
-			$inp->_cache = null;
 
 			if($inp->_cache != null && $instance->executionOrder->stepMode)
-				$inp->_oldCache = &$inp->_cache;
+				$inp->_oldCache = $inp->_cache;
+			$inp->_cache = null;
 
 			$inpIface = &$inp->iface;
 			$inpNode = &$inpIface->node;

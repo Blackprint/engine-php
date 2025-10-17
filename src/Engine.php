@@ -386,7 +386,8 @@ class Engine extends Constructor\CustomEvent {
 		}
 
 		$this->_importing = false;
-		$this->emit("json.imported", new EvJsonImported($options['appendMode'], $appendLength, $inserted, $json));
+		$_eventData2 = new EvJsonImported($options['appendMode'], $appendLength, $inserted, $json);
+		$this->emit("json.imported", $_eventData2);
 		$this->executionOrder->start();
 
 		return $inserted;

@@ -327,8 +327,8 @@ class ExecutionOrder {
 		$nextIface = &$next->iface;
 		$next->_bpUpdating = true;
 
-		if($next->partialUpdate && $next->update == null)
-			$next->partialUpdate = false;
+		// if($next->partialUpdate && $next->update == null)
+		// 	$next->partialUpdate = false;
 
 		$_proxyInput = null;
 		if($nextIface->_enum === \Blackprint\Nodes\Enums::BPFnMain){
