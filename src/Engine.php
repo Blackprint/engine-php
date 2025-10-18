@@ -94,9 +94,10 @@ class Engine extends Constructor\CustomEvent {
 		$list = &$this->ifaceList;
 		$i = array_search($iface, $list);
 
+		$iface->_bpDestroy = true;
+		$eventData = new EvIface($iface);
+
 		if($i !== -1){
-			$iface->_bpDestroy = true;
-			$eventData = new EvIface($iface);
 			$this->_emit('node.delete', $eventData);
 			array_splice($list, $i, 1);
 		}
