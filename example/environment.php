@@ -1,6 +1,7 @@
 <?php
 namespace App;
 require_once('../vendor/autoload.php');
+require_once('./_utils.php');
 
 \Blackprint\Environment::set('TEST', 12345);
 \Blackprint\Environment::import([ 'TEST2'=> 54321 ]);
@@ -8,10 +9,6 @@ require_once('../vendor/autoload.php');
 	'allowGet'=> [], // empty = disable any connection
 	// 'allowGet'=> [], // empty = disable any connection
 ]);
-
-function colorLog($bright, $dark=''){
-	echo "\n\x1b[1m\x1b[33m$bright\x1b[0m \x1b[33m$dark\x1b[0m";
-}
 
 // The nodes and interface is almost similar with the engine-js example
 // When creating your own interface please use specific interface naming

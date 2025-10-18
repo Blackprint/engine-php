@@ -1,10 +1,7 @@
 <?php
 namespace App;
 require_once('../vendor/autoload.php');
-
-function colorLog($bright, $dark=''){
-	echo "\n\x1b[1m\x1b[33m$bright\x1b[0m \x1b[33m$dark\x1b[0m";
-}
+require_once('./_utils.php');
 
 // The nodes and interface is almost similar with the engine-js example
 // When creating your own interface please use specific interface naming
